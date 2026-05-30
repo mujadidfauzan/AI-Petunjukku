@@ -1,12 +1,14 @@
 # Petunjukku AI Service
 
-AI Service Petunjukku adalah backend berbasis **FastAPI** yang bertanggung jawab untuk menjalankan proses AI, RAG, embedding, FAISS vector search, rekomendasi isian RPP, chatbot Kina, generate RPP, dan export dokumen.
+Petunjukku AI Service adalah backend berbasis **FastAPI** yang bertanggung jawab untuk menjalankan proses AI pada aplikasi Petunjukku, seperti **RAG retrieval**, **AI recommendation**, **Kina Chat**, **summary chat**, dan **generate teks RPP**.
 
-Service ini **tidak dipanggil langsung oleh frontend**. Frontend Next.js hanya berkomunikasi dengan NestJS Application Backend. NestJS kemudian memanggil FastAPI AI Service melalui internal API.
+Service ini **tidak dipanggil langsung oleh frontend**. Frontend Next.js hanya berkomunikasi dengan **NestJS Application Backend**. NestJS kemudian memanggil FastAPI melalui internal API.
+
+FastAPI **tidak bertanggung jawab membuat file PDF atau DOCX**. FastAPI hanya menghasilkan teks atau JSON terstruktur dari LLM. Proses memasukkan hasil AI ke template PDF/DOCX dilakukan oleh NestJS atau frontend menggunakan template dokumen yang sudah dibuat oleh tim.
 
 ---
 
-## 1. Peran AI Service dalam Arsitektur Petunjukku
+## 1. Posisi AI Service dalam Arsitektur Petunjukku
 
 Arsitektur utama Petunjukku:
 
@@ -22,42 +24,130 @@ FAISS / RAG / LLM
 
 Pembagian tanggung jawab:
 
-| Komponen            | Tanggung Jawab                                                  |
-| ------------------- | --------------------------------------------------------------- |
-| Next.js             | Tampilan aplikasi, Studio Guru, form stage, preview RPP         |
-| NestJS              | Auth, user, teacher profile, RPP project, stage, database utama |
-| Supabase PostgreSQL | Penyimpanan data aplikasi                                       |
-| FastAPI AI Service  | RAG, AI recommendation, Kina chat, generate RPP, export dokumen |
-| FAISS               | Vector search dokumen Capaian Pembelajaran                      |
-| LLM API             | Generate rekomendasi, chat, dan dokumen RPP                     |
+| Komponen            | Tanggung Jawab                                                           |
+| ------------------- | ------------------------------------------------------------------------ |
+| Next.js             | UI, form stage, preview RPP, export action                               |
+| NestJS              | Auth, user, teacher profile, RPP project, stage, database, orchestration |
+| Supabase PostgreSQL | Penyimpanan data aplikasi                                                |
+| FastAPI             | AI recommendation, RAG, Kina Chat, generate teks RPP                     |
+| FAISS               | Vector search dokumen Capaian Pembelajaran                               |
+| LLM API             | Generate rekomendasi, jawaban chat, dan teks RPP                         |
 
 ---
 
-## 2. Fungsi Utama AI Service
+## 2. Prinsip Utama AI Service
 
-AI Service tidak hanya digunakan untuk chatbot. AI Service memiliki beberapa fungsi utama:
+AI Service mengikuti prinsip berikut:
 
-1. **RAG Retrieval**
-   Mengambil referensi resmi Capaian Pembelajaran dari dokumen pemerintah menggunakan embedding dan FAISS.
-
-2. **AI Recommendation**
-   Membuat rekomendasi isian stage RPP, misalnya rekomendasi Tujuan Pembelajaran dari Capaian Pembelajaran.
-
-3. **Kina Chat**
-   Menyediakan respons chatbot AI untuk diskusi guru pada stage tertentu.
-
-4. **Kina Chat Summary**
-   Merangkum hasil diskusi Kina menjadi data terstruktur untuk disimpan ke `rpp_stages.content_json`.
-
-5. **Final RPP Generation**
-   Membuat draft final RPP berdasarkan seluruh data stage, profil guru, kelas, sekolah, dan referensi RAG.
-
-6. **Document Generation**
-   Mengubah hasil RPP menjadi file DOCX atau PDF.
+1. **FastAPI hanya dipanggil oleh NestJS**, bukan oleh frontend.
+2. **FastAPI tidak menyimpan data utama aplikasi** seperti project RPP, stage, chat, atau hasil generated RPP.
+3. **FastAPI tidak membuat file PDF/DOCX**.
+4. **FastAPI hanya mengembalikan hasil AI berupa teks atau JSON terstruktur**.
+5. **NestJS yang menyimpan hasil AI ke Supabase**.
+6. **Guru tetap melakukan review/edit sebelum hasil AI disimpan sebagai bagian final RPP**.
 
 ---
 
-## 3. Struktur Folder Repo
+## 3. Fungsi Utama FastAPI
+
+FastAPI AI Service memiliki beberapa fungsi utama:
+
+### 3.1 RAG Retrieval
+
+Mengambil referensi Capaian Pembelajaran dari dokumen resmi menggunakan embedding dan FAISS.
+
+Contoh penggunaan:
+
+- mencari CP berdasarkan fase dan mata pelajaran,
+- mengambil referensi CP untuk Stage 2,
+- mengambil konteks resmi untuk generate RPP,
+- memberi dasar referensi pada Kina Chat.
+
+---
+
+### 3.2 AI Recommendation
+
+Membuat rekomendasi isian stage RPP.
+
+Contoh:
+
+- rekomendasi Tujuan Pembelajaran dari Capaian Pembelajaran,
+- rekomendasi aktivitas pembelajaran,
+- rekomendasi asesmen,
+- rekomendasi rubrik,
+- rekomendasi diferensiasi,
+- rekomendasi pertanyaan pemantik.
+
+Contoh kasus utama:
+
+```text
+Stage 2 Intrakurikuler
+↓
+RAG mencari Capaian Pembelajaran
+↓
+LLM membuat rekomendasi Tujuan Pembelajaran
+↓
+FastAPI return JSON rekomendasi
+↓
+NestJS return ke frontend
+↓
+Guru review/edit
+↓
+Hasil final disimpan ke rpp_stages.content_json
+```
+
+---
+
+### 3.3 Kina Chat
+
+Menghasilkan jawaban chatbot Kina berdasarkan konteks project RPP, stage yang sudah diisi, profil guru, kelas, dan chat history.
+
+FastAPI hanya menghasilkan jawaban. Penyimpanan chat ke tabel `kina_chats` dilakukan oleh NestJS.
+
+---
+
+### 3.4 Summarize Kina Chat
+
+Merangkum diskusi Kina menjadi JSON terstruktur agar dapat disimpan sebagai bagian dari Stage 3.
+
+Contoh hasil summary:
+
+- ringkasan diskusi,
+- strategi pembelajaran,
+- alur kegiatan,
+- rencana diferensiasi,
+- fokus asesmen,
+- kendala dan mitigasi.
+
+---
+
+### 3.5 Generate Final RPP Text
+
+Membuat teks final RPP berdasarkan:
+
+- data project,
+- profil guru,
+- sekolah,
+- kelas,
+- mapel,
+- stage 1–5,
+- hasil diskusi Kina,
+- referensi CP dari RAG.
+
+FastAPI mengembalikan:
+
+```text
+contentJson
+contentMarkdown
+usedReferences
+model
+```
+
+FastAPI tidak membuat file dokumen. File PDF/DOCX dibuat setelah data ini dimasukkan ke template oleh sistem utama.
+
+---
+
+## 4. Struktur Folder Repo
 
 Struktur folder yang disarankan:
 
@@ -72,14 +162,13 @@ petunjukku-ai-service/
 │   ├── routers/
 │   │   ├── health.py
 │   │   ├── rag.py
-│   │   ├── ai.py
-│   │   └── documents.py
+│   │   └── ai.py
 │   ├── schemas/
+│   │   ├── common_schema.py
 │   │   ├── rag_schema.py
 │   │   ├── recommendation_schema.py
 │   │   ├── kina_schema.py
-│   │   ├── generate_rpp_schema.py
-│   │   └── document_schema.py
+│   │   └── generate_rpp_schema.py
 │   ├── services/
 │   │   ├── rag_service.py
 │   │   ├── embedding_service.py
@@ -88,10 +177,8 @@ petunjukku-ai-service/
 │   │   ├── prompt_builder_service.py
 │   │   ├── recommendation_service.py
 │   │   ├── kina_ai_service.py
+│   │   ├── kina_summary_service.py
 │   │   ├── rpp_generation_service.py
-│   │   ├── document_generation_service.py
-│   │   ├── docx_export_service.py
-│   │   ├── pdf_export_service.py
 │   │   └── llm_client.py
 │   ├── utils/
 │   │   ├── json_parser.py
@@ -116,7 +203,7 @@ petunjukku-ai-service/
 
 ---
 
-## 4. Penjelasan Folder
+## 5. Penjelasan Folder
 
 ### `app/main.py`
 
@@ -126,84 +213,82 @@ Tugas:
 
 - membuat instance FastAPI,
 - mendaftarkan router,
-- mengatur CORS internal jika dibutuhkan,
-- menjalankan startup event untuk load FAISS index.
+- mengatur startup event,
+- memuat FAISS index jika tersedia,
+- menjalankan konfigurasi global.
 
 ---
 
 ### `app/core/`
 
-Berisi konfigurasi global aplikasi.
+Berisi konfigurasi utama aplikasi.
 
 | File          | Fungsi                                |
 | ------------- | ------------------------------------- |
 | `config.py`   | Membaca environment variable          |
 | `security.py` | Validasi internal API key dari NestJS |
-| `logging.py`  | Konfigurasi logging service           |
+| `logging.py`  | Konfigurasi logging aplikasi          |
 
 ---
 
 ### `app/routers/`
 
-Berisi definisi endpoint FastAPI.
+Berisi endpoint FastAPI.
 
-| File           | Endpoint                                                                              |
-| -------------- | ------------------------------------------------------------------------------------- |
-| `health.py`    | `/internal/health`                                                                    |
-| `rag.py`       | `/internal/rag/search`, `/internal/rag/index-documents`, `/internal/rag/references`   |
-| `ai.py`        | `/internal/ai/recommend-stage`, `/internal/ai/kina-chat`, `/internal/ai/generate-rpp` |
-| `documents.py` | `/internal/documents/export-docx`, `/internal/documents/export-pdf`                   |
+| File        | Endpoint                                                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `health.py` | `/internal/health`                                                                                                        |
+| `rag.py`    | `/internal/rag/search`, `/internal/rag/index-documents`, `/internal/rag/references`                                       |
+| `ai.py`     | `/internal/ai/recommend-stage`, `/internal/ai/kina-chat`, `/internal/ai/summarize-kina-chat`, `/internal/ai/generate-rpp` |
 
 ---
 
 ### `app/schemas/`
 
-Berisi Pydantic schema untuk request dan response.
+Berisi Pydantic schema untuk validasi request dan response.
 
-| File                       | Fungsi                      |
-| -------------------------- | --------------------------- |
-| `rag_schema.py`            | Schema request/response RAG |
-| `recommendation_schema.py` | Schema rekomendasi stage    |
-| `kina_schema.py`           | Schema chatbot Kina         |
-| `generate_rpp_schema.py`   | Schema generate final RPP   |
-| `document_schema.py`       | Schema export dokumen       |
+| File                       | Fungsi                                                     |
+| -------------------------- | ---------------------------------------------------------- |
+| `common_schema.py`         | Schema umum seperti project, teacher, school, class, stage |
+| `rag_schema.py`            | Schema RAG search dan RAG references                       |
+| `recommendation_schema.py` | Schema rekomendasi stage                                   |
+| `kina_schema.py`           | Schema Kina Chat dan summary                               |
+| `generate_rpp_schema.py`   | Schema generate final RPP text                             |
 
 ---
 
 ### `app/services/`
 
-Berisi business logic utama AI Service.
+Berisi business logic AI.
 
-| File                             | Fungsi                                         |
-| -------------------------------- | ---------------------------------------------- |
-| `rag_service.py`                 | Mengatur proses retrieval dokumen CP           |
-| `embedding_service.py`           | Membuat embedding dari query atau dokumen      |
-| `faiss_service.py`               | Load, search, dan update index FAISS           |
-| `cp_reference_service.py`        | Mengambil metadata CP dari Supabase/PostgreSQL |
-| `prompt_builder_service.py`      | Menyusun prompt untuk LLM                      |
-| `recommendation_service.py`      | Membuat rekomendasi isian stage                |
-| `kina_ai_service.py`             | Membuat respons chatbot Kina                   |
-| `rpp_generation_service.py`      | Generate final RPP                             |
-| `document_generation_service.py` | Orkestrasi export dokumen                      |
-| `docx_export_service.py`         | Generate file DOCX                             |
-| `pdf_export_service.py`          | Generate file PDF                              |
-| `llm_client.py`                  | Client untuk Gemini/OpenRouter/LLM API         |
+| File                        | Fungsi                                                 |
+| --------------------------- | ------------------------------------------------------ |
+| `rag_service.py`            | Mengatur proses retrieval CP                           |
+| `embedding_service.py`      | Membuat embedding query dan dokumen                    |
+| `faiss_service.py`          | Load, search, dan update FAISS index                   |
+| `cp_reference_service.py`   | Mengambil metadata CP dari database atau metadata file |
+| `prompt_builder_service.py` | Menyusun prompt LLM                                    |
+| `recommendation_service.py` | Membuat rekomendasi isian stage                        |
+| `kina_ai_service.py`        | Membuat jawaban chatbot Kina                           |
+| `kina_summary_service.py`   | Merangkum diskusi Kina                                 |
+| `rpp_generation_service.py` | Generate teks final RPP                                |
+| `llm_client.py`             | Client untuk Gemini/OpenRouter/LLM API                 |
 
 ---
 
 ### `app/data/`
 
-Berisi data dokumen dan vector store lokal.
+Berisi dokumen dan vector store.
 
-| Folder              | Fungsi                                       |
-| ------------------- | -------------------------------------------- |
-| `raw_documents/`    | Menyimpan PDF CP atau dokumen kurikulum asli |
-| `processed_chunks/` | Menyimpan hasil chunking dokumen             |
-| `vector_store/`     | Menyimpan FAISS index dan metadata           |
+| Folder              | Fungsi                                 |
+| ------------------- | -------------------------------------- |
+| `raw_documents/`    | Dokumen PDF asli seperti CP pemerintah |
+| `processed_chunks/` | Hasil chunking dokumen                 |
+| `vector_store/`     | FAISS index dan metadata vector        |
 
 ---
 
-## 5. Environment Variable
+## 6. Environment Variable
 
 Buat file `.env` berdasarkan `.env.example`.
 
@@ -219,6 +304,7 @@ INTERNAL_API_KEY="change-this-internal-key"
 LLM_PROVIDER="openrouter"
 OPENROUTER_API_KEY="your-openrouter-api-key"
 GEMINI_API_KEY="your-gemini-api-key"
+LLM_MODEL="gemini-1.5-flash"
 
 EMBEDDING_MODEL_NAME="sentence-transformers/all-MiniLM-L6-v2"
 
@@ -231,24 +317,24 @@ FAISS_METADATA_PATH="app/data/vector_store/cp_metadata.json"
 
 Catatan:
 
-- `INTERNAL_API_KEY` digunakan agar endpoint FastAPI hanya dapat dipanggil oleh NestJS.
-- `SUPABASE_SERVICE_ROLE_KEY` hanya boleh digunakan di backend, bukan frontend.
-- `FAISS_INDEX_PATH` adalah lokasi file index FAISS.
-- `FAISS_METADATA_PATH` adalah mapping metadata vector ke `cp_references`.
+- `INTERNAL_API_KEY` dipakai untuk melindungi endpoint internal.
+- `SUPABASE_SERVICE_ROLE_KEY` hanya boleh dipakai di backend.
+- Jangan commit `.env` ke repository.
+- Jika RAG metadata disimpan dalam file lokal, `SUPABASE_SERVICE_ROLE_KEY` belum wajib dipakai pada tahap dummy/MVP awal.
 
 ---
 
-## 6. Endpoint FastAPI
+## 7. Endpoint FastAPI
 
-Semua endpoint FastAPI menggunakan prefix `/internal` karena service ini hanya dipanggil oleh NestJS.
+Semua endpoint menggunakan prefix `/internal`.
 
 ---
 
-# 6.1 Health Check
+# 7.1 Health Check
 
 ## `GET /internal/health`
 
-Endpoint untuk mengecek status AI Service.
+Endpoint untuk mengecek apakah AI Service berjalan.
 
 ### Response
 
@@ -256,18 +342,18 @@ Endpoint untuk mengecek status AI Service.
 {
   "status": "ok",
   "service": "petunjukku-ai-service",
-  "faiss": "ok",
+  "rag": "ok",
   "llm": "configured"
 }
 ```
 
 ---
 
-# 6.2 RAG Search
+# 7.2 RAG Search
 
 ## `POST /internal/rag/search`
 
-Endpoint untuk mencari referensi Capaian Pembelajaran berdasarkan query, fase, dan mata pelajaran.
+Endpoint untuk mencari referensi Capaian Pembelajaran.
 
 ### Request
 
@@ -306,7 +392,7 @@ Endpoint untuk mencari referensi Capaian Pembelajaran berdasarkan query, fase, d
 
 ---
 
-# 6.3 AI Stage Recommendation
+# 7.3 AI Stage Recommendation
 
 ## `POST /internal/ai/recommend-stage`
 
@@ -314,9 +400,9 @@ Endpoint untuk membuat rekomendasi isian stage RPP.
 
 Contoh penggunaan:
 
-- Stage 2 Intrakurikuler: membuat Tujuan Pembelajaran dari CP.
-- Stage 4 Intrakurikuler: membuat asesmen dan rubrik.
-- Stage 2 PjBL: membuat tujuan proyek dan ide aktivitas.
+- Stage 2 Intrakurikuler: rekomendasi Tujuan Pembelajaran dari CP.
+- Stage 4 Intrakurikuler: rekomendasi asesmen dan rubrik.
+- Stage 2 PjBL: rekomendasi tujuan proyek dan aktivitas awal.
 
 ### Request
 
@@ -404,11 +490,11 @@ Contoh penggunaan:
 
 Catatan:
 
-Endpoint ini tidak menyimpan hasil rekomendasi ke database. NestJS/frontend akan menampilkan rekomendasi ke guru. Guru dapat mengedit atau menerima rekomendasi tersebut, lalu hasil final disimpan ke `rpp_stages.content_json` melalui Stage API NestJS.
+Endpoint ini tidak menyimpan hasil rekomendasi ke database. Hasil akan ditampilkan kepada guru untuk direview, diedit, lalu disimpan oleh NestJS ke `rpp_stages.content_json`.
 
 ---
 
-# 6.4 Kina Chat
+# 7.4 Kina Chat
 
 ## `POST /internal/ai/kina-chat`
 
@@ -470,15 +556,15 @@ Endpoint untuk menghasilkan respons chatbot Kina.
 
 Catatan:
 
-FastAPI hanya menghasilkan respons. Penyimpanan chat ke tabel `kina_chats` dilakukan oleh NestJS.
+FastAPI hanya menghasilkan jawaban. Penyimpanan chat dilakukan oleh NestJS ke tabel `kina_chats`.
 
 ---
 
-# 6.5 Summarize Kina Chat
+# 7.5 Summarize Kina Chat
 
 ## `POST /internal/ai/summarize-kina-chat`
 
-Endpoint untuk merangkum percakapan Kina menjadi data terstruktur yang dapat disimpan ke stage.
+Endpoint untuk merangkum percakapan Kina menjadi JSON terstruktur.
 
 ### Request
 
@@ -528,11 +614,13 @@ Endpoint untuk merangkum percakapan Kina menjadi data terstruktur yang dapat dis
 
 ---
 
-# 6.6 Generate Final RPP
+# 7.6 Generate Final RPP Text
 
 ## `POST /internal/ai/generate-rpp`
 
-Endpoint untuk membuat draft final RPP berdasarkan seluruh data project dan stage.
+Endpoint untuk menghasilkan teks final RPP.
+
+FastAPI hanya menghasilkan teks dan JSON terstruktur. FastAPI tidak menghasilkan PDF atau DOCX.
 
 ### Request
 
@@ -583,6 +671,13 @@ Endpoint untuk membuat draft final RPP berdasarkan seluruh data project dan stag
 {
   "status": "success",
   "model": "gemini-1.5-flash",
+  "usedReferences": [
+    {
+      "cpReferenceId": "uuid",
+      "sourceTitle": "Capaian Pembelajaran IPA Fase D",
+      "similarityScore": 0.86
+    }
+  ],
   "contentJson": {
     "title": "RPP Sistem Pencernaan Manusia",
     "identity": {},
@@ -598,11 +693,11 @@ Endpoint untuk membuat draft final RPP berdasarkan seluruh data project dan stag
 
 Catatan:
 
-NestJS yang menyimpan response ini ke tabel `generated_rpps`.
+Response dari endpoint ini disimpan oleh NestJS ke tabel `generated_rpps`.
 
 ---
 
-# 6.7 Index RAG Documents
+# 7.7 Index RAG Documents
 
 ## `POST /internal/rag/index-documents`
 
@@ -633,11 +728,11 @@ Endpoint untuk indexing dokumen Capaian Pembelajaran ke FAISS.
 
 ---
 
-# 6.8 RAG References
+# 7.8 RAG References
 
 ## `GET /internal/rag/references`
 
-Endpoint untuk melihat daftar referensi CP yang sudah tersedia.
+Endpoint untuk melihat daftar referensi CP yang tersedia.
 
 ### Query Params
 
@@ -665,74 +760,68 @@ documentType=capaian_pembelajaran
 
 ---
 
-# 6.9 Export DOCX
+## 8. Endpoint yang Tidak Ada di FastAPI
 
-## `POST /internal/documents/export-docx`
+FastAPI tidak menyediakan endpoint berikut:
 
-Endpoint untuk membuat file DOCX dari RPP.
-
-### Request
-
-```json
-{
-  "generatedRppId": "uuid",
-  "contentJson": {},
-  "contentMarkdown": "# RPP ..."
-}
+```text
+POST /internal/documents/export-docx
+POST /internal/documents/export-pdf
 ```
 
-### Response
+Alasannya:
 
-```json
-{
-  "fileName": "rpp-sistem-pencernaan.docx",
-  "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "fileBase64": "..."
-}
+- FastAPI tidak membuat file dokumen.
+- LLM hanya menghasilkan teks atau JSON.
+- Template PDF/DOCX sudah dibuat oleh tim.
+- Proses memasukkan hasil AI ke template dilakukan oleh NestJS atau frontend.
+
+---
+
+## 9. Flow Generate Dokumen
+
+Flow yang benar:
+
+```text
+Guru klik Generate RPP
+↓
+Next.js call NestJS
+↓
+NestJS ambil project, profile, school, subject, class, stages
+↓
+NestJS call FastAPI /internal/ai/generate-rpp
+↓
+FastAPI return contentJson dan contentMarkdown
+↓
+NestJS simpan ke generated_rpps
+↓
+Guru membuka preview
+↓
+Guru klik Export PDF/DOCX
+↓
+NestJS/frontend memasukkan contentJson ke template dokumen
+↓
+File final disimpan ke Supabase Storage
+↓
+Metadata file disimpan ke exported_documents
 ```
 
 ---
 
-# 6.10 Export PDF
+## 10. Prioritas Implementasi
 
-## `POST /internal/documents/export-pdf`
-
-Endpoint untuk membuat file PDF dari RPP.
-
-### Request
-
-```json
-{
-  "generatedRppId": "uuid",
-  "contentJson": {},
-  "contentMarkdown": "# RPP ..."
-}
-```
-
-### Response
-
-```json
-{
-  "fileName": "rpp-sistem-pencernaan.pdf",
-  "mimeType": "application/pdf",
-  "fileBase64": "..."
-}
-```
-
----
-
-## 7. Prioritas Implementasi
-
-Untuk tahap awal, implementasi dilakukan bertahap.
-
-### Tahap 1 — Integrasi Dasar
+### Tahap 1 — Dummy AI Service
 
 ```text
 GET  /internal/health
 POST /internal/ai/recommend-stage
 ```
 
-Pada tahap ini, response boleh dummy terlebih dahulu agar NestJS dapat menguji koneksi ke FastAPI.
+Tujuan:
+
+- memastikan FastAPI berjalan,
+- memastikan NestJS bisa memanggil FastAPI,
+- response masih boleh dummy.
 
 ---
 
@@ -743,25 +832,28 @@ POST /internal/rag/search
 POST /internal/rag/index-documents
 ```
 
-Pada tahap ini, FAISS mulai digunakan untuk mencari dokumen CP.
+Tujuan:
+
+- indexing dokumen CP,
+- membuat embedding,
+- mencari referensi CP dari FAISS.
 
 ---
 
-### Tahap 3 — LLM Recommendation
+### Tahap 3 — Recommendation dengan RAG + LLM
 
 ```text
 POST /internal/ai/recommend-stage
 ```
 
-Endpoint recommendation mulai menggunakan:
+Tujuan:
 
-```text
-RAG → Prompt Builder → LLM → JSON recommendation
-```
+- Stage 2 Intrakurikuler bisa mengambil CP dari RAG,
+- LLM menghasilkan rekomendasi Tujuan Pembelajaran.
 
 ---
 
-### Tahap 4 — Chatbot Kina
+### Tahap 4 — Kina Chat
 
 ```text
 POST /internal/ai/kina-chat
@@ -770,17 +862,15 @@ POST /internal/ai/summarize-kina-chat
 
 ---
 
-### Tahap 5 — Final RPP dan Export
+### Tahap 5 — Generate Final RPP Text
 
 ```text
 POST /internal/ai/generate-rpp
-POST /internal/documents/export-docx
-POST /internal/documents/export-pdf
 ```
 
 ---
 
-## 8. Cara Menjalankan Project
+## 11. Cara Menjalankan Project
 
 Install dependency:
 
@@ -802,40 +892,14 @@ curl http://localhost:8000/internal/health
 
 ---
 
-## 9. Contoh Flow Stage 2 Intrakurikuler
+## 12. Catatan Pengembangan
 
-Flow rekomendasi Tujuan Pembelajaran:
-
-```text
-Guru membuka Stage 2 Intrakurikuler
-↓
-Frontend meminta rekomendasi ke NestJS
-↓
-NestJS memanggil FastAPI /internal/ai/recommend-stage
-↓
-FastAPI mencari CP relevan melalui RAG
-↓
-FastAPI mengirim CP + konteks project ke LLM
-↓
-LLM menghasilkan rekomendasi Tujuan Pembelajaran
-↓
-FastAPI return rekomendasi ke NestJS
-↓
-NestJS return ke frontend
-↓
-Guru review/edit
-↓
-Guru menyimpan hasil final ke rpp_stages.content_json
-```
-
----
-
-## 10. Catatan Pengembangan
-
-- FastAPI tidak menyimpan data utama RPP.
-- Penyimpanan project, stage, chat, dan hasil generate tetap dilakukan oleh NestJS.
-- FastAPI hanya menghasilkan output AI dan mengembalikannya ke NestJS.
+- FastAPI hanya menghasilkan teks dan JSON AI.
+- FastAPI tidak menyimpan project, stage, chat, atau generated RPP.
+- FastAPI tidak membuat PDF/DOCX.
+- NestJS tetap menjadi pemilik data aplikasi.
+- NestJS menyimpan hasil AI ke Supabase.
+- NestJS/frontend mengurus template dokumen.
 - FAISS menyimpan vector index.
-- Supabase/PostgreSQL menyimpan metadata referensi CP.
-- LLM API dipanggil hanya dari FastAPI.
-- Endpoint FastAPI bersifat internal dan harus dilindungi dengan internal API key.
+- Supabase/PostgreSQL menyimpan metadata CP jika dibutuhkan.
+- Semua endpoint FastAPI harus dilindungi `INTERNAL_API_KEY`.
