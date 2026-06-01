@@ -1,17 +1,26 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends, FastAPI
 
-from app.config import settings
-from app.routers.kina_router import router
+from app.core.config import settings
+from app.core.logging import configure_logging
+from app.core.security import require_internal_api_key
+from app.routers import ai, health, rag
 
+configure_logging()
 app = FastAPI(title=settings.app_name)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+internal_dependencies = [Depends(require_internal_api_key)]
+app.include_router(
+    health.router,
+    prefix="/internal",
+    dependencies=internal_dependencies,
 )
-
-app.include_router(router)
+app.include_router(
+    rag.router,
+    prefix="/internal",
+    dependencies=internal_dependencies,
+)
+app.include_router(
+    ai.router,
+    prefix="/internal",
+    dependencies=internal_dependencies,
+)

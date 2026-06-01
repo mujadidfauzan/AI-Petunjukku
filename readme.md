@@ -1,6 +1,6 @@
 # Petunjukku AI Service
 
-Petunjukku AI Service adalah backend berbasis **FastAPI** yang bertanggung jawab untuk menjalankan proses AI pada aplikasi Petunjukku, seperti **RAG retrieval**, **AI recommendation**, **Kina Chat**, **summary chat**, dan **generate teks RPP**.
+Petunjukku AI Service adalah backend berbasis **FastAPI** yang bertanggung jawab untuk menjalankan proses AI pada aplikasi Petunjukku, seperti **RAG retrieval**, **AI recommendation Stage 2**, **Kina Chat**, **summary chat**, dan **generate teks RPP**.
 
 Service ini **tidak dipanggil langsung oleh frontend**. Frontend Next.js hanya berkomunikasi dengan **NestJS Application Backend**. NestJS kemudian memanggil FastAPI melalui internal API.
 
@@ -24,14 +24,14 @@ FAISS / RAG / LLM
 
 Pembagian tanggung jawab:
 
-| Komponen            | Tanggung Jawab                                                           |
-| ------------------- | ------------------------------------------------------------------------ |
-| Next.js             | UI, form stage, preview RPP, export action                               |
-| NestJS              | Auth, user, teacher profile, RPP project, stage, database, orchestration |
-| Supabase PostgreSQL | Penyimpanan data aplikasi                                                |
-| FastAPI             | AI recommendation, RAG, Kina Chat, generate teks RPP                     |
-| FAISS               | Vector search dokumen Capaian Pembelajaran                               |
-| LLM API             | Generate rekomendasi, jawaban chat, dan teks RPP                         |
+| Komponen            | Tanggung Jawab                                                             |
+| ------------------- | -------------------------------------------------------------------------- |
+| Next.js             | UI, form stage, preview RPP, export action                                 |
+| NestJS              | Auth, user, teacher profile, RPP project, stage, database, orchestration   |
+| Supabase PostgreSQL | Penyimpanan data aplikasi                                                  |
+| FastAPI             | RAG, AI recommendation Stage 2, Kina Chat, summary chat, generate teks RPP |
+| FAISS               | Vector search dokumen Capaian Pembelajaran                                 |
+| LLM API             | Generate rekomendasi, jawaban chat, summary chat, dan teks RPP             |
 
 ---
 
@@ -45,62 +45,148 @@ AI Service mengikuti prinsip berikut:
 4. **FastAPI hanya mengembalikan hasil AI berupa teks atau JSON terstruktur**.
 5. **NestJS yang menyimpan hasil AI ke Supabase**.
 6. **Guru tetap melakukan review/edit sebelum hasil AI disimpan sebagai bagian final RPP**.
+7. **RAG digunakan sebagai sumber referensi resmi**, terutama untuk mengambil Capaian Pembelajaran yang relevan.
+8. **AI Recommendation hanya digunakan pada Stage 2**.
+9. **Logic AI dipisahkan berdasarkan jenis RPP**, yaitu Intrakurikuler dan PjBL Kokurikuler.
+10. **Endpoint FastAPI tetap umum**, sedangkan pemilihan logic dilakukan oleh AI Orchestrator berdasarkan `project.rppType`.
 
 ---
 
 ## 3. Fungsi Utama FastAPI
 
-FastAPI AI Service memiliki beberapa fungsi utama:
+FastAPI AI Service memiliki beberapa fungsi utama.
 
 ### 3.1 RAG Retrieval
 
-Mengambil referensi Capaian Pembelajaran dari dokumen resmi menggunakan embedding dan FAISS.
+RAG Retrieval digunakan untuk mengambil referensi **Capaian Pembelajaran** dari dokumen resmi menggunakan embedding dan FAISS.
 
 Contoh penggunaan:
 
-- mencari CP berdasarkan fase dan mata pelajaran,
-- mengambil referensi CP untuk Stage 2,
-- mengambil konteks resmi untuk generate RPP,
-- memberi dasar referensi pada Kina Chat.
+- mencari Capaian Pembelajaran berdasarkan fase dan mata pelajaran,
+- mengambil referensi Capaian Pembelajaran untuk Stage 2 Intrakurikuler,
+- mengambil konteks resmi untuk generate final RPP,
+- memberi dasar referensi pada Kina Chat jika diperlukan.
+
+Status saat ini:
+
+```text
+RAG sudah selesai dan dapat digunakan oleh service AI Intrakurikuler maupun PjBL Kokurikuler.
+```
 
 ---
 
-### 3.2 AI Recommendation
+### 3.2 AI Recommendation Stage 2
 
-Membuat rekomendasi isian stage RPP.
+AI Recommendation hanya digunakan pada **Stage 2**.
 
-Contoh:
-
-- rekomendasi Tujuan Pembelajaran dari Capaian Pembelajaran,
-- rekomendasi aktivitas pembelajaran,
-- rekomendasi asesmen,
-- rekomendasi rubrik,
-- rekomendasi diferensiasi,
-- rekomendasi pertanyaan pemantik.
-
-Contoh kasus utama:
+Tidak ada AI Recommendation khusus untuk:
 
 ```text
-Stage 2 Intrakurikuler
+Stage 1
+Stage 3
+Stage 4
+Stage 5
+```
+
+Stage selain Stage 2 tetap bisa menggunakan AI dalam bentuk lain, misalnya Kina Chat, summarize chat, atau generate final RPP. Namun fitur **recommend-stage** hanya difokuskan untuk Stage 2.
+
+---
+
+#### 3.2.1 Recommendation Stage 2 Intrakurikuler
+
+Pada Intrakurikuler, Stage 2 berfokus pada penyusunan **Alur Tujuan Pembelajaran**.
+
+Flow:
+
+```text
+Input project dan konteks pembelajaran
 ↓
-RAG mencari Capaian Pembelajaran
+RAG mengambil Capaian Pembelajaran yang relevan
 ↓
-LLM membuat rekomendasi Tujuan Pembelajaran
+Capaian Pembelajaran dikirim ke LLM sebagai konteks
 ↓
-FastAPI return JSON rekomendasi
+LLM menyusun rekomendasi Alur Tujuan Pembelajaran
 ↓
-NestJS return ke frontend
+FastAPI mengembalikan JSON rekomendasi ke NestJS
+```
+
+Output utama:
+
+```text
+Alur Tujuan Pembelajaran
+```
+
+Catatan penting:
+
+```text
+Capaian Pembelajaran dari RAG = referensi resmi.
+Alur Tujuan Pembelajaran = output rekomendasi LLM.
+```
+
+---
+
+#### 3.2.2 Recommendation Stage 2 PjBL Kokurikuler
+
+Pada PjBL Kokurikuler, Stage 2 berfokus pada rekomendasi **proyek yang akan dilakukan**.
+
+Flow:
+
+```text
+Input semua konteks dari Stage 1
 ↓
-Guru review/edit
+LLM membaca konteks sekolah, siswa, lingkungan, mata pelajaran, fase, dan masalah sekitar
 ↓
-Hasil final disimpan ke rpp_stages.content_json
+LLM menyusun rekomendasi proyek yang akan dilakukan
+↓
+FastAPI mengembalikan JSON rekomendasi ke NestJS
+```
+
+Output utama:
+
+```text
+Rekomendasi Proyek yang Akan Dilakukan
+```
+
+Data utama yang digunakan:
+
+```text
+Semua konteks dari Stage 1
+```
+
+Contoh konteks Stage 1:
+
+- jenjang,
+- fase,
+- mata pelajaran,
+- kelas,
+- karakteristik siswa,
+- kondisi sekolah,
+- lingkungan sekitar,
+- fasilitas yang tersedia,
+- masalah lokal,
+- durasi proyek,
+- batasan pelaksanaan.
+
+Catatan penting:
+
+```text
+PjBL Stage 2 tidak berfokus pada rekomendasi CP sebagai output.
+AI menggunakan konteks Stage 1 untuk menyarankan proyek yang realistis, kontekstual, dan dapat dilakukan oleh siswa.
 ```
 
 ---
 
 ### 3.3 Kina Chat
 
-Menghasilkan jawaban chatbot Kina berdasarkan konteks project RPP, stage yang sudah diisi, profil guru, kelas, dan chat history.
+Kina Chat menghasilkan jawaban chatbot Kina berdasarkan:
+
+- konteks project RPP,
+- stage yang sudah diisi,
+- profil guru,
+- data sekolah,
+- data kelas,
+- riwayat chat,
+- referensi Capaian Pembelajaran dari RAG jika diperlukan.
 
 FastAPI hanya menghasilkan jawaban. Penyimpanan chat ke tabel `kina_chats` dilakukan oleh NestJS.
 
@@ -108,31 +194,32 @@ FastAPI hanya menghasilkan jawaban. Penyimpanan chat ke tabel `kina_chats` dilak
 
 ### 3.4 Summarize Kina Chat
 
-Merangkum diskusi Kina menjadi JSON terstruktur agar dapat disimpan sebagai bagian dari Stage 3.
+Summarize Kina Chat digunakan untuk merangkum diskusi guru dengan Kina menjadi JSON terstruktur agar dapat disimpan sebagai bagian dari stage.
 
-Contoh hasil summary:
+Contoh isi summary:
 
 - ringkasan diskusi,
 - strategi pembelajaran,
 - alur kegiatan,
 - rencana diferensiasi,
 - fokus asesmen,
-- kendala dan mitigasi.
+- kendala dan mitigasi,
+- keputusan akhir guru.
 
 ---
 
 ### 3.5 Generate Final RPP Text
 
-Membuat teks final RPP berdasarkan:
+Generate Final RPP Text digunakan untuk membuat teks final RPP berdasarkan:
 
 - data project,
 - profil guru,
 - sekolah,
 - kelas,
 - mapel,
-- stage 1–5,
+- stage 1 sampai stage 5,
 - hasil diskusi Kina,
-- referensi CP dari RAG.
+- referensi Capaian Pembelajaran dari RAG jika diperlukan.
 
 FastAPI mengembalikan:
 
@@ -143,11 +230,131 @@ usedReferences
 model
 ```
 
-FastAPI tidak membuat file dokumen. File PDF/DOCX dibuat setelah data ini dimasukkan ke template oleh sistem utama.
+FastAPI tidak membuat file dokumen. File PDF/DOCX dibuat setelah data ini dimasukkan ke template oleh NestJS atau frontend.
 
 ---
 
-## 4. Struktur Folder Repo
+## 4. Pembagian Logic AI Berdasarkan Jenis RPP
+
+Petunjukku memiliki dua jenis RPP utama:
+
+```text
+intrakurikuler
+pjbl_kokurikuler
+```
+
+Kedua jenis RPP ini memiliki stage, prompt, struktur output, dan kebutuhan AI yang berbeda. Karena itu, logic FastAPI dipisahkan menjadi dua domain service:
+
+```text
+app/services/intrakurikuler/
+app/services/pjbl/
+```
+
+Endpoint FastAPI tetap sama, tetapi service internal yang dipanggil akan berbeda berdasarkan `project.rppType`.
+
+Contoh flow:
+
+```text
+POST /internal/ai/recommend-stage
+↓
+AI Orchestrator membaca project.rppType dan targetStage.stageNumber
+↓
+Jika intrakurikuler dan stageNumber = 2 → intra_recommendation_service.py
+Jika pjbl_kokurikuler dan stageNumber = 2 → pjbl_recommendation_service.py
+Jika stageNumber selain 2 → return error bahwa recommendation hanya tersedia untuk Stage 2
+```
+
+---
+
+## 5. Pembagian Tugas Developer AI
+
+### 5.1 Developer 1 — AI Intrakurikuler
+
+Developer 1 bertanggung jawab untuk semua logic AI yang berhubungan dengan RPP Intrakurikuler.
+
+Fokus kerja Developer 1:
+
+- recommendation Stage 2 Intrakurikuler,
+- prompt dari CP hasil RAG menjadi rekomendasi Alur Tujuan Pembelajaran,
+- Kina Chat khusus Intrakurikuler,
+- summary Kina Chat untuk Intrakurikuler,
+- generate final text RPP Intrakurikuler.
+
+Folder utama Developer 1:
+
+```text
+app/services/intrakurikuler/
+├── intra_recommendation_service.py
+├── intra_kina_service.py
+├── intra_summary_service.py
+├── intra_generation_service.py
+└── intra_prompt_templates.py
+```
+
+Prioritas awal Developer 1:
+
+```text
+Stage 2 Intrakurikuler
+↓
+RAG mengambil Capaian Pembelajaran yang relevan
+↓
+LLM menyusun rekomendasi Alur Tujuan Pembelajaran
+↓
+FastAPI mengembalikan JSON rekomendasi ke NestJS
+```
+
+Output utama Stage 2 Intrakurikuler:
+
+```text
+Alur Tujuan Pembelajaran
+```
+
+---
+
+### 5.2 Developer 2 — AI PjBL Kokurikuler
+
+Developer 2 bertanggung jawab untuk semua logic AI yang berhubungan dengan RPP PjBL Kokurikuler.
+
+Fokus kerja Developer 2:
+
+- recommendation Stage 2 PjBL Kokurikuler,
+- prompt dari semua konteks Stage 1 menjadi rekomendasi proyek yang akan dilakukan,
+- Kina Chat khusus PjBL Kokurikuler,
+- summary Kina Chat untuk PjBL Kokurikuler,
+- generate final text RPP PjBL Kokurikuler.
+
+Folder utama Developer 2:
+
+```text
+app/services/pjbl/
+├── pjbl_recommendation_service.py
+├── pjbl_kina_service.py
+├── pjbl_summary_service.py
+├── pjbl_generation_service.py
+└── pjbl_prompt_templates.py
+```
+
+Prioritas awal Developer 2:
+
+```text
+Stage 2 PjBL Kokurikuler
+↓
+Mengambil semua konteks dari Stage 1
+↓
+LLM menyusun rekomendasi proyek yang akan dilakukan
+↓
+FastAPI mengembalikan JSON rekomendasi ke NestJS
+```
+
+Output utama Stage 2 PjBL Kokurikuler:
+
+```text
+Rekomendasi Proyek yang Akan Dilakukan
+```
+
+---
+
+## 6. Struktur Folder Repo
 
 Struktur folder yang disarankan:
 
@@ -170,16 +377,25 @@ petunjukku-ai-service/
 │   │   ├── kina_schema.py
 │   │   └── generate_rpp_schema.py
 │   ├── services/
+│   │   ├── ai_orchestrator_service.py
 │   │   ├── rag_service.py
 │   │   ├── embedding_service.py
 │   │   ├── faiss_service.py
 │   │   ├── cp_reference_service.py
 │   │   ├── prompt_builder_service.py
-│   │   ├── recommendation_service.py
-│   │   ├── kina_ai_service.py
-│   │   ├── kina_summary_service.py
-│   │   ├── rpp_generation_service.py
-│   │   └── llm_client.py
+│   │   ├── llm_client.py
+│   │   ├── intrakurikuler/
+│   │   │   ├── intra_recommendation_service.py
+│   │   │   ├── intra_kina_service.py
+│   │   │   ├── intra_summary_service.py
+│   │   │   ├── intra_generation_service.py
+│   │   │   └── intra_prompt_templates.py
+│   │   └── pjbl/
+│   │       ├── pjbl_recommendation_service.py
+│   │       ├── pjbl_kina_service.py
+│   │       ├── pjbl_summary_service.py
+│   │       ├── pjbl_generation_service.py
+│   │       └── pjbl_prompt_templates.py
 │   ├── utils/
 │   │   ├── json_parser.py
 │   │   ├── text_cleaner.py
@@ -193,7 +409,8 @@ petunjukku-ai-service/
 ├── tests/
 │   ├── test_health.py
 │   ├── test_rag.py
-│   └── test_recommendation.py
+│   ├── test_intra_recommendation.py
+│   └── test_pjbl_recommendation.py
 ├── .env
 ├── .env.example
 ├── requirements.txt
@@ -203,7 +420,7 @@ petunjukku-ai-service/
 
 ---
 
-## 5. Penjelasan Folder
+## 7. Penjelasan Folder
 
 ### `app/main.py`
 
@@ -261,18 +478,17 @@ Berisi Pydantic schema untuk validasi request dan response.
 
 Berisi business logic AI.
 
-| File                        | Fungsi                                                 |
-| --------------------------- | ------------------------------------------------------ |
-| `rag_service.py`            | Mengatur proses retrieval CP                           |
-| `embedding_service.py`      | Membuat embedding query dan dokumen                    |
-| `faiss_service.py`          | Load, search, dan update FAISS index                   |
-| `cp_reference_service.py`   | Mengambil metadata CP dari database atau metadata file |
-| `prompt_builder_service.py` | Menyusun prompt LLM                                    |
-| `recommendation_service.py` | Membuat rekomendasi isian stage                        |
-| `kina_ai_service.py`        | Membuat jawaban chatbot Kina                           |
-| `kina_summary_service.py`   | Merangkum diskusi Kina                                 |
-| `rpp_generation_service.py` | Generate teks final RPP                                |
-| `llm_client.py`             | Client untuk Gemini/OpenRouter/LLM API                 |
+| File/Folder                  | Fungsi                                                                        |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| `ai_orchestrator_service.py` | Mengarahkan request ke service Intrakurikuler atau PjBL berdasarkan `rppType` |
+| `rag_service.py`             | Mengatur proses retrieval CP                                                  |
+| `embedding_service.py`       | Membuat embedding query dan dokumen                                           |
+| `faiss_service.py`           | Load, search, dan update FAISS index                                          |
+| `cp_reference_service.py`    | Mengambil metadata CP dari database atau metadata file                        |
+| `prompt_builder_service.py`  | Helper umum untuk menyusun prompt                                             |
+| `llm_client.py`              | Client untuk Gemini/OpenRouter/LLM API                                        |
+| `intrakurikuler/`            | Logic AI khusus RPP Intrakurikuler                                            |
+| `pjbl/`                      | Logic AI khusus RPP PjBL Kokurikuler                                          |
 
 ---
 
@@ -288,7 +504,7 @@ Berisi dokumen dan vector store.
 
 ---
 
-## 6. Environment Variable
+## 8. Environment Variable
 
 Buat file `.env` berdasarkan `.env.example`.
 
@@ -320,23 +536,27 @@ Catatan:
 - `INTERNAL_API_KEY` dipakai untuk melindungi endpoint internal.
 - `SUPABASE_SERVICE_ROLE_KEY` hanya boleh dipakai di backend.
 - Jangan commit `.env` ke repository.
-- Jika RAG metadata disimpan dalam file lokal, `SUPABASE_SERVICE_ROLE_KEY` belum wajib dipakai pada tahap dummy/MVP awal.
+- Jika metadata RAG disimpan dalam file lokal, `SUPABASE_SERVICE_ROLE_KEY` belum wajib dipakai pada tahap awal.
 
 ---
 
-## 7. Endpoint FastAPI
+## 9. Endpoint FastAPI
 
-Semua endpoint menggunakan prefix `/internal`.
+Semua endpoint menggunakan prefix `/internal` dan wajib dipanggil dengan header:
+
+```http
+X-Internal-API-Key: <INTERNAL_API_KEY>
+```
 
 ---
 
-# 7.1 Health Check
+### 9.1 Health Check
 
-## `GET /internal/health`
+#### `GET /internal/health`
 
 Endpoint untuk mengecek apakah AI Service berjalan.
 
-### Response
+Response:
 
 ```json
 {
@@ -349,62 +569,96 @@ Endpoint untuk mengecek apakah AI Service berjalan.
 
 ---
 
-# 7.2 RAG Search
+### 9.2 RAG Search
 
-## `POST /internal/rag/search`
+#### `POST /internal/rag/search`
 
 Endpoint untuk mencari referensi Capaian Pembelajaran.
 
-### Request
+Request:
 
 ```json
 {
   "query": "Sistem Pencernaan Manusia kelas 7 IPA",
   "subject": "IPA",
   "phase": "Fase D",
-  "gradeLevel": "Kelas 7",
   "topK": 5
 }
 ```
 
-### Response
+Response:
 
 ```json
 {
-  "references": [
+  "cpText": "Menganalisis konsep kalor dan termodinamika serta penerapannya untuk mengidentifikasi fenomena perubahan iklim.",
+  "selectedRecordId": "4422bb1b320ac7880a7f779c",
+  "confidence": 0.7399036532336486,
+  "query": "Ambil Capaian Pembelajaran resmi yang paling relevan. mata pelajaran Fisika. fase F. materi pokok atau konteks topik Termodinamika.",
+  "sources": [
     {
-      "cpReferenceId": "uuid",
-      "sourceTitle": "Capaian Pembelajaran IPA Fase D",
-      "documentType": "capaian_pembelajaran",
-      "phase": "Fase D",
-      "subject": "IPA",
-      "element": "Pemahaman IPA",
-      "chunkText": "Peserta didik mampu mengidentifikasi sistem organ...",
-      "similarityScore": 0.87,
+      "document_id": "uuid",
+      "chunk_id": "uuid",
+      "similarity": 0.7399036532336486,
       "metadata": {
-        "page": 12,
-        "fileName": "CP_IPA_Fase_D.pdf"
-      }
+        "source": "Kepka_BSKAP_No_01k17e8396ajn15j3hcw0k773b.pdf",
+        "file_name": "Kepka_BSKAP_No_01k17e8396ajn15j3hcw0k773b.pdf",
+        "mime_type": "application/pdf",
+        "content_type": "cp_record",
+        "cp_record_id": "4422bb1b320ac7880a7f779c",
+        "subject": "FISIKA",
+        "subject_normalized": "fisika",
+        "phase": "F",
+        "phase_class_description": "Umumnya untuk Kelas XI dan XII SMA/MA/Program Paket C",
+        "domain": "Reguler",
+        "lampiran": "II",
+        "jenjang": "SMA",
+        "page": 164,
+        "page_start": 164,
+        "page_end": 166
+      },
+      "preview": "Mata pelajaran: FISIKA Fase: F Jenjang: SMA..."
     }
-  ]
+  ],
+  "models": {
+    "embedding": "google/gemini-embedding-2-preview",
+    "llm": "google/gemini-2.5-flash"
+  }
 }
 ```
 
+Catatan:
+
+`cpText` adalah Capaian Pembelajaran yang ditemukan oleh RAG. Nilai ini digunakan sebagai referensi untuk LLM, bukan sebagai output final stage.
+
 ---
 
-# 7.3 AI Stage Recommendation
+### 9.3 AI Stage 2 Recommendation
 
-## `POST /internal/ai/recommend-stage`
+#### `POST /internal/ai/recommend-stage`
 
-Endpoint untuk membuat rekomendasi isian stage RPP.
+Endpoint untuk membuat rekomendasi isian **Stage 2**.
 
-Contoh penggunaan:
+Endpoint ini hanya digunakan untuk:
 
-- Stage 2 Intrakurikuler: rekomendasi Tujuan Pembelajaran dari CP.
-- Stage 4 Intrakurikuler: rekomendasi asesmen dan rubrik.
-- Stage 2 PjBL: rekomendasi tujuan proyek dan aktivitas awal.
+```text
+Stage 2 Intrakurikuler
+Stage 2 PjBL Kokurikuler
+```
 
-### Request
+Jika `targetStage.stageNumber` bukan `2`, service sebaiknya mengembalikan error validasi bahwa recommendation hanya tersedia untuk Stage 2.
+
+Endpoint ini digunakan untuk dua jenis RPP:
+
+```text
+intrakurikuler
+pjbl_kokurikuler
+```
+
+FastAPI akan memilih service berdasarkan `project.rppType`.
+
+---
+
+#### Request Intrakurikuler Stage 2
 
 ```json
 {
@@ -449,8 +703,8 @@ Contoh penggunaan:
   ],
   "targetStage": {
     "stageNumber": 2,
-    "stageName": "Tujuan Pembelajaran",
-    "recommendationType": "learning_objectives",
+    "stageName": "Alur Tujuan Pembelajaran",
+    "recommendationType": "learning_objectives_flow",
     "topic": "Sistem Pencernaan Manusia"
   },
   "options": {
@@ -461,11 +715,12 @@ Contoh penggunaan:
 }
 ```
 
-### Response
+#### Response Intrakurikuler Stage 2
 
 ```json
 {
-  "recommendationType": "learning_objectives",
+  "rppType": "intrakurikuler",
+  "recommendationType": "learning_objectives_flow",
   "targetStageNumber": 2,
   "ragReferences": [
     {
@@ -476,14 +731,131 @@ Contoh penggunaan:
     }
   ],
   "recommendations": {
-    "capaianPembelajaranSummary": "CP yang relevan berkaitan dengan pemahaman sistem organ dan fungsinya.",
-    "learningObjectives": [
-      "Peserta didik mampu mengidentifikasi organ-organ pada sistem pencernaan manusia.",
-      "Peserta didik mampu menjelaskan fungsi organ pencernaan manusia secara runtut.",
-      "Peserta didik mampu menghubungkan proses pencernaan dengan pentingnya menjaga kesehatan tubuh."
+    "capaianPembelajaranSummary": "Referensi CP yang relevan berkaitan dengan pemahaman sistem organ dan fungsinya.",
+    "alurTujuanPembelajaran": [
+      {
+        "order": 1,
+        "tujuanPembelajaran": "Peserta didik mampu mengidentifikasi organ-organ pada sistem pencernaan manusia.",
+        "rationale": "Tujuan ini menjadi fondasi awal sebelum siswa menjelaskan fungsi setiap organ."
+      },
+      {
+        "order": 2,
+        "tujuanPembelajaran": "Peserta didik mampu menjelaskan fungsi organ pencernaan manusia secara runtut.",
+        "rationale": "Tujuan ini mengembangkan pemahaman siswa dari pengenalan organ menuju hubungan organ dan fungsi."
+      },
+      {
+        "order": 3,
+        "tujuanPembelajaran": "Peserta didik mampu menghubungkan proses pencernaan dengan pentingnya menjaga kesehatan tubuh.",
+        "rationale": "Tujuan ini mengaitkan konsep ilmiah dengan kehidupan sehari-hari siswa."
+      }
     ],
     "suggestedEssentialQuestion": "Bagaimana makanan yang kita konsumsi diproses oleh tubuh menjadi energi?",
-    "reasoningSummary": "Tujuan pembelajaran disusun berdasarkan CP IPA Fase D dan disesuaikan dengan topik sistem pencernaan manusia untuk kelas 7."
+    "reasoningSummary": "Alur Tujuan Pembelajaran disusun berdasarkan CP IPA Fase D yang ditemukan melalui RAG, lalu diurutkan dari pemahaman dasar menuju penerapan kontekstual."
+  }
+}
+```
+
+---
+
+#### Request PjBL Stage 2
+
+Untuk PjBL Kokurikuler, rekomendasi Stage 2 dibuat berdasarkan semua konteks yang sudah diisi pada Stage 1.
+
+```json
+{
+  "project": {
+    "id": "uuid",
+    "title": "RPP PjBL Sampah Plastik",
+    "rppType": "pjbl_kokurikuler",
+    "subject": "IPA",
+    "phase": "Fase D",
+    "gradeLevel": "Kelas 7"
+  },
+  "teacherProfile": {
+    "fullName": "Budi Santoso",
+    "position": "Guru IPA",
+    "educationLevel": "SMP"
+  },
+  "school": {
+    "name": "SMP Negeri 1 Bandung",
+    "province": "Jawa Barat",
+    "city": "Bandung",
+    "schoolEnvironment": "Sekolah berada di area perkotaan.",
+    "availableFacilities": ["Proyektor", "Tempat sampah terpilah", "Halaman sekolah"],
+    "localContext": "Sekolah memiliki masalah sampah plastik setelah jam istirahat."
+  },
+  "teacherClass": {
+    "className": "7A",
+    "gradeLevel": "Kelas 7",
+    "studentCount": 32,
+    "studentCharacteristics": "Siswa aktif dan suka kegiatan praktik.",
+    "learningChallenges": ["Kemampuan kerja kelompok masih perlu diarahkan"],
+    "dominantLearningStyle": "praktik dan visual"
+  },
+  "previousStages": [
+    {
+      "stageNumber": 1,
+      "stageName": "Konteks Dasar Proyek",
+      "contentJson": {
+        "localIssue": "Sampah plastik banyak ditemukan di lingkungan sekolah setelah jam istirahat.",
+        "schoolFacilities": ["Tempat sampah", "Halaman sekolah", "Proyektor"],
+        "studentCharacteristics": "Siswa aktif, suka observasi, tetapi perlu arahan dalam kerja kelompok.",
+        "projectDuration": "3 minggu",
+        "implementationConstraints": ["Waktu terbatas", "Perlu pengawasan saat observasi lingkungan"]
+      }
+    }
+  ],
+  "targetStage": {
+    "stageNumber": 2,
+    "stageName": "Rekomendasi Proyek",
+    "recommendationType": "project_recommendation",
+    "topic": "Sampah Plastik di Lingkungan Sekolah"
+  },
+  "options": {
+    "language": "id",
+    "outputFormat": "json"
+  }
+}
+```
+
+#### Response PjBL Stage 2
+
+```json
+{
+  "rppType": "pjbl_kokurikuler",
+  "recommendationType": "project_recommendation",
+  "targetStageNumber": 2,
+  "recommendations": {
+    "recommendedProjectTitle": "Aksi Sekolah Minim Sampah Plastik",
+    "projectTheme": "Pengelolaan Sampah Plastik di Lingkungan Sekolah",
+    "projectBackground": "Proyek ini berangkat dari masalah banyaknya sampah plastik di lingkungan sekolah setelah jam istirahat. Siswa diajak mengamati masalah, mencari penyebab, merancang solusi sederhana, dan membuat kampanye pengurangan sampah plastik.",
+    "projectObjectives": [
+      "Peserta didik mampu mengidentifikasi masalah sampah plastik di lingkungan sekolah.",
+      "Peserta didik mampu menganalisis penyebab munculnya sampah plastik di lingkungan sekolah.",
+      "Peserta didik mampu merancang solusi sederhana untuk mengurangi sampah plastik.",
+      "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+    ],
+    "drivingQuestion": "Bagaimana cara mengurangi sampah plastik di lingkungan sekolah melalui aksi nyata siswa?",
+    "studentProduct": ["Poster kampanye pengurangan sampah plastik", "Laporan observasi sampah plastik", "Rancangan tempat pemilahan sampah sederhana"],
+    "projectActivitiesOverview": [
+      "Observasi kondisi sampah plastik di lingkungan sekolah.",
+      "Diskusi kelompok tentang penyebab dan dampak sampah plastik.",
+      "Perancangan solusi atau kampanye pengurangan sampah plastik.",
+      "Pembuatan produk kampanye atau prototype sederhana.",
+      "Presentasi hasil proyek di kelas."
+    ],
+    "feasibilityNotes": "Proyek ini realistis dilakukan dalam durasi 3 minggu karena menggunakan fasilitas yang tersedia di sekolah dan dekat dengan pengalaman sehari-hari siswa.",
+    "riskMitigation": [
+      {
+        "risk": "Siswa kurang terarah saat observasi lingkungan.",
+        "mitigation": "Guru menyediakan lembar observasi dan batas area pengamatan."
+      },
+      {
+        "risk": "Waktu pengerjaan produk terlalu panjang.",
+        "mitigation": "Produk dibuat sederhana dan fokus pada pesan kampanye atau solusi awal."
+      }
+    ],
+    "reasoningSummary": "Rekomendasi proyek disusun berdasarkan konteks Stage 1, yaitu masalah sampah plastik di lingkungan sekolah, karakteristik siswa yang aktif, fasilitas yang tersedia, serta durasi proyek 3 minggu."
   }
 }
 ```
@@ -492,15 +864,27 @@ Catatan:
 
 Endpoint ini tidak menyimpan hasil rekomendasi ke database. Hasil akan ditampilkan kepada guru untuk direview, diedit, lalu disimpan oleh NestJS ke `rpp_stages.content_json`.
 
+Penting:
+
+```text
+Intrakurikuler Stage 2:
+CP dari RAG = referensi resmi.
+Alur Tujuan Pembelajaran = hasil rekomendasi LLM.
+
+PjBL Stage 2:
+Konteks Stage 1 = input utama.
+Rekomendasi proyek yang akan dilakukan = hasil rekomendasi LLM.
+```
+
 ---
 
-# 7.4 Kina Chat
+### 9.4 Kina Chat
 
-## `POST /internal/ai/kina-chat`
+#### `POST /internal/ai/kina-chat`
 
 Endpoint untuk menghasilkan respons chatbot Kina.
 
-### Request
+Request:
 
 ```json
 {
@@ -520,7 +904,7 @@ Endpoint untuk menghasilkan respons chatbot Kina.
     },
     {
       "stageNumber": 2,
-      "stageName": "Tujuan Pembelajaran",
+      "stageName": "Alur Tujuan Pembelajaran",
       "contentJson": {}
     }
   ],
@@ -538,7 +922,7 @@ Endpoint untuk menghasilkan respons chatbot Kina.
 }
 ```
 
-### Response
+Response:
 
 ```json
 {
@@ -560,13 +944,13 @@ FastAPI hanya menghasilkan jawaban. Penyimpanan chat dilakukan oleh NestJS ke ta
 
 ---
 
-# 7.5 Summarize Kina Chat
+### 9.5 Summarize Kina Chat
 
-## `POST /internal/ai/summarize-kina-chat`
+#### `POST /internal/ai/summarize-kina-chat`
 
 Endpoint untuk merangkum percakapan Kina menjadi JSON terstruktur.
 
-### Request
+Request:
 
 ```json
 {
@@ -591,7 +975,7 @@ Endpoint untuk merangkum percakapan Kina menjadi JSON terstruktur.
 }
 ```
 
-### Response
+Response:
 
 ```json
 {
@@ -614,15 +998,17 @@ Endpoint untuk merangkum percakapan Kina menjadi JSON terstruktur.
 
 ---
 
-# 7.6 Generate Final RPP Text
+### Ini tolong direview lagi nanti disesuaikan dengan output masing masing!
 
-## `POST /internal/ai/generate-rpp`
+### 9.6 Generate Final RPP Text
+
+#### `POST /internal/ai/generate-rpp`
 
 Endpoint untuk menghasilkan teks final RPP.
 
 FastAPI hanya menghasilkan teks dan JSON terstruktur. FastAPI tidak menghasilkan PDF atau DOCX.
 
-### Request
+Request:
 
 ```json
 {
@@ -665,12 +1051,13 @@ FastAPI hanya menghasilkan teks dan JSON terstruktur. FastAPI tidak menghasilkan
 }
 ```
 
-### Response
+Response:
 
 ```json
 {
   "status": "success",
   "model": "gemini-1.5-flash",
+  "rppType": "intrakurikuler",
   "usedReferences": [
     {
       "cpReferenceId": "uuid",
@@ -697,13 +1084,13 @@ Response dari endpoint ini disimpan oleh NestJS ke tabel `generated_rpps`.
 
 ---
 
-# 7.7 Index RAG Documents
+### 9.7 Index RAG Documents
 
-## `POST /internal/rag/index-documents`
+#### `POST /internal/rag/index-documents`
 
 Endpoint untuk indexing dokumen Capaian Pembelajaran ke FAISS.
 
-### Request
+Request:
 
 ```json
 {
@@ -715,7 +1102,7 @@ Endpoint untuk indexing dokumen Capaian Pembelajaran ke FAISS.
 }
 ```
 
-### Response
+Response:
 
 ```json
 {
@@ -728,13 +1115,13 @@ Endpoint untuk indexing dokumen Capaian Pembelajaran ke FAISS.
 
 ---
 
-# 7.8 RAG References
+### 9.8 RAG References
 
-## `GET /internal/rag/references`
+#### `GET /internal/rag/references`
 
 Endpoint untuk melihat daftar referensi CP yang tersedia.
 
-### Query Params
+Query params:
 
 ```text
 subject=IPA
@@ -742,7 +1129,7 @@ phase=Fase D
 documentType=capaian_pembelajaran
 ```
 
-### Response
+Response:
 
 ```json
 {
@@ -760,7 +1147,7 @@ documentType=capaian_pembelajaran
 
 ---
 
-## 8. Endpoint yang Tidak Ada di FastAPI
+## 10. Endpoint yang Tidak Ada di FastAPI
 
 FastAPI tidak menyediakan endpoint berikut:
 
@@ -778,7 +1165,7 @@ Alasannya:
 
 ---
 
-## 9. Flow Generate Dokumen
+## 11. Flow Generate Dokumen
 
 Flow yang benar:
 
@@ -808,9 +1195,9 @@ Metadata file disimpan ke exported_documents
 
 ---
 
-## 10. Prioritas Implementasi
+## 12. Prioritas Implementasi
 
-### Tahap 1 — Dummy AI Service
+### Tahap 1 — Integrasi Endpoint
 
 ```text
 GET  /internal/health
@@ -821,43 +1208,79 @@ Tujuan:
 
 - memastikan FastAPI berjalan,
 - memastikan NestJS bisa memanggil FastAPI,
-- response masih boleh dummy.
+- memastikan orchestrator bisa memilih service berdasarkan `rppType`,
+- memastikan service menolak recommendation jika `stageNumber` bukan 2.
 
 ---
 
-### Tahap 2 — RAG Search
-
-```text
-POST /internal/rag/search
-POST /internal/rag/index-documents
-```
-
-Tujuan:
-
-- indexing dokumen CP,
-- membuat embedding,
-- mencari referensi CP dari FAISS.
-
----
-
-### Tahap 3 — Recommendation dengan RAG + LLM
+### Tahap 2 — Intrakurikuler dan PjBL Stage 2 Recommendation
 
 ```text
 POST /internal/ai/recommend-stage
 ```
 
-Tujuan:
+Fokus Developer 1:
 
-- Stage 2 Intrakurikuler bisa mengambil CP dari RAG,
-- LLM menghasilkan rekomendasi Tujuan Pembelajaran.
+```text
+intrakurikuler stage 2
+↓
+CP dari RAG
+↓
+LLM
+↓
+rekomendasi Alur Tujuan Pembelajaran
+```
+
+Fokus Developer 2:
+
+```text
+pjbl stage 2
+↓
+semua konteks dari Stage 1
+↓
+LLM
+↓
+rekomendasi proyek yang akan dilakukan
+```
 
 ---
 
-### Tahap 4 — Kina Chat
+### Tahap 3 — Kina Chat
 
 ```text
 POST /internal/ai/kina-chat
+```
+
+Fokus Developer 1:
+
+```text
+Prompt Kina untuk diskusi Intrakurikuler
+```
+
+Fokus Developer 2:
+
+```text
+Prompt Kina untuk diskusi PjBL Kokurikuler
+```
+
+---
+
+### Tahap 4 — Summarize Kina Chat
+
+```text
 POST /internal/ai/summarize-kina-chat
+```
+
+Fokus Developer 1:
+
+```text
+Summary Intrakurikuler
+```
+
+Fokus Developer 2:
+
+```text
+Summary PjBL Kokurikuler
 ```
 
 ---
@@ -868,9 +1291,21 @@ POST /internal/ai/summarize-kina-chat
 POST /internal/ai/generate-rpp
 ```
 
+Fokus Developer 1:
+
+```text
+Generate final text RPP Intrakurikuler
+```
+
+Fokus Developer 2:
+
+```text
+Generate final text RPP PjBL Kokurikuler
+```
+
 ---
 
-## 11. Cara Menjalankan Project
+## 13. Cara Menjalankan Project
 
 Install dependency:
 
@@ -887,12 +1322,13 @@ uvicorn app.main:app --reload --port 8000
 Cek health:
 
 ```bash
-curl http://localhost:8000/internal/health
+curl -H "X-Internal-API-Key: change-this-internal-key" \
+  http://localhost:8000/internal/health
 ```
 
 ---
 
-## 12. Catatan Pengembangan
+## 14. Catatan Pengembangan
 
 - FastAPI hanya menghasilkan teks dan JSON AI.
 - FastAPI tidak menyimpan project, stage, chat, atau generated RPP.
@@ -903,3 +1339,9 @@ curl http://localhost:8000/internal/health
 - FAISS menyimpan vector index.
 - Supabase/PostgreSQL menyimpan metadata CP jika dibutuhkan.
 - Semua endpoint FastAPI harus dilindungi `INTERNAL_API_KEY`.
+- Logic AI dipisahkan berdasarkan `rppType`.
+- Developer 1 fokus pada AI Intrakurikuler.
+- Developer 2 fokus pada AI PjBL Kokurikuler.
+- Recommendation hanya tersedia untuk Stage 2.
+- Stage 2 Intrakurikuler menggunakan CP dari RAG sebagai referensi untuk menghasilkan Alur Tujuan Pembelajaran.
+- Stage 2 PjBL menggunakan semua konteks dari Stage 1 untuk menghasilkan rekomendasi proyek yang akan dilakukan.
