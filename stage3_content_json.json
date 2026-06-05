@@ -1,0 +1,20 @@
+﻿{
+    "discussionSummary": "Diskusi Stage 3 menghasilkan keputusan untuk menggunakan mini proyek sebagai gaya pembelajaran dengan pendekatan PBL ringan. Murid akan memanfaatkan PowerPoint sebagai media digital untuk presentasi hasil proyek, sedangkan proyektor digunakan sebagai alat bantu penayangan. Kemitraan digunakan secara terbatas dengan Guru Informatika dan Guru Bahasa Indonesia sebagai pendukung pembelajaran.",
+    "learningStrategy":  "Mini proyek dengan presentasi kelompok.",
+    "pedagogicalApproach":  "PBL ringan dengan fokus pada pengamatan dan penyusunan polinomial.",
+    "facilityAndTechnologyUse":  "Proyektor digunakan untuk menampilkan materi dan presentasi siswa.",
+    "digitalPlatform":  "PowerPoint digunakan sebagai media digital untuk presentasi hasil mini proyek. dan youtube untuk penyampaian materi.",
+    "partnership":  "Kemitraan digunakan secara terbatas dengan Guru Informatika dan Guru Bahasa Indonesia.",
+    "finalStudentProduct":  "Presentasi PowerPoint tentang polinomial sederhana.",
+    "activityFlowDecision":  {
+                                 "opening":  "Guru membuka pembelajaran dengan pertanyaan pemantik tentang pola bilangan.",
+                                 "mainActivity":  "Siswa bekerja dalam kelompok untuk mengamati pola dan menyusun polinomial.",
+                                 "closing":  "Kelompok menyampaikan hasil diskusi, diikuti dengan refleksi dari guru."
+                             },
+    "differentiationPlan":  {
+                                "support":  "Memberikan contoh bertahap dan panduan untuk siswa yang membutuhkan bantuan.",
+                                "enrichment":  "Mendorong siswa yang lebih cepat untuk membuat contoh tambahan."
+                            },
+    "teacherNotes":  "Guru menginginkan aktivitas yang terarah dan sesuai dengan karakteristik siswa.",
+    "stage3CompletionStatus":  "complete"
+}

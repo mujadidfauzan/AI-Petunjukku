@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from app.schemas.common_schema import UsedReferenceSchema
@@ -47,20 +48,9 @@ class IntraGenerationService:
                     {
                         "instruction": (
                             "Isi requiredResponseShape menjadi contentJson RPP final berdasarkan sourceData. "
-                            "Gunakan seluruh data Stage 1, Stage 2, Stage 3, dan Stage 4 sebagai satu-satunya dasar penyusunan RPP. "
-                            "Semua isi naratif harus ditulis oleh LLM API berdasarkan sourceData, bukan oleh kode backend. "
+                            "Gunakan seluruh data Stage 1, Stage 2, Stage 3, dan Stage 4 sebagai dasar penyusunan RPP. "
                             "Jangan memilih sebagian data jika sourceData menyediakan beberapa item. "
-                            "Object kosong pada requiredResponseShape hanya contoh struktur; jumlah item boleh ditambah atau dikurangi sesuai isi sourceData. "
-                            "Jangan menambahkan informasi, perangkat, sumber daya, produk, tugas, tautan, aplikasi, atau fasilitas yang tidak disebut atau tidak dapat diturunkan langsung dari Stage 1-4. "
-                            "Gunakan Stage 3 untuk mengisi learningDesign.partnership, learningDesign.digitalUse, learningDesign.resources, produk akhir, diferensiasi, dan alur kegiatan. "
-                            "learningDesign.partnership hanya boleh berasal dari Stage 3 field partnership. "
-                            "learningDesign.digitalUse hanya boleh berasal dari Stage 3 field digitalPlatform. "
-                            "learningDesign.resources hanya boleh berasal dari Stage 3 field facilityAndTechnologyUse. "
-                            "Jangan menurunkan resources dari digitalPlatform. Jika digitalPlatform menyebut media atau platform digital, jangan otomatis menambahkan perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi ke resources kecuali perangkat itu disebut eksplisit pada facilityAndTechnologyUse. "
-                            "Produk akhir, tugas utama, rubrik, dan asesmen harus konsisten dengan finalStudentProduct Stage 3. Jangan menambahkan produk besar lain seperti laporan tertulis, LKPD, poster, video, atau artefak tambahan jika tidak disebut pada Stage 1-4. "
-                            "Gunakan Stage 4 untuk mengisi formativeAssessment pada setiap pertemuan. "
-                            "Untuk setiap formativeAssessment, isi observedIndicators dengan 3-5 indikator konkret dan teacherRecordFormat dengan format catatan guru yang sesuai teknik asesmen. "
-                            "Jangan membiarkan observedIndicators kosong. Jangan membiarkan teacherRecordFormat kosong. "
+                            "Semua isi naratif harus dikembangkan oleh LLM API berdasarkan sourceData. "
                             "Return hanya JSON valid dengan key contentJson."
                         ),
                         "project": payload.project.model_dump(),
@@ -77,7 +67,7 @@ class IntraGenerationService:
         generated = await self.llm_client.generate_json(
             messages,
             fallback={"contentJson": response_shape},
-            temperature=0.15,
+            temperature=0.22,
         )
 
         content_json = generated.get("contentJson") if isinstance(generated, dict) else None
@@ -87,12 +77,8 @@ class IntraGenerationService:
 
         content_json = self._normalize_generated_text(content_json)
         content_json = self._normalize_output_structure(content_json)
-
-        # Tetap full LLM: repair ini juga memakai LLM API, bukan parser/manual filler Python.
-        # Tujuannya hanya memastikan output tidak menambah data di luar Stage 1-4.
-        content_json = await self._repair_grounding_with_llm(content_json, source_data)
-        content_json = self._normalize_generated_text(content_json)
-        content_json = self._normalize_output_structure(content_json)
+        content_json = self._enforce_stage1_stage2_stage4_structure(content_json, source_data)
+        content_json = self._enforce_stage3_learning_design(content_json, source_data)
 
         content_markdown = self._to_markdown(content_json)
 
@@ -126,19 +112,16 @@ A. Cara Membaca Source Data
 4. Stage 3 digunakan sebagai keputusan final diskusi tentang strategi pembelajaran, praktik pedagogis, media digital, kemitraan, sumber daya yang dipilih, produk akhir, diferensiasi, dan alur kegiatan.
 5. Stage 4 digunakan untuk teknik asesmen formatif per pertemuan.
 6. lockedDecisionsFromStage3 adalah ringkasan keputusan final Stage 3 dan wajib diprioritaskan.
-7. strictGroundingContract adalah batas grounding yang wajib ditaati agar tidak ada input tambahan di luar Stage 1-4.
 
 B. Prinsip Utama
 1. Ikuti struktur requiredResponseShape.
-2. Object kosong pada requiredResponseShape hanya contoh struktur, bukan isi final.
-3. Isi semua field naratif utama berdasarkan Stage 1-4.
-4. Semua isi naratif ditulis oleh LLM API berdasarkan sourceData.
-5. Jangan mengembalikan shape kosong.
-6. Jangan mengarang identitas, fasilitas, platform, mitra, tautan, sumber daya, produk, perangkat, atau tugas yang tidak ada pada Stage 1-4.
-7. Jangan memilih hanya satu item jika sourceData berisi beberapa item.
-8. Gunakan istilah "murid", bukan "siswa" atau "peserta didik".
-9. learningObjectives dan target pertemuan harus diawali "Murid mampu ...".
-10. Gaya bahasa harus naratif, siap ditempel ke dokumen RPP, dan tidak berupa frasa pendek.
+2. Isi semua field naratif utama berdasarkan Stage 1-4.
+3. Jangan mengembalikan shape kosong.
+4. Jangan mengarang identitas, fasilitas, platform, mitra, tautan, atau sumber daya yang tidak ada pada Stage 1-4.
+5. Jangan memilih hanya satu item jika sourceData berisi beberapa item.
+6. Gunakan istilah "murid", bukan "siswa" atau "peserta didik".
+7. learningObjectives dan target pertemuan harus diawali "Murid mampu ...".
+8. Gaya bahasa harus naratif, siap ditempel ke dokumen RPP, dan tidak berupa frasa pendek.
 
 C. Prioritas Keputusan
 Jika ada konflik antar data, gunakan urutan prioritas berikut:
@@ -157,7 +140,7 @@ Aturan prioritas:
 - partnership berasal dari field partnership Stage 3.
 - digitalUse berasal dari field digitalPlatform Stage 3.
 - resources berasal dari field facilityAndTechnologyUse Stage 3.
-- discussionSummary digunakan sebagai konteks penguat agar narasi setiap bagian saling nyambung.
+- discussionSummary hanya digunakan sebagai konteks penguat narasi, bukan sebagai sumber utama untuk mengelompokkan partnership, digitalUse, dan resources.
 
 D. Aturan Learning Design
 - pedagogicalPractice dikembangkan dari learningStrategy dan pedagogicalApproach Stage 3.
@@ -166,25 +149,12 @@ D. Aturan Learning Design
 - resources dikembangkan dari facilityAndTechnologyUse Stage 3.
 - partnership hanya memuat mitra pembelajaran.
 - digitalUse hanya memuat media, aplikasi, sumber digital, atau platform digital.
-- resources hanya memuat alat, bahan, fasilitas, atau sumber daya fisik yang disebut eksplisit pada Stage 3 field facilityAndTechnologyUse.
+- resources hanya memuat alat, bahan, fasilitas, atau sumber daya fisik.
 - Jangan memasukkan alat fisik ke digitalUse jika alat tersebut dijelaskan pada facilityAndTechnologyUse.
 - Jangan memasukkan media/platform digital ke resources jika media tersebut dijelaskan pada digitalPlatform.
-- Jangan menurunkan resources dari digitalPlatform.
-- Jika digitalPlatform menyebut media digital atau platform digital, media tersebut masuk ke digitalUse, bukan otomatis membuat perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi masuk ke resources.
-- Perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi hanya boleh masuk resources jika disebut eksplisit pada Stage 3 field facilityAndTechnologyUse.
-- Jika facilityAndTechnologyUse hanya menyebut satu sumber daya, maka resources cukup memuat sumber daya tersebut.
 - Jangan menulis "tidak digunakan" pada partnership, digitalUse, atau resources apabila Stage 3 menyebut bagian tersebut digunakan.
-- Jika Stage 3 menyebut lebih dari satu mitra, media digital, atau sumber daya, pisahkan menjadi beberapa item.
-- Jangan menambahkan mitra, media digital, atau sumber daya baru hanya karena dianggap umum dipakai di pembelajaran.
 
-E. Aturan Produk, Tugas, Rubrik, dan Asesmen
-- finalStudentProduct Stage 3 adalah acuan utama produk/kinerja murid.
-- applying.product harus mengikuti finalStudentProduct Stage 3.
-- Produk akhir, tugas utama, asesmen, rubrik, dan tindak lanjut harus konsisten dengan finalStudentProduct Stage 3 dan tujuan pembelajaran Stage 2.
-- Jangan menambahkan produk besar lain seperti laporan tertulis, LKPD, poster, video, infografis, makalah, atau artefak lain jika tidak disebut pada Stage 1-4.
-- Asesmen boleh mengukur pemahaman murid, tetapi tidak boleh mengganti produk akhir yang sudah diputuskan di Stage 3.
-
-F. Field Naratif yang Tidak Boleh Kosong
+E. Field Naratif yang Tidak Boleh Kosong
 Field berikut wajib diisi:
 - materialContext
 - profileAndLearningDirection.graduateProfiles[].description
@@ -207,10 +177,6 @@ Field berikut wajib diisi:
 - learningDesign.resources[].function
 - meetingActivities.overview
 - semua field utama di setiap meeting
-- meetings[].formativeAssessment.technique
-- meetings[].formativeAssessment.step9Description
-- meetings[].formativeAssessment.observedIndicators
-- meetings[].formativeAssessment.teacherRecordFormat
 - assessment.summative.provision
 - assessment.summative.description
 - assessment.summative.sampleTasks
@@ -222,7 +188,7 @@ Field berikut wajib diisi:
 - completionChecklist
 - finalFlowSummary
 
-G. Kedalaman Narasi Minimal
+F. Kedalaman Narasi Minimal
 - materialContext: 1 paragraf, 3 kalimat.
 - graduateProfiles.description: 1 kalimat konkret tentang perilaku murid.
 - interdisciplinaryIntegration.rationale: 3-4 kalimat.
@@ -246,8 +212,6 @@ G. Kedalaman Narasi Minimal
 - reflecting.description: 2 kalimat.
 - reflecting.step8Description: 3-4 kalimat.
 - formativeAssessment.step9Description: 2-3 kalimat.
-- formativeAssessment.observedIndicators: 3-5 butir indikator konkret.
-- formativeAssessment.teacherRecordFormat: 1-2 kalimat format catatan guru.
 - assessment.summative.provision: 2-3 kalimat.
 - assessment.summative.description: 2-3 kalimat.
 - assessment.summative.sampleTasks: 3-5 butir.
@@ -257,14 +221,14 @@ G. Kedalaman Narasi Minimal
 - completionChecklist: 4-6 item.
 - finalFlowSummary: 2-3 kalimat.
 
-H. Lintas Disiplin
+G. Lintas Disiplin
 - relatedDiscipline diambil dari Stage 2 jika tersedia.
 - rationale menjelaskan alasan disiplin terkait relevan dengan pembelajaran.
 - integrationForm menjelaskan bentuk integrasi lintas disiplin dalam kegiatan belajar, produk akhir, komunikasi hasil, atau penggunaan teknologi sesuai Stage 3.
 - notes menjelaskan bahwa lintas disiplin bersifat pendukung, sedangkan kompetensi utama tetap berada pada mata pelajaran utama.
 - Jangan menambah disiplin lain yang tidak ada pada Stage 2 atau Stage 3.
 
-I. Struktur Meeting Activities
+H. Struktur Meeting Activities
 meetingActivities harus berisi:
 1. overview
 2. meetings dengan jumlah sama seperti identity.meetingCount
@@ -289,11 +253,9 @@ Aturan isi meeting:
 - applying.product mengikuti finalStudentProduct Stage 3.
 - differentiation mengikuti differentiationPlan Stage 3.
 - formativeAssessment.technique mengikuti Stage 4.
-- formativeAssessment.step9Description dikembangkan dari teknik Stage 4 dan aktivitas pertemuan.
-- formativeAssessment.observedIndicators berisi 3-5 indikator konkret yang diamati guru sesuai fokus, target, aktivitas, dan produk/kinerja pertemuan.
-- formativeAssessment.teacherRecordFormat berisi format catatan guru yang praktis sesuai teknik asesmen.
+- formativeAssessment.step9Description harus sesuai teknik Stage 4 dan aktivitas pertemuan.
 
-J. Struktur Diagnostik
+I. Struktur Diagnostik
 Setiap diagnostic wajib berisi:
 - step1Description: cara guru melakukan cek kesiapan awal, alat atau media yang digunakan, cara murid menjawab, dan tujuan diagnostik.
 - sampleQuestion: contoh soal sesuai materi pertemuan.
@@ -302,14 +264,14 @@ Setiap diagnostic wajib berisi:
 - step2Description: cara guru membaca hasil jawaban dan membentuk kelompok sementara.
 - teacherNotes: kelompok A/B bersifat sementara, bukan label pintar/kurang pintar.
 
-K. Struktur Memahami
+J. Struktur Memahami
 Setiap understanding wajib berisi:
 - teacherNotes: semua murid mendapat dasar konsep yang sama.
 - step4Description: guru membahas jawaban murid dan meluruskan miskonsepsi.
 - step5Description: guru menguatkan konsep dengan media atau sumber daya yang relevan.
 - triggerQuestions: 3-4 pertanyaan pemantik.
 
-L. Struktur Mengaplikasi
+K. Struktur Mengaplikasi
 Setiap applying wajib berisi:
 - step6Description: murid mulai mengerjakan mini-PjBL atau tugas aplikasi.
 - differentiation.supportGroup: bantuan untuk murid yang membutuhkan dukungan.
@@ -318,19 +280,16 @@ Setiap applying wajib berisi:
 - flowSummary: 3-4 butir alur kegiatan.
 - product: produk akhir dari Stage 3.
 
-M. Struktur Merefleksi
+L. Struktur Merefleksi
 Setiap reflecting wajib berisi:
 - description
 - step8Description
 - reflectionQuestions berisi 3-4 pertanyaan refleksi.
 
-N. Struktur Asesmen
+M. Struktur Asesmen
 - Asesmen formatif hanya berada pada meetings[].formativeAssessment.
 - assessment hanya berisi summative.
 - Jangan membuat assessment.formative.
-- Setiap meetings[].formativeAssessment wajib berisi technique, step9Description, observedIndicators, dan teacherRecordFormat.
-- observedIndicators wajib berisi 3-5 indikator konkret yang diamati guru.
-- teacherRecordFormat wajib berisi format catatan guru yang praktis sesuai teknik asesmen.
 - assessment.summative harus berisi provision, description, sampleTasks, criteria, dan achievementLevels.
 - rubric, followUp, teacherReflection, completionChecklist, dan finalFlowSummary harus berada di root-level contentJson, sejajar dengan assessment.
 - Jangan memasukkan rubric, followUp, teacherReflection, completionChecklist, atau finalFlowSummary ke dalam assessment.
@@ -368,7 +327,7 @@ N. Struktur Asesmen
 
         stage3_from_stages = stages_by_number.get(3, {}) or {}
         stage3_from_summary = self._as_dict(payload.kinaChatSummary)
-        stage3 = self._merge_dicts_keep_non_empty(stage3_from_summary, stage3_from_stages)
+        stage3 = stage3_from_stages or stage3_from_summary
 
         locked_decisions_from_stage3 = {
             "discussionSummary": stage3.get("discussionSummary", ""),
@@ -390,28 +349,7 @@ N. Struktur Asesmen
             "stage3_learningStrategyFromKina": stage3,
             "lockedDecisionsFromStage3": locked_decisions_from_stage3,
             "stage4_formativeAssessment": stages_by_number.get(4, {}),
-            "kinaChatSummary": self._dump(payload.kinaChatSummary),
-            "strictGroundingContract": {
-                "identitySource": "onboarding, Stage 1, Stage 2, dan project payload.",
-                "topicSource": "Stage 1.",
-                "learningObjectivesSource": "Stage 2.",
-                "meetingCountSource": "Stage 1.",
-                "formativeAssessmentSource": "Stage 4.",
-                "partnershipSourceText": locked_decisions_from_stage3["partnership"],
-                "digitalUseSourceText": locked_decisions_from_stage3["digitalPlatform"],
-                "resourcesSourceText": locked_decisions_from_stage3["facilityAndTechnologyUse"],
-                "finalStudentProductSourceText": locked_decisions_from_stage3["finalStudentProduct"],
-                "differentiationSource": locked_decisions_from_stage3["differentiationPlan"],
-                "activityFlowSource": locked_decisions_from_stage3["activityFlowDecision"],
-                "hardRules": [
-                    "partnership hanya boleh berasal dari partnershipSourceText.",
-                    "digitalUse hanya boleh berasal dari digitalUseSourceText.",
-                    "resources hanya boleh berasal dari resourcesSourceText.",
-                    "produk akhir, tugas utama, rubrik, dan asesmen harus konsisten dengan finalStudentProductSourceText.",
-                    "jangan menambahkan perangkat, media, aplikasi, fasilitas, atau produk yang tidak disebut pada Stage 1-4.",
-                    "jangan menurunkan resources dari digitalUseSourceText.",
-                ],
-            },
+            "kinaChatSummary": payload.kinaChatSummary,
             "ragReferences": [reference.model_dump() for reference in references],
         }
 
@@ -460,25 +398,21 @@ N. Struktur Asesmen
                 "pedagogicalPractice": {
                     "description": "",
                     "forms": [
-                        {"name": "", "description": ""},
-                        {"name": "", "description": ""},
+                        {
+                            "name": "",
+                            "description": "",
+                        }
                     ],
                 },
                 "partnership": {
-                    "items": [
-                        {"partner": "", "partnerRole": ""},
-                    ],
+                    "items": [],
                     "notes": "",
                 },
                 "digitalUse": {
-                    "items": [
-                        {"sourceOrPlatform": "", "linkOrAccess": "", "function": ""},
-                    ],
+                    "items": [],
                     "notes": "",
                 },
-                "resources": [
-                    {"name": "", "function": ""},
-                ],
+                "resources": [],
             },
             "meetingActivities": {
                 "overview": "",
@@ -488,21 +422,40 @@ N. Struktur Asesmen
                 "summative": {
                     "provision": "",
                     "description": "",
-                    "sampleTasks": ["", "", ""],
-                    "criteria": ["", "", "", ""],
+                    "sampleTasks": [],
+                    "criteria": [],
                     "achievementLevels": [
-                        {"level": "Perlu Bimbingan", "description": "", "followUp": ""},
-                        {"level": "Cukup", "description": "", "followUp": ""},
-                        {"level": "Baik", "description": "", "followUp": ""},
-                        {"level": "Sangat Baik", "description": "", "followUp": ""},
+                        {
+                            "level": "Perlu Bimbingan",
+                            "description": "",
+                            "followUp": "",
+                        },
+                        {
+                            "level": "Cukup",
+                            "description": "",
+                            "followUp": "",
+                        },
+                        {
+                            "level": "Baik",
+                            "description": "",
+                            "followUp": "",
+                        },
+                        {
+                            "level": "Sangat Baik",
+                            "description": "",
+                            "followUp": "",
+                        },
                     ],
                 },
             },
             "rubric": {
                 "criteria": [
-                    {"criterion": "", "excellent": "", "good": "", "needsSupport": ""},
-                    {"criterion": "", "excellent": "", "good": "", "needsSupport": ""},
-                    {"criterion": "", "excellent": "", "good": "", "needsSupport": ""},
+                    {
+                        "criterion": "",
+                        "excellent": "",
+                        "good": "",
+                        "needsSupport": "",
+                    }
                 ],
             },
             "followUp": {
@@ -516,17 +469,20 @@ N. Struktur Asesmen
             "teacherReflection": {
                 "description": "",
                 "questions": [
-                    "",
-                    "",
-                    "",
-                    "",
+                    "Apakah tujuan pembelajaran tercapai?",
+                    "Bagian mana yang paling efektif?",
+                    "Bagian mana yang perlu diperbaiki?",
+                    "Apakah asesmen diagnostik membantu menentukan kebutuhan belajar murid?",
+                    "Bagaimana respons murid terhadap kegiatan mini proyek?",
+                    "Apakah asesmen formatif memberi informasi yang cukup untuk tindak lanjut?",
+                    "Apa perbaikan untuk RPP berikutnya?",
                 ],
             },
             "completionChecklist": [
-                {"item": "", "status": ""},
-                {"item": "", "status": ""},
-                {"item": "", "status": ""},
-                {"item": "", "status": ""},
+                {
+                    "item": "",
+                    "status": "",
+                }
             ],
             "finalFlowSummary": "",
         }
@@ -596,7 +552,7 @@ N. Struktur Asesmen
                     "diagnostic": {
                         "step1Description": "",
                         "sampleQuestion": "",
-                        "answerOptions": ["", ""],
+                        "answerOptions": [],
                         "correctAnswer": "",
                         "step2Description": "",
                         "teacherNotes": "",
@@ -605,7 +561,7 @@ N. Struktur Asesmen
                         "teacherNotes": "",
                         "step4Description": "",
                         "step5Description": "",
-                        "triggerQuestions": ["", "", ""],
+                        "triggerQuestions": [],
                     },
                     "applying": {
                         "step6Description": "",
@@ -614,18 +570,18 @@ N. Struktur Asesmen
                             "advancedGroup": "",
                         },
                         "step7Description": "",
-                        "flowSummary": ["", "", ""],
+                        "flowSummary": [],
                         "product": "",
                     },
                     "reflecting": {
                         "description": "",
                         "step8Description": "",
-                        "reflectionQuestions": ["", "", ""],
+                        "reflectionQuestions": [],
                     },
                     "formativeAssessment": {
                         "technique": str(stage4_item.get("selectedTechniqueLabel") or stage4_item.get("selectedTechnique") or ""),
                         "step9Description": str(stage4_item.get("description", "")),
-                        "observedIndicators": ["", "", "", ""],
+                        "observedIndicators": [],
                         "teacherRecordFormat": "",
                     },
                 }
@@ -633,72 +589,321 @@ N. Struktur Asesmen
 
         return meetings
 
-    async def _repair_grounding_with_llm(
+    def _enforce_stage1_stage2_stage4_structure(
         self,
-        content_json: dict[str, Any],
+        content: dict[str, Any],
         source_data: dict[str, Any],
     ) -> dict[str, Any]:
-        messages = [
-            {
-                "role": "system",
-                "content": """
-Anda adalah pemeriksa grounding RPP Petunjukku.
+        stage1 = source_data.get("stage1_basicContext") or {}
+        stage2 = source_data.get("stage2_curriculumFoundation") or {}
 
-Tugas:
-1. Periksa contentJson yang sudah dibuat.
-2. Pastikan semua isi hanya berasal dari sourceData Stage 1, Stage 2, Stage 3, Stage 4, onboarding, dan project payload.
-3. Hapus atau tulis ulang isi yang tidak didukung sourceData.
-4. Pertahankan struktur contentJson.
-5. Jangan menambah data baru di luar sourceData.
-6. Jangan mengosongkan seluruh dokumen; perbaiki hanya bagian yang melanggar grounding.
+        identity = content.setdefault("identity", {})
+        identity["topic"] = stage1.get("topikMateriPokok", identity.get("topic", ""))
+        identity["element"] = self._infer_element(stage1, stage2)
+        identity["timeAllocation"] = stage1.get("durasiPembelajaran", identity.get("timeAllocation", ""))
+        identity["meetingCount"] = str(stage1.get("jumlahPertemuan", identity.get("meetingCount", "")))
 
-Aturan keras:
-- learningDesign.partnership hanya boleh berasal dari strictGroundingContract.partnershipSourceText.
-- learningDesign.digitalUse hanya boleh berasal dari strictGroundingContract.digitalUseSourceText.
-- learningDesign.resources hanya boleh berasal dari strictGroundingContract.resourcesSourceText.
-- Jangan menurunkan resources dari digitalUseSourceText.
-- Jika media/platform digital disebut, media/platform tersebut masuk ke digitalUse, bukan otomatis menjadi alasan menambah perangkat akses ke resources.
-- Perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi hanya boleh masuk resources jika disebut eksplisit pada resourcesSourceText atau Stage 1-4.
-- Jika resourcesSourceText hanya menyebut satu sumber daya, resources cukup memuat sumber daya tersebut.
-- Produk akhir, tugas utama, rubrik, dan asesmen harus konsisten dengan strictGroundingContract.finalStudentProductSourceText dan tujuan pembelajaran Stage 2.
-- Jangan menambahkan produk besar lain seperti laporan tertulis, LKPD, poster, video, infografis, makalah, atau artefak lain jika tidak disebut pada Stage 1-4.
-- Asesmen formatif tetap mengikuti Stage 4.
-- Indikator formatif boleh dikembangkan oleh LLM, tetapi harus sesuai teknik Stage 4, fokus pertemuan, target, aktivitas, dan produk yang tersedia dalam sourceData.
-- Jika ada item tidak didukung sourceData, hapus item tersebut atau tulis ulang agar sesuai sourceData.
+        profile = content.setdefault("profileAndLearningDirection", {})
 
-Output wajib hanya JSON valid:
-{"contentJson": {...}}
-""".strip(),
-            },
-            {
-                "role": "user",
-                "content": json.dumps(
-                    {
-                        "instruction": (
-                            "Perbaiki contentJson agar sepenuhnya grounded pada sourceData. "
-                            "Jangan menambahkan informasi di luar Stage 1-4. "
-                            "Return hanya JSON valid dengan key contentJson."
-                        ),
-                        "sourceData": source_data,
-                        "contentJsonToRepair": content_json,
-                    },
-                    ensure_ascii=False,
-                ),
-            },
-        ]
-
-        repaired = await self.llm_client.generate_json(
-            messages,
-            fallback={"contentJson": content_json},
-            temperature=0.0,
+        generated_profiles = profile.get("graduateProfiles") or []
+        profile["graduateProfiles"] = self._merge_graduate_profiles(
+            stage2=stage2,
+            generated_profiles=generated_profiles,
         )
 
-        repaired_content = repaired.get("contentJson") if isinstance(repaired, dict) else None
+        interdisciplinary = profile.setdefault("interdisciplinaryIntegration", {})
+        if not interdisciplinary.get("relatedDiscipline"):
+            interdisciplinary["relatedDiscipline"] = self._join_list(stage2.get("mataPelajaranLintasDisiplin"))
 
-        if isinstance(repaired_content, dict):
-            return repaired_content
+        objectives = self._build_learning_objectives(stage2)
+        if objectives:
+            profile["learningObjectives"] = objectives
 
-        return content_json
+        if not profile.get("essentialQuestion"):
+            profile["essentialQuestion"] = stage2.get("pertanyaanPemantik", "")
+
+        return content
+
+    def _merge_graduate_profiles(
+        self,
+        stage2: dict[str, Any],
+        generated_profiles: list[Any],
+    ) -> list[dict[str, str]]:
+        dimensions = stage2.get("dimensiProfilLulusan") or []
+
+        if not isinstance(dimensions, list) or not dimensions:
+            return generated_profiles if isinstance(generated_profiles, list) else []
+
+        generated_by_dimension: dict[str, dict[str, Any]] = {}
+
+        if isinstance(generated_profiles, list):
+            for item in generated_profiles:
+                if isinstance(item, dict):
+                    dimension = str(item.get("dimension", "")).strip()
+                    if dimension:
+                        generated_by_dimension[dimension.lower()] = item
+
+        merged: list[dict[str, str]] = []
+
+        for dimension in dimensions:
+            dimension_text = str(dimension)
+            generated_item = generated_by_dimension.get(dimension_text.lower(), {})
+            description = str(generated_item.get("description", "")).strip()
+
+            if not description:
+                description = (
+                    f"Murid mengembangkan dimensi {dimension_text} melalui kegiatan memahami konsep, "
+                    "berdiskusi, mengerjakan tugas aplikasi, dan merefleksikan proses belajar."
+                )
+
+            merged.append(
+                {
+                    "dimension": dimension_text,
+                    "description": description,
+                }
+            )
+
+        return merged
+
+    def _enforce_stage3_learning_design(
+        self,
+        content: dict[str, Any],
+        source_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        if not isinstance(content, dict):
+            return content
+
+        learning_design = content.setdefault("learningDesign", {})
+
+        learning_design["partnership"] = self._stage3_partnership(source_data)
+        learning_design["digitalUse"] = self._stage3_digital_use(source_data)
+        learning_design["resources"] = self._stage3_resources(source_data)
+
+        return content
+
+    def _stage3_partnership(self, source_data: dict[str, Any]) -> dict[str, Any]:
+        stage3 = source_data.get("stage3_learningStrategyFromKina") or {}
+        locked = source_data.get("lockedDecisionsFromStage3") or {}
+
+        partnership_text = str(stage3.get("partnership") or locked.get("partnership") or "")
+        partners = self._extract_partner_items(partnership_text)
+
+        items = [
+            {
+                "partner": partner,
+                "partnerRole": (
+                    f"{partner} berperan sebagai mitra pendukung sesuai hasil diskusi Stage 3. "
+                    "Peran mitra membantu bagian pembelajaran yang relevan dengan kebutuhan kegiatan, tanpa menggantikan peran guru utama."
+                ),
+            }
+            for partner in partners
+        ]
+
+        return {
+            "items": items,
+            "notes": (
+                "Kemitraan digunakan sesuai keputusan Stage 3 dan bersifat mendukung pelaksanaan pembelajaran. "
+                "Guru utama tetap menjadi pengarah kegiatan, sedangkan mitra membantu aspek tertentu yang relevan."
+                if items
+                else ""
+            ),
+        }
+
+    def _stage3_digital_use(self, source_data: dict[str, Any]) -> dict[str, Any]:
+        stage3 = source_data.get("stage3_learningStrategyFromKina") or {}
+        locked = source_data.get("lockedDecisionsFromStage3") or {}
+
+        digital_text = str(stage3.get("digitalPlatform") or locked.get("digitalPlatform") or "")
+        platforms = self._extract_stage3_items(digital_text)
+
+        items = [
+            {
+                "sourceOrPlatform": platform,
+                "linkOrAccess": "",
+                "function": (
+                    f"{platform} digunakan sebagai media atau platform digital sesuai keputusan Stage 3. "
+                    "Penggunaannya mendukung penyampaian materi, proses kerja murid, atau penyajian produk akhir pembelajaran."
+                ),
+            }
+            for platform in platforms
+        ]
+
+        return {
+            "items": items,
+            "notes": (
+                "Pemanfaatan digital mengikuti keputusan Stage 3 dan digunakan sebagai pendukung pembelajaran. "
+                "Media digital ditempatkan pada tahap kegiatan yang relevan agar membantu pemahaman atau penyajian hasil belajar murid."
+                if items
+                else ""
+            ),
+        }
+
+    def _stage3_resources(self, source_data: dict[str, Any]) -> list[dict[str, str]]:
+        stage3 = source_data.get("stage3_learningStrategyFromKina") or {}
+        locked = source_data.get("lockedDecisionsFromStage3") or {}
+
+        resource_text = str(stage3.get("facilityAndTechnologyUse") or locked.get("facilityAndTechnologyUse") or "")
+        resources = self._extract_stage3_items(resource_text)
+
+        return [
+            {
+                "name": resource,
+                "function": (
+                    f"{resource} digunakan sebagai sumber daya pembelajaran sesuai keputusan Stage 3. "
+                    "Sumber daya ini membantu guru dan murid menjalankan kegiatan inti, penyampaian materi, atau penyajian hasil belajar secara lebih terarah."
+                ),
+            }
+            for resource in resources
+        ]
+
+    def _extract_partner_items(self, text: str) -> list[str]:
+        if not self._has_real_value(text):
+            return []
+
+        sentences = self._split_stage3_sentences(text)
+        results: list[str] = []
+
+        for sentence in sentences:
+            candidate = sentence
+
+            connector_match = re.search(
+                r"\b(?:dengan|bersama|melibatkan|mengundang|berkolaborasi dengan|bekerja sama dengan)\b\s+(.+)",
+                candidate,
+                flags=re.IGNORECASE,
+            )
+
+            if connector_match:
+                candidate = connector_match.group(1)
+
+            candidate = self._cut_after_context_words(candidate)
+            parts = self._split_stage3_items(candidate)
+
+            for part in parts:
+                label = self._clean_stage3_label(part)
+                if self._looks_like_stage3_item(label):
+                    results.append(label)
+
+        return self._unique_keep_order(results)
+
+    def _extract_stage3_items(self, text: str) -> list[str]:
+        if not self._has_real_value(text):
+            return []
+
+        sentences = self._split_stage3_sentences(text)
+        results: list[str] = []
+
+        for sentence in sentences:
+            candidates: list[str] = []
+
+            before_usage = re.match(
+                r"(.+?)\s+\b(?:digunakan|dipakai|dimanfaatkan|berfungsi)\b",
+                sentence,
+                flags=re.IGNORECASE,
+            )
+
+            if before_usage:
+                candidates.append(before_usage.group(1))
+
+            after_usage = re.search(
+                r"\b(?:menggunakan|memanfaatkan|melalui|dengan)\b\s+(.+?)(?:\s+\b(?:sebagai|untuk|agar|guna|dalam|pada|yang)\b|,|$)",
+                sentence,
+                flags=re.IGNORECASE,
+            )
+
+            if after_usage:
+                candidates.append(after_usage.group(1))
+
+            before_for = re.match(
+                r"(.+?)\s+\b(?:untuk|sebagai)\b",
+                sentence,
+                flags=re.IGNORECASE,
+            )
+
+            if before_for:
+                candidates.append(before_for.group(1))
+
+            if not candidates:
+                candidates.append(sentence)
+
+            for candidate in candidates:
+                candidate = self._cut_after_context_words(candidate)
+                parts = self._split_stage3_items(candidate)
+
+                for part in parts:
+                    label = self._clean_stage3_label(part)
+                    if self._looks_like_stage3_item(label):
+                        results.append(label)
+
+        return self._unique_keep_order(results)
+
+    def _split_stage3_sentences(self, text: str) -> list[str]:
+        return [
+            re.sub(r"^(dan|serta|kemudian)\s+", "", sentence.strip(), flags=re.IGNORECASE)
+            for sentence in re.split(r"[.;\n]+", text)
+            if sentence.strip()
+        ]
+
+    def _split_stage3_items(self, text: str) -> list[str]:
+        return [
+            item.strip()
+            for item in re.split(r",|\s+dan\s+|\s+serta\s+|&", text, flags=re.IGNORECASE)
+            if item.strip()
+        ]
+
+    def _cut_after_context_words(self, text: str) -> str:
+        return re.split(
+            r"\b(?:sebagai|untuk|agar|guna|dalam rangka|yang bertugas|yang berperan|yang digunakan|yang dipakai)\b",
+            text,
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )[0].strip()
+
+    def _clean_stage3_label(self, value: str) -> str:
+        label = str(value or "").strip()
+        label = label.strip(" .,:;/-")
+        label = re.sub(
+            r"^(media|platform|aplikasi|alat|bahan|fasilitas|sumber daya|menggunakan|memanfaatkan|akan|murid)\s+",
+            "",
+            label,
+            flags=re.IGNORECASE,
+        )
+        label = re.sub(r"\s+", " ", label)
+        return label.strip()
+
+    def _looks_like_stage3_item(self, value: str) -> bool:
+        label = str(value or "").strip()
+
+        if not label:
+            return False
+
+        if len(label) <= 1:
+            return False
+
+        if len(label.split()) > 8:
+            return False
+
+        if re.search(
+            r"\b(?:digunakan|dipakai|dimanfaatkan|memanfaatkan|menggunakan|berfungsi|menampilkan|menyampaikan)\b",
+            label,
+            flags=re.IGNORECASE,
+        ):
+            return False
+
+        return True
+
+    def _unique_keep_order(self, values: list[str]) -> list[str]:
+        seen: set[str] = set()
+        result: list[str] = []
+
+        for value in values:
+            cleaned = value.strip()
+            key = cleaned.lower()
+
+            if key and key not in seen:
+                seen.add(key)
+                result.append(cleaned)
+
+        return result
 
     def _infer_element(self, stage1: dict[str, Any], stage2: dict[str, Any]) -> str:
         for key in ("elemen", "element", "domain", "domainMateri"):
@@ -760,12 +965,21 @@ Output wajib hanya JSON valid:
             return ""
         return str(value)
 
-    def _dump(self, value: Any) -> dict[str, Any]:
-        if hasattr(value, "model_dump"):
-            return value.model_dump()
-        if isinstance(value, dict):
-            return value
-        return {}
+    def _has_real_value(self, value: Any) -> bool:
+        text = str(value or "").strip().lower()
+
+        if not text:
+            return False
+
+        negative_phrases = [
+            "tidak digunakan",
+            "tidak ada",
+            "tanpa",
+            "belum digunakan",
+            "tidak melibatkan",
+        ]
+
+        return not any(phrase in text for phrase in negative_phrases)
 
     def _as_dict(self, value: Any) -> dict[str, Any]:
         if value is None:
@@ -790,21 +1004,6 @@ Output wajib hanya JSON valid:
                 return {}
 
         return {}
-
-    def _merge_dicts_keep_non_empty(self, *sources: dict[str, Any]) -> dict[str, Any]:
-        merged: dict[str, Any] = {}
-
-        for source in sources:
-            if not isinstance(source, dict):
-                continue
-
-            for key, value in source.items():
-                if self._is_empty_value(value):
-                    continue
-
-                merged[key] = value
-
-        return merged
 
     def _normalize_generated_text(self, content: dict[str, Any]) -> dict[str, Any]:
         content_text = json.dumps(content, ensure_ascii=False)
@@ -965,8 +1164,7 @@ Output wajib hanya JSON valid:
             role = item.get("partnerRole", "")
             if partner or role:
                 lines.append(f"- **{partner}**: {role}")
-        if partnership.get("notes"):
-            lines.append(str(partnership.get("notes", "")))
+        lines.append(str(partnership.get("notes", "")))
 
         digital = learning_design.get("digitalUse") or {}
         lines.append("")
@@ -979,16 +1177,12 @@ Output wajib hanya JSON valid:
                 lines.append(f"- **{source}**: {function}")
             if access:
                 lines.append(f"  Akses: {access}")
-        if digital.get("notes"):
-            lines.append(str(digital.get("notes", "")))
+        lines.append(str(digital.get("notes", "")))
 
         lines.append("")
         lines.append("### 4. Sumber Daya")
         for item in learning_design.get("resources") or []:
-            name = item.get("name", "")
-            function = item.get("function", "")
-            if name or function:
-                lines.append(f"- **{name}**: {function}")
+            lines.append(f"- **{item.get('name', '')}**: {item.get('function', '')}")
 
         meeting_activities = content.get("meetingActivities") or {}
         lines.extend(["", "## D. Rangkaian Kegiatan Pembelajaran per Pertemuan"])
@@ -1074,28 +1268,17 @@ Output wajib hanya JSON valid:
             formative = meeting.get("formativeAssessment") or {}
             lines.append("")
             lines.append("#### 5. Asesmen Formatif")
-
-            step9_text = str(formative.get("step9Description") or formative.get("description") or "")
-            if step9_text:
-                lines.append(f"**Langkah - 9** {step9_text}")
+            lines.append(str(formative.get("step9Description") or formative.get("description") or ""))
 
             if formative.get("technique"):
-                lines.append("")
-                lines.append(f"**Teknik Asesmen:** {formative.get('technique')}")
+                lines.append(f"Teknik: {formative.get('technique')}")
 
-            observed_indicators = formative.get("observedIndicators") or []
-            if observed_indicators:
-                lines.append("")
-                lines.append("> **Indikator yang Diamati Guru**")
-                for indicator in observed_indicators:
-                    indicator_text = str(indicator).strip()
-                    if indicator_text:
-                        lines.append(f"> - {indicator_text}")
+            if formative.get("observedIndicators"):
+                lines.append("Indikator yang diamati guru:")
+                self._append_list_items(lines, formative.get("observedIndicators") or [])
 
             if formative.get("teacherRecordFormat"):
-                lines.append("")
-                lines.append("> **Format Catatan Guru**")
-                lines.append(f"> {formative.get('teacherRecordFormat')}")
+                lines.append(f"Bentuk catatan formatif: {formative.get('teacherRecordFormat')}")
 
         assessment = content.get("assessment") or {}
         summative = assessment.get("summative") or {}
@@ -1108,74 +1291,55 @@ Output wajib hanya JSON valid:
 
         lines.append(str(summative.get("description", "")))
 
-        if summative.get("sampleTasks"):
-            lines.append("Contoh bentuk soal sumatif:")
-            for task in summative.get("sampleTasks") or []:
-                task_text = str(task).strip()
-                if task_text:
-                    lines.append(f"- {task_text}")
+        lines.append("Contoh bentuk soal sumatif:")
+        for task in summative.get("sampleTasks") or []:
+            lines.append(f"- {task}")
 
-        if summative.get("criteria"):
-            lines.append("Kriteria penilaian sumatif:")
-            for criterion in summative.get("criteria") or []:
-                criterion_text = str(criterion).strip()
-                if criterion_text:
-                    lines.append(f"- {criterion_text}")
+        lines.append("Kriteria penilaian sumatif:")
+        for criterion in summative.get("criteria") or []:
+            lines.append(f"- {criterion}")
 
         for level in summative.get("achievementLevels") or []:
-            if isinstance(level, dict):
-                lines.append(
-                    f"- **{level.get('level', '')}**: {level.get('description', '')} "
-                    f"Tindak lanjut: {level.get('followUp', '')}"
-                )
+            lines.append(
+                f"- **{level.get('level', '')}**: {level.get('description', '')} "
+                f"Tindak lanjut: {level.get('followUp', '')}"
+            )
 
         rubric = content.get("rubric") or {}
         lines.extend(["", "## F. Rubrik Penilaian"])
         for item in rubric.get("criteria") or []:
-            criterion = item.get("criterion", "")
-            excellent = item.get("excellent", "")
-            good = item.get("good", "")
-            needs_support = item.get("needsSupport", "")
-
-            if criterion or excellent or good or needs_support:
-                lines.append(f"- **{criterion}**")
-                lines.append(f"  - Sangat Baik: {excellent}")
-                lines.append(f"  - Baik: {good}")
-                lines.append(f"  - Perlu Dukungan: {needs_support}")
+            lines.append(f"- **{item.get('criterion', '')}**")
+            lines.append(f"  - Sangat Baik: {item.get('excellent', '')}")
+            lines.append(f"  - Baik: {item.get('good', '')}")
+            lines.append(f"  - Perlu Dukungan: {item.get('needsSupport', '')}")
 
         follow_up = content.get("followUp") or {}
         lines.extend(["", "## G. Tindak Lanjut Pembelajaran"])
-        if follow_up.get("description"):
-            lines.append(str(follow_up.get("description", "")))
-        if follow_up.get("notYetAchieved"):
-            lines.append(f"- Belum mencapai tujuan pembelajaran: {follow_up.get('notYetAchieved', '')}")
-        if follow_up.get("almostAchieved"):
-            lines.append(f"- Hampir mencapai tujuan pembelajaran: {follow_up.get('almostAchieved', '')}")
-        if follow_up.get("achieved"):
-            lines.append(f"- Sudah mencapai tujuan pembelajaran: {follow_up.get('achieved', '')}")
-        if follow_up.get("exceeding"):
-            lines.append(f"- Melampaui tujuan pembelajaran: {follow_up.get('exceeding', '')}")
-        if follow_up.get("enrichmentExample"):
-            lines.append(f"- Contoh pengayaan: {follow_up.get('enrichmentExample', '')}")
+        lines.append(str(follow_up.get("description", "")))
+        lines.append(f"- Belum mencapai tujuan pembelajaran: {follow_up.get('notYetAchieved', '')}")
+        lines.append(f"- Hampir mencapai tujuan pembelajaran: {follow_up.get('almostAchieved', '')}")
+        lines.append(f"- Sudah mencapai tujuan pembelajaran: {follow_up.get('achieved', '')}")
+        lines.append(f"- Melampaui tujuan pembelajaran: {follow_up.get('exceeding', '')}")
+        lines.append(f"- Contoh pengayaan: {follow_up.get('enrichmentExample', '')}")
 
         teacher_reflection = content.get("teacherReflection") or {}
         lines.extend(["", "## H. Refleksi Guru"])
-        if teacher_reflection.get("description"):
-            lines.append(str(teacher_reflection.get("description", "")))
+        lines.append(str(teacher_reflection.get("description", "")))
         for question in teacher_reflection.get("questions") or []:
-            question_text = str(question).strip()
-            if question_text:
-                lines.append(f"- {question_text}")
+            lines.append(f"- {question}")
 
         lines.extend(["", "## I. Checklist Kelengkapan RPP"])
         for item in content.get("completionChecklist") or []:
-            item_text = str(item.get("item", "")).strip()
-            status_text = str(item.get("status", "")).strip()
-            if item_text or status_text:
-                lines.append(f"- {item_text}: {status_text}")
+            lines.append(f"- {item.get('item', '')}: {item.get('status', '')}")
 
-        if content.get("finalFlowSummary"):
-            lines.extend(["", "## Ringkasan Alur Final"])
-            lines.append(str(content.get("finalFlowSummary", "")))
+        lines.extend(["", "## Ringkasan Alur Final"])
+        lines.append(str(content.get("finalFlowSummary", "")))
 
         return "\n".join(lines)
+
+    def _dump(self, value: Any) -> dict[str, Any]:
+        if hasattr(value, "model_dump"):
+            return value.model_dump()
+        if isinstance(value, dict):
+            return value
+        return {}
