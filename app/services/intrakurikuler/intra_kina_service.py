@@ -120,8 +120,16 @@ class IntraKinaService:
         self.prompt_builder = prompt_builder or PromptBuilderService()
 
     async def chat(self, payload: KinaChatRequest) -> KinaChatResponse:
+        message = payload.message.strip()
+        is_initial_chat = self._is_initial_chat(payload)
+        rag_query = (
+            message
+            or payload.project.title
+            or payload.project.subject
+            or "strategi pembelajaran intrakurikuler stage 3"
+        )
         references = await self.rag_service.search_for_context(
-            query=payload.message,
+            query=rag_query,
             subject=payload.project.subject,
             phase=payload.project.phase,
             top_k=3,
@@ -129,7 +137,11 @@ class IntraKinaService:
 
         stage_context = self._stage_context_with_dummy(payload)
         teacher_name = self._extract_teacher_name(stage_context)
-        fallback = self._fallback_reply(payload, teacher_name)
+        fallback = (
+            self._initial_fallback_reply(payload, teacher_name)
+            if is_initial_chat
+            else self._fallback_reply(payload, teacher_name)
+        )
 
         messages = [
             {
@@ -143,6 +155,7 @@ class IntraKinaService:
                     references=references,
                     stage_context=stage_context,
                     teacher_name=teacher_name,
+                    is_initial_chat=is_initial_chat,
                 ),
             },
         ]
@@ -165,6 +178,9 @@ class IntraKinaService:
             ],
             suggestedFollowUpQuestions=self._follow_up_questions(payload),
         )
+
+    def _is_initial_chat(self, payload: KinaChatRequest) -> bool:
+        return not payload.chatHistory and not payload.message.strip()
 
     def _stage_context_with_dummy(self, payload: KinaChatRequest) -> list[dict[str, Any]]:
         stages = [stage.model_dump() for stage in payload.stages or []]
@@ -321,7 +337,46 @@ Akhiri dengan kalimat:
         references: list[Any],
         stage_context: list[dict[str, Any]],
         teacher_name: str,
+        is_initial_chat: bool,
     ) -> str:
+        latest_message_block = (
+            "Belum ada pesan dari guru. Ini adalah awal percakapan Stage 3, "
+            "jadi Kina harus menyapa dulu dan mengajukan pertanyaan pembuka."
+            if is_initial_chat
+            else f"Pesan terbaru guru:\n{payload.message}"
+        )
+        task_block = (
+            """
+Tugas Anda:
+- Buka percakapan Stage 3 dengan hangat dan natural.
+- Jangan mengatakan guru belum mengisi pesan.
+- Gunakan Stage 1 dan Stage 2 untuk memberi konteks singkat.
+- Mulai dari poin pertama: gaya_pembelajaran.
+- Ajukan hanya 1 pertanyaan ringan tentang bentuk belajar yang diinginkan guru.
+- Jika membantu, beri 2-3 contoh opsi singkat seperti diskusi, studi kasus, eksperimen, mini proyek, atau latihan terarah.
+- Jangan langsung masuk ke pendekatan pedagogis, fasilitas, platform digital, kemitraan, atau produk akhir.
+""".strip()
+            if is_initial_chat
+            else """
+Tugas Anda:
+- Jawab pesan terbaru guru dengan gaya percakapan yang nyaman.
+- Gunakan nama guru secara natural jika tersedia.
+- Gunakan Stage 1 dan Stage 2 agar respons tidak generik.
+- Jaga urutan diskusi Stage 3:
+  1. gaya pembelajaran,
+  2. preferensi pedagogis,
+  3. pemanfaatan fasilitas dan teknologi,
+  4. platform digital,
+  5. kemitraan,
+  6. produk/kinerja akhir.
+- Tentukan posisi diskusi dari chatHistory.
+- Jangan loncat ke poin berikutnya jika poin saat ini belum cukup jelas.
+- Jika guru meminta saran, berikan saran yang kontekstual berdasarkan materi, kelas, kondisi kelas, tujuan pembelajaran, dan fasilitas.
+- Jika guru menjawab pilihan, bantu rangkum keputusan dan arahkan pelan ke poin berikutnya.
+- Jika semua poin sudah cukup, berikan ringkasan akhir Stage 3 dan tutup dengan:
+  "Terima kasih, data Anda sudah selesai dan siap digunakan untuk tahap berikutnya."
+""".strip()
+        )
         return "\n\n".join(
             [
                 "Konteks project:",
@@ -343,27 +398,9 @@ Akhiri dengan kalimat:
                     indent=2,
                 ),
 
-                f"Pesan terbaru guru:\n{payload.message}",
+                latest_message_block,
 
-                """
-Tugas Anda:
-- Jawab pesan terbaru guru dengan gaya percakapan yang nyaman.
-- Gunakan nama guru secara natural jika tersedia.
-- Gunakan Stage 1 dan Stage 2 agar respons tidak generik.
-- Jaga urutan diskusi Stage 3:
-  1. gaya pembelajaran,
-  2. preferensi pedagogis,
-  3. pemanfaatan fasilitas dan teknologi,
-  4. platform digital,
-  5. kemitraan,
-  6. produk/kinerja akhir.
-- Tentukan posisi diskusi dari chatHistory.
-- Jangan loncat ke poin berikutnya jika poin saat ini belum cukup jelas.
-- Jika guru meminta saran, berikan saran yang kontekstual berdasarkan materi, kelas, kondisi kelas, tujuan pembelajaran, dan fasilitas.
-- Jika guru menjawab pilihan, bantu rangkum keputusan dan arahkan pelan ke poin berikutnya.
-- Jika semua poin sudah cukup, berikan ringkasan akhir Stage 3 dan tutup dengan:
-  "Terima kasih, data Anda sudah selesai dan siap digunakan untuk tahap berikutnya."
-""".strip(),
+                task_block,
             ]
         )
 
@@ -375,6 +412,20 @@ Tugas Anda:
             f"Baik, {sapaan}. Saya tangkap kita akan mulai menyusun rancangan pembelajaran untuk {topic}. "
             "Kita bisa mulai pelan-pelan dari bentuk aktivitas yang paling nyaman dilakukan di kelas, "
             "lalu saya bantu sesuaikan dengan tujuan pembelajaran dan kondisi siswa."
+        )
+
+    def _initial_fallback_reply(
+        self,
+        payload: KinaChatRequest,
+        teacher_name: str,
+    ) -> str:
+        topic = payload.project.title or payload.project.subject or "pembelajaran ini"
+        sapaan = teacher_name if teacher_name else "Bapak/Ibu Guru"
+
+        return (
+            f"Halo, {sapaan}. Kita masuk ke Stage 3 untuk menyusun strategi pembelajaran {topic}. "
+            "Saya akan bantu pelan-pelan mulai dari bentuk belajar yang paling cocok dengan tujuan pembelajaran dan kondisi kelas.\n\n"
+            "Untuk awal, Bapak/Ibu ingin kegiatan belajarnya lebih dekat ke diskusi, studi kasus, mini proyek, latihan terarah, atau campuran?"
         )
 
     def _follow_up_questions(self, payload: KinaChatRequest) -> list[str]:

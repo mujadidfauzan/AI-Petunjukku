@@ -12,7 +12,7 @@ class KinaChatRequest(BaseModel):
     project: ProjectSchema
     stages: list[StageSchema] = Field(default_factory=list)
     chatHistory: list[ChatMessageSchema] = Field(default_factory=list)
-    message: str = Field(..., min_length=1)
+    message: str = ""
 
 
 class KinaChatResponse(BaseModel):

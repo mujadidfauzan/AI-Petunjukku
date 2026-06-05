@@ -22,8 +22,10 @@ class PjblKinaService:
         self.prompt_builder = prompt_builder or PromptBuilderService()
 
     async def chat(self, payload: KinaChatRequest) -> KinaChatResponse:
+        message = payload.message.strip()
+        rag_query = message or payload.project.title or payload.project.subject or "PjBL"
         references = await self.rag_service.search_for_context(
-            query=payload.message,
+            query=rag_query,
             subject=payload.project.subject,
             phase=payload.project.phase,
             top_k=3,
