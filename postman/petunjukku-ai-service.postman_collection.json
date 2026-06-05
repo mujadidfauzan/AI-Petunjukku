@@ -1,0 +1,532 @@
+{
+  "info": {
+    "_postman_id": "9aa8f634-3d89-4b32-8e30-6a2d51c6d782",
+    "name": "Petunjukku AI Service - Branch Trial",
+    "description": "Collection untuk mencoba endpoint FastAPI Petunjukku AI Service pada branch main, fahmi, dan robby. Set environment Petunjukku AI Service - Local sebelum menjalankan request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('status is 2xx', function () {",
+          "  pm.expect(pm.response.code).to.be.within(200, 299);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "internal_api_key",
+      "value": "change-this-internal-key"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /internal/health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/internal/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "health"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RAG",
+      "item": [
+        {
+          "name": "POST /internal/rag/search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Capaian pembelajaran matematika fase D aljabar\",\n  \"subject\": \"Matematika\",\n  \"phase\": \"Fase D\",\n  \"topK\": 5,\n  \"documentType\": \"capaian_pembelajaran\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/internal/rag/search",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "rag",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /internal/rag/references",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/internal/rag/references?subject=Matematika&phase=Fase%20D&documentType=capaian_pembelajaran",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "rag",
+                "references"
+              ],
+              "query": [
+                {
+                  "key": "subject",
+                  "value": "Matematika"
+                },
+                {
+                  "key": "phase",
+                  "value": "Fase D"
+                },
+                {
+                  "key": "documentType",
+                  "value": "capaian_pembelajaran"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /internal/rag/index-documents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documentPath\": \"{{document_path}}\",\n  \"sourceTitle\": \"Capaian Pembelajaran Matematika Fase D\",\n  \"documentType\": \"capaian_pembelajaran\",\n  \"subject\": \"Matematika\",\n  \"phase\": \"Fase D\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/internal/rag/index-documents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "rag",
+                "index-documents"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI - Intrakurikuler",
+      "item": [
+        {
+          "name": "POST /internal/ai/recommend-stage - Stage 2 ATP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project\": {\n    \"id\": \"proj-intra-001\",\n    \"title\": \"RPP Polinomial Sederhana\",\n    \"rppType\": \"intrakurikuler\",\n    \"subject\": \"Matematika\",\n    \"phase\": \"Fase D\",\n    \"gradeLevel\": \"VII\"\n  },\n  \"teacherProfile\": {\n    \"fullName\": \"Vica Mawaddatus Syifa\",\n    \"position\": \"Guru Matematika\",\n    \"educationLevel\": \"SMP/MTs\"\n  },\n  \"school\": {\n    \"name\": \"SMPN 15 Surabaya\",\n    \"province\": \"Jawa Timur\",\n    \"city\": \"Surabaya\",\n    \"schoolEnvironment\": \"Perkotaan\",\n    \"availableFacilities\": [\"Papan tulis\", \"Proyektor\", \"HP siswa\", \"Internet terbatas\"],\n    \"localContext\": \"Siswa familiar dengan pola angka dari uang jajan dan jadwal harian.\"\n  },\n  \"teacherClass\": {\n    \"className\": \"VII A\",\n    \"gradeLevel\": \"VII\",\n    \"studentCount\": 32,\n    \"studentCharacteristics\": \"Kemampuan matematika beragam dan lebih mudah memahami contoh konkret.\",\n    \"learningChallenges\": [\"Literasi matematika belum merata\", \"Sebagian siswa ragu menjelaskan langkah\"],\n    \"dominantLearningStyle\": \"Visual dan diskusi kelompok\"\n  },\n  \"previousStages\": [\n    {\n      \"stageNumber\": 1,\n      \"stageName\": \"Konteks Dasar Pembelajaran\",\n      \"contentJson\": {\n        \"jenjangPendidikan\": \"SMP/MTs\",\n        \"fase\": \"Fase D\",\n        \"kelas\": \"Kelas 7\",\n        \"mataPelajaran\": \"Matematika\",\n        \"topikMateriPokok\": \"Polinomial sederhana dalam konteks pola bilangan\",\n        \"durasiPembelajaran\": \"3 pertemuan x 35 menit\",\n        \"jumlahPertemuan\": 3,\n        \"kondisiKelas\": \"Kemampuan siswa beragam dan membutuhkan contoh konkret.\",\n        \"fasilitasAwal\": [\"Papan tulis\", \"HP siswa\", \"Internet terbatas\", \"Proyektor\"]\n      }\n    }\n  ],\n  \"targetStage\": {\n    \"stageNumber\": 2,\n    \"stageName\": \"Fondasi Tujuan Pembelajaran\",\n    \"recommendationType\": \"alur_tujuan_pembelajaran\",\n    \"topic\": \"Polinomial sederhana\"\n  },\n  \"options\": {\n    \"topK\": 5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/internal/ai/recommend-stage",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "ai",
+                "recommend-stage"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /internal/ai/kina-chat - Stage 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project\": {\n    \"id\": \"proj-intra-001\",\n    \"title\": \"RPP Polinomial Sederhana\",\n    \"rppType\": \"intrakurikuler\",\n    \"subject\": \"Matematika\",\n    \"phase\": \"Fase D\",\n    \"gradeLevel\": \"VII\"\n  },\n  \"stages\": [\n    {\n      \"stageNumber\": 1,\n      \"stageName\": \"Konteks Dasar Pembelajaran\",\n      \"contentJson\": {\n        \"namaGuru\": \"Vica Mawaddatus Syifa\",\n        \"kelas\": \"Kelas 7\",\n        \"mataPelajaran\": \"Matematika\",\n        \"topikMateriPokok\": \"Polinomial sederhana dalam konteks pola bilangan\",\n        \"durasiPembelajaran\": \"3 pertemuan x 35 menit\",\n        \"kondisiKelas\": \"Kemampuan siswa beragam dan membutuhkan contoh konkret.\",\n        \"fasilitasAwal\": [\"Papan tulis\", \"HP siswa\", \"Internet terbatas\", \"Proyektor\"]\n      }\n    },\n    {\n      \"stageNumber\": 2,\n      \"stageName\": \"Fondasi Tujuan Pembelajaran\",\n      \"contentJson\": {\n        \"capaianPembelajaran\": \"Peserta didik memahami dan menggunakan bentuk aljabar sederhana untuk menyelesaikan masalah kontekstual.\",\n        \"tujuanPembelajaranTerpilih\": [\n          \"Murid mampu mengenali unsur bentuk aljabar.\",\n          \"Murid mampu menyusun polinomial sederhana dari pola bilangan.\",\n          \"Murid mampu melakukan operasi penjumlahan dan pengurangan polinomial sederhana.\"\n        ],\n        \"dimensiProfilLulusan\": [\"Penalaran Kritis\", \"Kolaborasi\", \"Komunikasi\"],\n        \"mataPelajaranLintasDisiplin\": [\"Bahasa Indonesia\", \"Informatika\"],\n        \"pertanyaanPemantik\": \"Bagaimana pola bilangan dapat dituliskan dalam bentuk aljabar?\"\n      }\n    }\n  ],\n  \"chatHistory\": [],\n  \"message\": \"Saya ingin pembelajaran dibuat diskusi kelompok kecil, tapi tetap ada contoh bertahap dari guru.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/internal/ai/kina-chat",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "ai",
+                "kina-chat"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /internal/ai/summarize-kina-chat - Stage 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project\": {\n    \"id\": \"proj-intra-001\",\n    \"title\": \"RPP Polinomial Sederhana\",\n    \"rppType\": \"intrakurikuler\",\n    \"subject\": \"Matematika\",\n    \"phase\": \"Fase D\",\n    \"gradeLevel\": \"VII\"\n  },\n  \"summaryType\": \"intrakurikuler_stage_3\",\n  \"chatHistory\": [\n    {\n      \"role\": \"user\",\n      \"message\": \"Saya ingin diskusi kelompok kecil dengan contoh dari guru.\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"message\": \"Baik, strategi ini cocok untuk mengenalkan polinomial lewat pola bilangan. Kita bisa memakai papan tulis dan Google Slides untuk presentasi singkat.\"\n    },\n    {\n      \"role\": \"user\",\n      \"message\": \"Produk akhirnya presentasi kelompok singkat saja. Tidak perlu mitra luar.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/internal/ai/summarize-kina-chat",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "ai",
+                "summarize-kina-chat"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /internal/ai/generate-rpp - Final Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project\": {\n    \"id\": \"proj-intra-001\",\n    \"title\": \"RPP Polinomial Sederhana\",\n    \"rppType\": \"intrakurikuler\",\n    \"subject\": \"Matematika\",\n    \"phase\": \"Fase D\",\n    \"gradeLevel\": \"VII\"\n  },\n  \"teacherProfile\": {\n    \"fullName\": \"Vica Mawaddatus Syifa\",\n    \"position\": \"Guru Matematika\",\n    \"educationLevel\": \"SMP/MTs\"\n  },\n  \"school\": {\n    \"name\": \"SMPN 15 Surabaya\",\n    \"province\": \"Jawa Timur\",\n    \"city\": \"Surabaya\",\n    \"schoolEnvironment\": \"Perkotaan\",\n    \"availableFacilities\": [\"Papan tulis\", \"Proyektor\", \"HP siswa\", \"Internet terbatas\"],\n    \"localContext\": \"Siswa familiar dengan pola angka dari uang jajan dan jadwal harian.\"\n  },\n  \"teacherSubject\": {\n    \"subjectName\": \"Matematika\",\n    \"gradeLevel\": \"VII\"\n  },\n  \"teacherClass\": {\n    \"className\": \"VII A\",\n    \"gradeLevel\": \"VII\",\n    \"studentCount\": 32,\n    \"studentCharacteristics\": \"Kemampuan matematika beragam dan lebih mudah memahami contoh konkret.\",\n    \"learningChallenges\": [\"Literasi matematika belum merata\", \"Sebagian siswa ragu menjelaskan langkah\"],\n    \"dominantLearningStyle\": \"Visual dan diskusi kelompok\"\n  },\n  \"stages\": [\n    {\n      \"stageNumber\": 1,\n      \"stageName\": \"Konteks Dasar Pembelajaran\",\n      \"contentJson\": {\n        \"jenjangPendidikan\": \"SMP/MTs\",\n        \"fase\": \"Fase D\",\n        \"kelas\": \"Kelas 7\",\n        \"mataPelajaran\": \"Matematika\",\n        \"topikMateriPokok\": \"Polinomial sederhana dalam konteks pola bilangan\",\n        \"durasiPembelajaran\": \"3 pertemuan x 35 menit\",\n        \"jumlahPertemuan\": 3,\n        \"kondisiKelas\": \"Kemampuan siswa beragam dan membutuhkan contoh konkret.\",\n        \"fasilitasAwal\": [\"Papan tulis\", \"HP siswa\", \"Internet terbatas\", \"Proyektor\"]\n      }\n    },\n    {\n      \"stageNumber\": 2,\n      \"stageName\": \"Fondasi Tujuan Pembelajaran\",\n      \"contentJson\": {\n        \"capaianPembelajaran\": \"Peserta didik memahami dan menggunakan bentuk aljabar sederhana untuk menyelesaikan masalah kontekstual.\",\n        \"tujuanPembelajaranTerpilih\": [\n          \"Murid mampu mengenali unsur bentuk aljabar.\",\n          \"Murid mampu menyusun polinomial sederhana dari pola bilangan.\",\n          \"Murid mampu melakukan operasi penjumlahan dan pengurangan polinomial sederhana.\"\n        ],\n        \"dimensiProfilLulusan\": [\"Penalaran Kritis\", \"Kolaborasi\", \"Komunikasi\"],\n        \"mataPelajaranLintasDisiplin\": [\"Bahasa Indonesia\", \"Informatika\"],\n        \"pertanyaanPemantik\": \"Bagaimana pola bilangan dapat dituliskan dalam bentuk aljabar?\"\n      }\n    },\n    {\n      \"stageNumber\": 3,\n      \"stageName\": \"Strategi Pembelajaran\",\n      \"contentJson\": {\n        \"discussionSummary\": \"Guru memilih diskusi kelompok kecil dengan contoh bertahap dari guru.\",\n        \"learningStrategy\": \"Diskusi kelompok kecil dan contoh bertahap\",\n        \"pedagogicalApproach\": \"Mini-PjBL ringan dengan arahan guru\",\n        \"facilityAndTechnologyUse\": \"Papan tulis dan proyektor digunakan untuk contoh bertahap; HP siswa digunakan terbatas untuk melihat bahan presentasi.\",\n        \"digitalPlatform\": \"Google Slides\",\n        \"partnership\": \"Tidak digunakan\",\n        \"finalStudentProduct\": \"Presentasi kelompok singkat tentang penerapan polinomial sederhana.\",\n        \"activityFlowDecision\": {\n          \"opening\": \"Guru membuka dengan pola bilangan kontekstual.\",\n          \"mainActivity\": \"Siswa berdiskusi menyusun bentuk aljabar dari pola dan menyiapkan presentasi singkat.\",\n          \"closing\": \"Kelompok menyampaikan hasil dan melakukan refleksi.\"\n        },\n        \"differentiationPlan\": {\n          \"support\": \"Siswa yang membutuhkan bantuan diberi contoh bertahap.\",\n          \"enrichment\": \"Siswa yang cepat diberi tantangan membuat pola baru.\"\n        }\n      }\n    },\n    {\n      \"stageNumber\": 4,\n      \"stageName\": \"Penilaian Dukungan Pelaksanaan\",\n      \"contentJson\": {\n        \"assessmentType\": \"formatif\",\n        \"meetings\": [\n          {\n            \"meetingOrder\": 1,\n            \"meetingTitle\": \"Mengenal Unsur Bentuk Aljabar\",\n            \"selectedTechnique\": \"observasi\",\n            \"selectedTechniqueLabel\": \"Observasi\",\n            \"description\": \"Guru mengamati keaktifan siswa saat diskusi awal dan eksplorasi konsep.\"\n          },\n          {\n            \"meetingOrder\": 2,\n            \"meetingTitle\": \"Menyusun Polinomial dari Pola\",\n            \"selectedTechnique\": \"portofolio\",\n            \"selectedTechniqueLabel\": \"Portofolio\",\n            \"description\": \"Guru menilai catatan kelompok dan hasil kerja latihan.\"\n          },\n          {\n            \"meetingOrder\": 3,\n            \"meetingTitle\": \"Presentasi dan Refleksi\",\n            \"selectedTechnique\": \"exit_ticket\",\n            \"selectedTechniqueLabel\": \"Exit Ticket\",\n            \"description\": \"Siswa menulis refleksi pemahaman di akhir pembelajaran.\"\n          }\n        ]\n      }\n    }\n  ],\n  \"kinaChatSummary\": {\n    \"discussionSummary\": \"Guru memilih diskusi kelompok kecil dengan contoh bertahap dari guru.\",\n    \"learningStrategy\": \"Diskusi kelompok kecil dan contoh bertahap\",\n    \"pedagogicalApproach\": \"Mini-PjBL ringan dengan arahan guru\",\n    \"facilityAndTechnologyUse\": \"Papan tulis dan proyektor digunakan untuk contoh bertahap; HP siswa digunakan terbatas untuk melihat bahan presentasi.\",\n    \"digitalPlatform\": \"Google Slides\",\n    \"partnership\": \"Tidak digunakan\",\n    \"finalStudentProduct\": \"Presentasi kelompok singkat tentang penerapan polinomial sederhana.\"\n  },\n  \"options\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/internal/ai/generate-rpp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "ai",
+                "generate-rpp"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI - PjBL Kokurikuler",
+      "item": [
+        {
+          "name": "POST /internal/ai/recommend-stage - Theme Recommendation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project\": {\n    \"id\": \"proj-pjbl-001\",\n    \"title\": \"Proyek Pengelolaan Sampah Sekolah\",\n    \"rppType\": \"pjbl_kokurikuler\",\n    \"subject\": \"IPA\",\n    \"phase\": \"Fase D\",\n    \"gradeLevel\": \"VII\"\n  },\n  \"school\": {\n    \"name\": \"SMP Contoh\",\n    \"province\": \"Jawa Timur\",\n    \"city\": \"Surabaya\",\n    \"schoolEnvironment\": \"Perkotaan\",\n    \"availableFacilities\": [\"Tempat sampah terpilah\", \"Kantin\", \"Taman sekolah\"],\n    \"localContext\": \"Sampah plastik dari kantin masih sering bercampur dengan sampah organik.\"\n  },\n  \"teacherClass\": {\n    \"className\": \"VII B\",\n    \"gradeLevel\": \"VII\",\n    \"studentCount\": 30,\n    \"studentCharacteristics\": \"Siswa aktif jika proyek dekat dengan lingkungan sekolah.\",\n    \"learningChallenges\": [\"Perlu arahan observasi\", \"Waktu proyek terbatas\"],\n    \"dominantLearningStyle\": \"Kolaboratif\"\n  },\n  \"previousStages\": [\n    {\n      \"stageNumber\": 1,\n      \"stageName\": \"Konteks Proyek\",\n      \"contentJson\": {\n        \"selectedSubject\": \"IPA\",\n        \"localIssue\": \"Sampah plastik dari kantin sering bercampur dengan sampah organik.\",\n        \"availableFacilities\": [\"Tempat sampah terpilah\", \"Kantin\", \"Taman sekolah\"],\n        \"projectDuration\": \"4 minggu\",\n        \"constraints\": [\"Tidak boleh keluar sekolah\", \"Waktu observasi hanya saat istirahat\"]\n      }\n    }\n  ],\n  \"targetStage\": {\n    \"stageNumber\": 2,\n    \"stageName\": \"Rekomendasi Tema Proyek\",\n    \"recommendationType\": \"project_theme_recommendation\"\n  },\n  \"options\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/internal/ai/recommend-stage",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "ai",
+                "recommend-stage"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /internal/ai/recommend-stage - Project Recommendation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project\": {\n    \"id\": \"proj-pjbl-001\",\n    \"title\": \"Proyek Pengelolaan Sampah Sekolah\",\n    \"rppType\": \"pjbl_kokurikuler\",\n    \"subject\": \"IPA\",\n    \"phase\": \"Fase D\",\n    \"gradeLevel\": \"VII\"\n  },\n  \"teacherProfile\": {\n    \"fullName\": \"Guru IPA\",\n    \"position\": \"Guru IPA\",\n    \"educationLevel\": \"SMP/MTs\"\n  },\n  \"school\": {\n    \"name\": \"SMP Contoh\",\n    \"province\": \"Jawa Timur\",\n    \"city\": \"Surabaya\",\n    \"schoolEnvironment\": \"Perkotaan\",\n    \"availableFacilities\": [\"Tempat sampah terpilah\", \"Kantin\", \"Taman sekolah\"],\n    \"localContext\": \"Sampah plastik dari kantin masih sering bercampur dengan sampah organik.\"\n  },\n  \"teacherClass\": {\n    \"className\": \"VII B\",\n    \"gradeLevel\": \"VII\",\n    \"studentCount\": 30,\n    \"studentCharacteristics\": \"Siswa aktif jika proyek dekat dengan lingkungan sekolah.\",\n    \"learningChallenges\": [\"Perlu arahan observasi\", \"Waktu proyek terbatas\"],\n    \"dominantLearningStyle\": \"Kolaboratif\"\n  },\n  \"previousStages\": [\n    {\n      \"stageNumber\": 1,\n      \"stageName\": \"Konteks Proyek\",\n      \"contentJson\": {\n        \"selectedSubject\": \"IPA\",\n        \"localIssue\": \"Sampah plastik dari kantin sering bercampur dengan sampah organik.\",\n        \"availableFacilities\": [\"Tempat sampah terpilah\", \"Kantin\", \"Taman sekolah\"],\n        \"projectDuration\": \"4 minggu\",\n        \"constraints\": [\"Tidak boleh keluar sekolah\", \"Waktu observasi hanya saat istirahat\"]\n      }\n    }\n  ],\n  \"targetStage\": {\n    \"stageNumber\": 2,\n    \"stageName\": \"Rekomendasi Proyek\",\n    \"recommendationType\": \"stage_recommendation\",\n    \"selectedTheme\": \"Limbah\",\n    \"topic\": \"Sampah plastik kantin\"\n  },\n  \"options\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/internal/ai/recommend-stage",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "ai",
+                "recommend-stage"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /internal/ai/kina-chat - PjBL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project\": {\n    \"id\": \"proj-pjbl-001\",\n    \"title\": \"Proyek Pengelolaan Sampah Sekolah\",\n    \"rppType\": \"pjbl_kokurikuler\",\n    \"subject\": \"IPA\",\n    \"phase\": \"Fase D\",\n    \"gradeLevel\": \"VII\"\n  },\n  \"stages\": [\n    {\n      \"stageNumber\": 1,\n      \"stageName\": \"Konteks Proyek\",\n      \"contentJson\": {\n        \"selectedSubject\": \"IPA\",\n        \"localIssue\": \"Sampah plastik dari kantin sering bercampur dengan sampah organik.\",\n        \"availableFacilities\": [\"Tempat sampah terpilah\", \"Kantin\", \"Taman sekolah\"],\n        \"projectDuration\": \"4 minggu\"\n      }\n    },\n    {\n      \"stageNumber\": 2,\n      \"stageName\": \"Rekomendasi Proyek\",\n      \"contentJson\": {\n        \"projectTheme\": \"Limbah\",\n        \"recommendedProjectTitle\": \"Audit Sampah Plastik Kantin\",\n        \"studentProduct\": [\"Tabel temuan\", \"Poster ajakan\", \"Presentasi hasil\"]\n      }\n    }\n  ],\n  \"chatHistory\": [],\n  \"message\": \"Bagaimana membagi aktivitas proyek ini agar realistis selama 4 minggu?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/internal/ai/kina-chat",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "ai",
+                "kina-chat"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /internal/ai/summarize-kina-chat - PjBL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project\": {\n    \"id\": \"proj-pjbl-001\",\n    \"title\": \"Proyek Pengelolaan Sampah Sekolah\",\n    \"rppType\": \"pjbl_kokurikuler\",\n    \"subject\": \"IPA\",\n    \"phase\": \"Fase D\",\n    \"gradeLevel\": \"VII\"\n  },\n  \"summaryType\": \"pjbl_stage_discussion\",\n  \"chatHistory\": [\n    {\n      \"role\": \"user\",\n      \"message\": \"Saya ingin proyek audit sampah plastik kantin.\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"message\": \"Proyek bisa dibagi menjadi observasi, pengolahan data, kampanye, dan presentasi.\"\n    },\n    {\n      \"role\": \"user\",\n      \"message\": \"Produk akhirnya tabel temuan, poster ajakan, dan presentasi.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/internal/ai/summarize-kina-chat",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "ai",
+                "summarize-kina-chat"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /internal/ai/generate-rpp - PjBL Final Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-API-Key",
+                "value": "{{internal_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project\": {\n    \"id\": \"proj-pjbl-001\",\n    \"title\": \"Proyek Pengelolaan Sampah Sekolah\",\n    \"rppType\": \"pjbl_kokurikuler\",\n    \"subject\": \"IPA\",\n    \"phase\": \"Fase D\",\n    \"gradeLevel\": \"VII\"\n  },\n  \"teacherProfile\": {\n    \"fullName\": \"Guru IPA\",\n    \"position\": \"Guru IPA\",\n    \"educationLevel\": \"SMP/MTs\"\n  },\n  \"school\": {\n    \"name\": \"SMP Contoh\",\n    \"province\": \"Jawa Timur\",\n    \"city\": \"Surabaya\",\n    \"schoolEnvironment\": \"Perkotaan\",\n    \"availableFacilities\": [\"Tempat sampah terpilah\", \"Kantin\", \"Taman sekolah\"],\n    \"localContext\": \"Sampah plastik dari kantin masih sering bercampur dengan sampah organik.\"\n  },\n  \"teacherSubject\": {\n    \"subjectName\": \"IPA\",\n    \"gradeLevel\": \"VII\"\n  },\n  \"teacherClass\": {\n    \"className\": \"VII B\",\n    \"gradeLevel\": \"VII\",\n    \"studentCount\": 30,\n    \"studentCharacteristics\": \"Siswa aktif jika proyek dekat dengan lingkungan sekolah.\",\n    \"learningChallenges\": [\"Perlu arahan observasi\", \"Waktu proyek terbatas\"],\n    \"dominantLearningStyle\": \"Kolaboratif\"\n  },\n  \"stages\": [\n    {\n      \"stageNumber\": 1,\n      \"stageName\": \"Konteks Proyek\",\n      \"contentJson\": {\n        \"selectedSubject\": \"IPA\",\n        \"localIssue\": \"Sampah plastik dari kantin sering bercampur dengan sampah organik.\",\n        \"availableFacilities\": [\"Tempat sampah terpilah\", \"Kantin\", \"Taman sekolah\"],\n        \"projectDuration\": \"4 minggu\",\n        \"constraints\": [\"Tidak boleh keluar sekolah\", \"Waktu observasi hanya saat istirahat\"]\n      }\n    },\n    {\n      \"stageNumber\": 2,\n      \"stageName\": \"Rekomendasi Proyek\",\n      \"contentJson\": {\n        \"projectTheme\": \"Limbah\",\n        \"recommendedProjectTitle\": \"Audit Sampah Plastik Kantin\",\n        \"projectObjectives\": [\"Siswa mengidentifikasi jenis sampah kantin\", \"Siswa menyajikan data sederhana\", \"Siswa membuat kampanye pengurangan sampah\"],\n        \"drivingQuestion\": \"Bagaimana warga sekolah dapat mengurangi sampah plastik dari kantin?\",\n        \"studentProduct\": [\"Tabel temuan\", \"Poster ajakan\", \"Presentasi hasil\"]\n      }\n    }\n  ],\n  \"kinaChatSummary\": {\n    \"discussionSummary\": \"Guru memilih proyek audit sampah plastik kantin selama 4 minggu.\",\n    \"projectActivitiesOverview\": [\"Observasi\", \"Pengolahan data\", \"Kampanye\", \"Presentasi\"],\n    \"riskMitigation\": [\"Guru memberi format observasi singkat agar data konsisten.\"]\n  },\n  \"options\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/internal/ai/generate-rpp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "ai",
+                "generate-rpp"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
