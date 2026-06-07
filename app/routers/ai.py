@@ -13,6 +13,10 @@ from app.schemas.recommendation_schema import (
     RecommendStageRequest,
     RecommendStageResponse,
 )
+from app.schemas.stage3_diagram_schema import (
+    Stage3DiagramRequest,
+    Stage3DiagramResponse,
+)
 from app.services.ai_orchestrator_service import AIOrchestratorService
 
 
@@ -37,3 +41,10 @@ async def summarize_kina_chat(payload: KinaSummaryRequest) -> KinaSummaryRespons
 @router.post("/generate-rpp", response_model=GenerateRppResponse)
 async def generate_rpp(payload: GenerateRppRequest) -> GenerateRppResponse:
     return await AIOrchestratorService().generate_rpp(payload)
+
+
+@router.post("/generate-stage3-diagrams", response_model=Stage3DiagramResponse)
+async def generate_stage3_diagrams(
+    payload: Stage3DiagramRequest,
+) -> Stage3DiagramResponse:
+    return await AIOrchestratorService().generate_stage3_diagrams(payload)

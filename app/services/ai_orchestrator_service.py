@@ -13,6 +13,10 @@ from app.schemas.recommendation_schema import (
     RecommendStageRequest,
     RecommendStageResponse,
 )
+from app.schemas.stage3_diagram_schema import (
+    Stage3DiagramRequest,
+    Stage3DiagramResponse,
+)
 from app.services.intrakurikuler.intra_generation_service import (
     IntraGenerationService,
 )
@@ -21,6 +25,9 @@ from app.services.intrakurikuler.intra_recommendation_service import (
     IntraRecommendationService,
 )
 from app.services.intrakurikuler.intra_summary_service import IntraSummaryService
+from app.services.intrakurikuler.intra_stage3_diagram_service import (
+    IntraStage3DiagramService,
+)
 from app.services.pjbl.pjbl_generation_service import PjblGenerationService
 from app.services.pjbl.pjbl_kina_service import PjblKinaService
 from app.services.pjbl.pjbl_recommendation_service import PjblRecommendationService
@@ -65,6 +72,13 @@ class AIOrchestratorService:
             return await IntraGenerationService().generate(payload)
         if payload.project.rppType == "pjbl_kokurikuler":
             return await PjblGenerationService().generate(payload)
+        raise self._unsupported_rpp_type(payload.project.rppType)
+
+    async def generate_stage3_diagrams(
+        self, payload: Stage3DiagramRequest
+    ) -> Stage3DiagramResponse:
+        if payload.project.rppType == "intrakurikuler":
+            return await IntraStage3DiagramService().generate(payload)
         raise self._unsupported_rpp_type(payload.project.rppType)
 
     def _unsupported_rpp_type(self, rpp_type: str | None) -> HTTPException:

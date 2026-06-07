@@ -97,6 +97,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from fastapi import HTTPException, status
+
 from app.schemas.common_schema import UsedReferenceSchema
 from app.schemas.kina_schema import KinaChatRequest, KinaChatResponse
 from app.services.intrakurikuler.intra_dummy_stage_data import (
@@ -136,7 +138,7 @@ class IntraKinaService:
         )
 
         stage_context = self._stage_context_with_dummy(payload)
-        teacher_name = self._extract_teacher_name(stage_context)
+        teacher_name = self._extract_teacher_name(payload, stage_context)
         fallback = (
             self._initial_fallback_reply(payload, teacher_name)
             if is_initial_chat
@@ -160,11 +162,48 @@ class IntraKinaService:
             },
         ]
 
-        reply = await self.llm_client.generate_text(
-            messages,
-            fallback,
-            temperature=0.62,
+        suggested_follow_up_questions = (
+            [] if payload.requireAi else self._follow_up_questions(payload)
         )
+        if payload.requireAi:
+            try:
+                generated = await self.llm_client.generate_json_strict(
+                    [
+                        *messages,
+                        {
+                            "role": "user",
+                            "content": (
+                                "Untuk integrasi frontend, balas hanya dalam JSON valid dengan bentuk "
+                                '{"reply":"...","suggestedFollowUpQuestions":["...","..."]}. '
+                                "Field reply berisi pesan KINA untuk guru, tetap natural dan jangan menyebut JSON. "
+                                "Field suggestedFollowUpQuestions wajib berisi 2-3 pilihan balasan singkat yang bisa langsung diklik guru. "
+                                "Pilihan harus nyambung dengan pertanyaan terakhir KINA, bukan pertanyaan baru."
+                            ),
+                        },
+                    ],
+                    temperature=0.62,
+                )
+                reply = str(generated.get("reply") or "").strip()
+                suggested = generated.get("suggestedFollowUpQuestions")
+                if isinstance(suggested, list):
+                    suggested_follow_up_questions = [
+                        item.strip()
+                        for item in suggested
+                        if isinstance(item, str) and item.strip()
+                    ][:3]
+                if not reply:
+                    raise RuntimeError("KINA AI mengembalikan respons kosong.")
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail=f"KINA AI belum berhasil merespons: {exc}",
+                ) from exc
+        else:
+            reply = await self.llm_client.generate_text(
+                messages,
+                fallback,
+                temperature=0.62,
+            )
 
         return KinaChatResponse(
             reply=reply,
@@ -176,7 +215,7 @@ class IntraKinaService:
                 )
                 for reference in references
             ],
-            suggestedFollowUpQuestions=self._follow_up_questions(payload),
+            suggestedFollowUpQuestions=suggested_follow_up_questions,
         )
 
     def _is_initial_chat(self, payload: KinaChatRequest) -> bool:
@@ -211,7 +250,15 @@ class IntraKinaService:
 
         return sorted(stages, key=lambda item: item.get("stageNumber") or 999)
 
-    def _extract_teacher_name(self, stages: list[dict[str, Any]]) -> str:
+    def _extract_teacher_name(
+        self, payload: KinaChatRequest, stages: list[dict[str, Any]]
+    ) -> str:
+        project_data = payload.project.model_dump()
+        for key in ("teacherName", "fullName", "name", "userName"):
+            value = project_data.get(key)
+            if isinstance(value, str) and value.strip():
+                return self._first_name(value)
+
         for stage in stages:
             if stage.get("stageNumber") != 1:
                 continue
@@ -230,39 +277,44 @@ class IntraKinaService:
             ):
                 value = content.get(key)
                 if isinstance(value, str) and value.strip():
-                    return value.strip()
+                    return self._first_name(value)
 
-        return "Bapak/Ibu Guru"
+        return "teman guru"
+
+    def _first_name(self, value: str) -> str:
+        return value.strip().split()[0]
 
     def _build_stage_3_system_prompt(self) -> str:
         return """
-Anda adalah Kina, AI Teaching Companion Petunjukku untuk guru Indonesia.
-Anda sedang membantu guru menyusun Stage 3 RPP Intrakurikuler, yaitu strategi, pendekatan, pemanfaatan fasilitas, dan produk akhir pembelajaran.
+Kamu adalah KINA, teman ngobrol guru di Studio Guru.
+Kamu sedang membantu guru menyusun Stage 3 RPP Intrakurikuler: strategi, pendekatan, fasilitas, platform, kemitraan, dan produk akhir.
 
 PERAN KOMUNIKASI:
-- Anda bukan pewawancara.
-- Anda adalah rekan diskusi pedagogis yang ramah, reflektif, dan membantu guru merasa dipahami.
-- Gunakan psychology of communication: validasi, tangkap maksud guru, rangkum singkat, lalu ajukan ajakan kecil berikutnya.
-- Buat guru merasa sedang berdiskusi dengan partner profesional, bukan sedang mengisi formulir.
+- Kamu bukan pewawancara.
+- Kamu adalah partner ngobrol yang ramah, santai, dan tetap berguna.
+- Validasi singkat, tangkap maksud guru, lalu ajukan 1 langkah kecil berikutnya.
+- Buat guru merasa sedang ngobrol, bukan sedang mengisi formulir.
 - Hindari gaya kaku seperti checklist, survei, atau interview.
 
 GAYA BAHASA:
-- Gunakan bahasa Indonesia yang hangat, profesional, dan mudah dipahami guru.
-- Jika nama guru tersedia, gunakan sapaan secara natural, misalnya "Baik, Bu Hartini,".
+- Gunakan bahasa Indonesia santai, ramah, dan singkat.
+- Gunakan "aku" dan "kamu". Jangan gunakan "Anda", "Bapak/Ibu", "Pak", atau "Bu".
+- Jika nama guru tersedia, sapa dengan nama depannya secara natural, misalnya "Oke, Vica".
 - Jangan menyebut nama guru di setiap kalimat. Cukup sesekali.
 - Jangan terlalu sering memakai kata "selanjutnya".
 - Jangan terlalu cepat pindah ke pertanyaan berikutnya.
-- Jika jawaban guru masih umum, bantu perdalam dengan saran atau contoh dulu.
-- Jika guru terlihat ragu, beri 2–3 opsi realistis dan jelaskan singkat kenapa cocok.
+- Jika jawaban guru masih umum, beri contoh kecil dulu.
+- Jika guru terlihat ragu, beri 2–3 opsi realistis, singkat saja.
 - Jangan menggurui.
 
 BATAS RESPONS:
-- Maksimal 2 paragraf pendek.
+- Maksimal 4 kalimat pendek.
 - Jika memberi opsi, maksimal 3 opsi.
 - Ajukan maksimal 1 pertanyaan ringan di akhir.
+- Jangan menulis pembuka panjang.
 - Jangan membuat dokumen final.
 - Jangan membuat PDF/DOCX.
-- Jangan mengembalikan JSON.
+- Jika sistem meminta format terstruktur, isi field reply dengan teks obrolan biasa dan jangan menyebut JSON di reply.
 - Jangan menampilkan nama field teknis seperti active_field, teacher_inputs, atau contentJson.
 
 KONTEKS WAJIB:
@@ -318,7 +370,7 @@ ATURAN MENJAGA URUTAN:
 - Jangan membuat percakapan terasa seperti daftar pertanyaan.
 
 PENUTUP:
-Jika semua poin Stage 3 sudah cukup terjawab, berikan ringkasan akhir yang mencakup:
+Jika semua poin Stage 3 sudah cukup terjawab, berikan ringkasan akhir singkat yang mencakup:
 1. gaya pembelajaran,
 2. pendekatan pedagogis,
 3. pemanfaatan fasilitas dan teknologi,
@@ -327,7 +379,7 @@ Jika semua poin Stage 3 sudah cukup terjawab, berikan ringkasan akhir yang menca
 6. produk/kinerja akhir.
 
 Akhiri dengan kalimat:
-"Terima kasih, data Anda sudah selesai dan siap digunakan untuk tahap berikutnya."
+"Sip, datanya sudah lengkap dan siap dipakai ke tahap berikutnya."
 """.strip()
     
     
@@ -347,8 +399,8 @@ Akhiri dengan kalimat:
         )
         task_block = (
             """
-Tugas Anda:
-- Buka percakapan Stage 3 dengan hangat dan natural.
+Tugas kamu:
+- Buka percakapan Stage 3 dengan hangat, singkat, dan natural.
 - Jangan mengatakan guru belum mengisi pesan.
 - Gunakan Stage 1 dan Stage 2 untuk memberi konteks singkat.
 - Mulai dari poin pertama: gaya_pembelajaran.
@@ -358,8 +410,8 @@ Tugas Anda:
 """.strip()
             if is_initial_chat
             else """
-Tugas Anda:
-- Jawab pesan terbaru guru dengan gaya percakapan yang nyaman.
+Tugas kamu:
+- Jawab pesan terbaru guru dengan gaya ngobrol yang santai dan pendek.
 - Gunakan nama guru secara natural jika tersedia.
 - Gunakan Stage 1 dan Stage 2 agar respons tidak generik.
 - Jaga urutan diskusi Stage 3:
@@ -374,7 +426,7 @@ Tugas Anda:
 - Jika guru meminta saran, berikan saran yang kontekstual berdasarkan materi, kelas, kondisi kelas, tujuan pembelajaran, dan fasilitas.
 - Jika guru menjawab pilihan, bantu rangkum keputusan dan arahkan pelan ke poin berikutnya.
 - Jika semua poin sudah cukup, berikan ringkasan akhir Stage 3 dan tutup dengan:
-  "Terima kasih, data Anda sudah selesai dan siap digunakan untuk tahap berikutnya."
+  "Sip, datanya sudah lengkap dan siap dipakai ke tahap berikutnya."
 """.strip()
         )
         return "\n\n".join(
@@ -406,12 +458,11 @@ Tugas Anda:
 
     def _fallback_reply(self, payload: KinaChatRequest, teacher_name: str) -> str:
         topic = payload.project.title or payload.project.subject or "pembelajaran"
-        sapaan = teacher_name if teacher_name else "Bapak/Ibu Guru"
+        sapaan = teacher_name if teacher_name else "teman guru"
 
         return (
-            f"Baik, {sapaan}. Saya tangkap kita akan mulai menyusun rancangan pembelajaran untuk {topic}. "
-            "Kita bisa mulai pelan-pelan dari bentuk aktivitas yang paling nyaman dilakukan di kelas, "
-            "lalu saya bantu sesuaikan dengan tujuan pembelajaran dan kondisi siswa."
+            f"Oke, {sapaan}. Kita susun alur untuk {topic} pelan-pelan ya. "
+            "Mulai dari gaya belajarnya dulu: mau diskusi, studi kasus, mini proyek, latihan terarah, atau campuran?"
         )
 
     def _initial_fallback_reply(
@@ -420,17 +471,16 @@ Tugas Anda:
         teacher_name: str,
     ) -> str:
         topic = payload.project.title or payload.project.subject or "pembelajaran ini"
-        sapaan = teacher_name if teacher_name else "Bapak/Ibu Guru"
+        sapaan = teacher_name if teacher_name else "teman guru"
 
         return (
-            f"Halo, {sapaan}. Kita masuk ke Stage 3 untuk menyusun strategi pembelajaran {topic}. "
-            "Saya akan bantu pelan-pelan mulai dari bentuk belajar yang paling cocok dengan tujuan pembelajaran dan kondisi kelas.\n\n"
-            "Untuk awal, Bapak/Ibu ingin kegiatan belajarnya lebih dekat ke diskusi, studi kasus, mini proyek, latihan terarah, atau campuran?"
+            f"Halo, {sapaan}. CP dan ATP untuk {topic} sudah siap. "
+            "Kita mulai dari gaya belajarnya dulu ya: diskusi, studi kasus, mini proyek, latihan terarah, atau campuran?"
         )
 
     def _follow_up_questions(self, payload: KinaChatRequest) -> list[str]:
         subject = payload.project.subject or "mapel ini"
         return [
-            "Mau saya bantu pilihkan opsi yang paling realistis untuk kondisi kelas ini?",
+            "Mau aku bantu pilihkan opsi yang paling realistis untuk kondisi kelas ini?",
             f"Apakah aktivitas untuk {subject} ini lebih nyaman dibuat diskusi, studi kasus, atau mini proyek?",
         ]

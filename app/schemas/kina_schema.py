@@ -13,6 +13,7 @@ class KinaChatRequest(BaseModel):
     stages: list[StageSchema] = Field(default_factory=list)
     chatHistory: list[ChatMessageSchema] = Field(default_factory=list)
     message: str = ""
+    requireAi: bool = False
 
 
 class KinaChatResponse(BaseModel):

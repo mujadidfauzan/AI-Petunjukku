@@ -42,6 +42,26 @@ class LLMClient:
             logger.warning("LLM text generation failed: %s", exc)
             return fallback
 
+    async def generate_text_strict(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> str:
+        if not self.settings.llm_configured:
+            raise RuntimeError("LLM belum dikonfigurasi.")
+
+        content = await self._chat_completion(
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        cleaned = content.strip()
+        if not cleaned:
+            raise RuntimeError("LLM mengembalikan respons kosong.")
+        return cleaned
+
     async def generate_json(
         self,
         messages: list[dict[str, str]],
@@ -64,6 +84,24 @@ class LLMClient:
         except Exception as exc:
             logger.warning("LLM JSON generation failed: %s", exc)
             return fallback
+
+    async def generate_json_strict(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> dict[str, Any]:
+        if not self.settings.llm_configured:
+            raise RuntimeError("LLM belum dikonfigurasi.")
+
+        content = await self._chat_completion(
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_format={"type": "json_object"},
+        )
+        return parse_json_object(content)
 
     async def _chat_completion(
         self,
