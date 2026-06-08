@@ -95,6 +95,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -177,7 +178,8 @@ class IntraKinaService:
                                 '{"reply":"...","suggestedFollowUpQuestions":["...","..."]}. '
                                 "Field reply berisi pesan KINA untuk guru, tetap natural dan jangan menyebut JSON. "
                                 "Field suggestedFollowUpQuestions wajib berisi 2-3 pilihan balasan singkat yang bisa langsung diklik guru. "
-                                "Pilihan harus nyambung dengan pertanyaan terakhir KINA, bukan pertanyaan baru."
+                                "Pilihan harus nyambung dengan pertanyaan terakhir KINA, bukan pertanyaan baru. "
+                                "Jangan pakai nama guru, Kak, Mas, Mbak, Pak, Bu, markdown, atau tanda **."
                             ),
                         },
                     ],
@@ -187,12 +189,17 @@ class IntraKinaService:
                 suggested = generated.get("suggestedFollowUpQuestions")
                 if isinstance(suggested, list):
                     suggested_follow_up_questions = [
-                        item.strip()
+                        self._polish_short_text(item)
                         for item in suggested
                         if isinstance(item, str) and item.strip()
                     ][:3]
                 if not reply:
                     raise RuntimeError("KINA AI mengembalikan respons kosong.")
+                reply = self._polish_reply(
+                    reply,
+                    teacher_name,
+                    allow_name=is_initial_chat,
+                )
             except Exception as exc:
                 raise HTTPException(
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -284,6 +291,47 @@ class IntraKinaService:
     def _first_name(self, value: str) -> str:
         return value.strip().split()[0]
 
+    def _polish_reply(
+        self,
+        value: str,
+        teacher_name: str,
+        *,
+        allow_name: bool,
+    ) -> str:
+        text = self._polish_short_text(value)
+        text = re.sub(r"\bAnda\b", "kamu", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bBapak/Ibu Guru\b", "kamu", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bBapak/Ibu\b", "kamu", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bPak/Bu\b", "kamu", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bSelanjutnya,?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bBerikutnya,?\s*", "", text, flags=re.IGNORECASE)
+
+        name = self._first_name(teacher_name) if teacher_name else ""
+        if name and name != "teman":
+            seen = 0
+
+            def replace_repeated_name(match: re.Match[str]) -> str:
+                nonlocal seen
+                seen += 1
+                return match.group(0) if allow_name and seen == 1 else ""
+
+            text = re.sub(rf"\b{re.escape(name)}\b", replace_repeated_name, text)
+
+        text = re.sub(r",\s*([?.!])", r"\1", text)
+        text = re.sub(r"\s+([,.?!])", r"\1", text)
+        return re.sub(r"\s+", " ", text).strip()
+
+    def _polish_short_text(self, value: str) -> str:
+        text = value.strip()
+        text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
+        text = re.sub(r"__(.*?)__", r"\1", text)
+        text = text.replace("*", "")
+        text = text.replace("`", "")
+        text = re.sub(r"\b(Kak|Mas|Mbak)\b\.?", "", text, flags=re.IGNORECASE)
+        text = re.sub(r",\s*([?.!])", r"\1", text)
+        text = re.sub(r"\s+([,.?!])", r"\1", text)
+        return re.sub(r"\s+", " ", text).strip()
+
     def _build_stage_3_system_prompt(self) -> str:
         return """
 Kamu adalah KINA, teman ngobrol guru di Studio Guru.
@@ -297,18 +345,25 @@ PERAN KOMUNIKASI:
 - Hindari gaya kaku seperti checklist, survei, atau interview.
 
 GAYA BAHASA:
-- Gunakan bahasa Indonesia santai, ramah, dan singkat.
-- Gunakan "aku" dan "kamu". Jangan gunakan "Anda", "Bapak/Ibu", "Pak", atau "Bu".
-- Jika nama guru tersedia, sapa dengan nama depannya secara natural, misalnya "Oke, Vica".
-- Jangan menyebut nama guru di setiap kalimat. Cukup sesekali.
-- Jangan terlalu sering memakai kata "selanjutnya".
+- Gunakan bahasa Indonesia santai, ringan, dan singkat.
+- Gunakan "aku" dan "kamu" secara natural. Jangan gunakan "Anda", "Bapak/Ibu", "Pak", atau "Bu".
+- Kalau bertanya pilihan berikutnya, gunakan "kamu" secara natural, misalnya "kamu mau..." atau "menurut kamu...".
+- Nama guru hanya boleh dipakai saat membuka percakapan. Setelah chat berjalan, jangan pakai nama guru; pakai "kamu".
+- Jangan membuka setiap balasan dengan nama guru.
+- Jangan pakai sapaan "Kak", "Mas", atau "Mbak".
+- Hindari pujian kosong seperti "oke juga tuh" atau "bagus sekali".
+- Hindari kesan menggurui. Jangan menjelaskan terlalu panjang kalau guru baru memilih opsi.
+- Jangan memakai kata "selanjutnya"; cukup arahkan dengan santai.
 - Jangan terlalu cepat pindah ke pertanyaan berikutnya.
 - Jika jawaban guru masih umum, beri contoh kecil dulu.
 - Jika guru terlihat ragu, beri 2–3 opsi realistis, singkat saja.
 - Jangan menggurui.
+- Jangan gunakan markdown, bullet list, numbering, bold, italic, tanda **, atau backtick.
 
 BATAS RESPONS:
-- Maksimal 4 kalimat pendek.
+- Maksimal 2 kalimat pendek.
+- Total balasan idealnya 12-28 kata.
+- Kalau guru baru memilih opsi, cukup kunci pilihannya dan tanya 1 hal berikutnya.
 - Jika memberi opsi, maksimal 3 opsi.
 - Ajukan maksimal 1 pertanyaan ringan di akhir.
 - Jangan menulis pembuka panjang.
@@ -316,6 +371,8 @@ BATAS RESPONS:
 - Jangan membuat PDF/DOCX.
 - Jika sistem meminta format terstruktur, isi field reply dengan teks obrolan biasa dan jangan menyebut JSON di reply.
 - Jangan menampilkan nama field teknis seperti active_field, teacher_inputs, atau contentJson.
+- Contoh gaya yang diinginkan: "Sip, Google Classroom cukup buat kumpulin tugas dan komentar kelompok. Kamu mau kunci itu, atau tambah satu platform lagi?"
+- Contoh yang harus dihindari: "Google Classroom, oke juga tuh Vito! Bisa buat..."
 
 KONTEKS WAJIB:
 - Stage 1 adalah konteks dasar pembelajaran.
@@ -359,6 +416,8 @@ Diskusi harus berjalan urut, tetapi tetap natural.
 6. produk_kinerja_akhir
    Bahas produk/kinerja akhir siswa, misalnya laporan, poster, presentasi, video, infografik, portofolio, atau hasil latihan terstruktur.
    Produk akhir harus nyambung dengan gaya pembelajaran, pendekatan pedagogis, tujuan pembelajaran, dan fasilitas.
+   Jika guru sudah menyebut minimal satu produk akhir yang masuk akal, jangan bertanya "ada lagi?".
+   Langsung kunci produk itu dan tutup dengan kalimat bahwa data sudah lengkap untuk membuat diagram.
 
 ATURAN MENJAGA URUTAN:
 - Gunakan riwayat chat untuk menebak poin mana yang sudah selesai.
@@ -366,6 +425,7 @@ ATURAN MENJAGA URUTAN:
 - Jika guru bertanya di luar urutan, jawab seperlunya lalu kembalikan dengan halus ke poin yang sedang dibahas.
 - Jika guru meminta rekomendasi, fokus memberi rekomendasi untuk poin yang sedang dibahas dan jangan langsung pindah topik.
 - Jika guru memilih salah satu opsi, rangkum keputusan dengan natural, lalu arahkan pelan ke poin berikutnya.
+- Khusus produk/kinerja akhir: setelah guru memilih produk, jangan minta tambahan produk. Tutup diskusi Stage 3.
 - Jangan menanyakan semua poin sekaligus.
 - Jangan membuat percakapan terasa seperti daftar pertanyaan.
 
@@ -412,7 +472,7 @@ Tugas kamu:
             else """
 Tugas kamu:
 - Jawab pesan terbaru guru dengan gaya ngobrol yang santai dan pendek.
-- Gunakan nama guru secara natural jika tersedia.
+- Utamakan kata "kamu"; gunakan nama guru hanya kalau benar-benar perlu dan jangan diulang.
 - Gunakan Stage 1 dan Stage 2 agar respons tidak generik.
 - Jaga urutan diskusi Stage 3:
   1. gaya pembelajaran,

@@ -17,10 +17,16 @@ from app.schemas.common_schema import (
 
 class GenerateRppRequest(BaseModel):
     project: ProjectSchema
-    teacherProfile: TeacherProfileSchema | dict[str, Any] = Field(default_factory=dict)
-    school: SchoolSchema | dict[str, Any] = Field(default_factory=dict)
-    teacherSubject: TeacherSubjectSchema | dict[str, Any] = Field(default_factory=dict)
-    teacherClass: TeacherClassSchema | dict[str, Any] = Field(default_factory=dict)
+    teacherProfile: TeacherProfileSchema | dict[str, Any] | None = Field(
+        default_factory=dict
+    )
+    school: SchoolSchema | dict[str, Any] | None = Field(default_factory=dict)
+    teacherSubject: TeacherSubjectSchema | dict[str, Any] | None = Field(
+        default_factory=dict
+    )
+    teacherClass: TeacherClassSchema | dict[str, Any] | None = Field(
+        default_factory=dict
+    )
     stages: list[StageSchema] = Field(default_factory=list)
     kinaChatSummary: dict[str, Any] = Field(default_factory=dict)
     options: dict[str, Any] = Field(default_factory=dict)

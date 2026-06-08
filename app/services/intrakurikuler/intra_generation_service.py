@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from typing import Any
 
 from app.schemas.common_schema import UsedReferenceSchema
@@ -36,61 +37,11 @@ class IntraGenerationService:
         source_data = self._build_source_data(payload, references)
         response_shape = self._empty_response_shape(payload, source_data)
 
-        messages = [
-            {
-                "role": "system",
-                "content": self._build_system_prompt(),
-            },
-            {
-                "role": "user",
-                "content": json.dumps(
-                    {
-                        "instruction": (
-                            "Isi requiredResponseShape menjadi contentJson RPP final berdasarkan sourceData. "
-                            "Gunakan seluruh data Stage 1, Stage 2, Stage 3, dan Stage 4 sebagai satu-satunya dasar penyusunan RPP. "
-                            "Semua isi naratif harus ditulis oleh LLM API berdasarkan sourceData, bukan oleh kode backend. "
-                            "Jangan memilih sebagian data jika sourceData menyediakan beberapa item. "
-                            "Object kosong pada requiredResponseShape hanya contoh struktur; jumlah item boleh ditambah atau dikurangi sesuai isi sourceData. "
-                            "Jangan menambahkan informasi, perangkat, sumber daya, produk, tugas, tautan, aplikasi, atau fasilitas yang tidak disebut atau tidak dapat diturunkan langsung dari Stage 1-4. "
-                            "Gunakan Stage 3 untuk mengisi learningDesign.partnership, learningDesign.digitalUse, learningDesign.resources, produk akhir, diferensiasi, dan alur kegiatan. "
-                            "learningDesign.partnership hanya boleh berasal dari Stage 3 field partnership. "
-                            "learningDesign.digitalUse hanya boleh berasal dari Stage 3 field digitalPlatform. "
-                            "learningDesign.resources hanya boleh berasal dari Stage 3 field facilityAndTechnologyUse. "
-                            "Jangan menurunkan resources dari digitalPlatform. Jika digitalPlatform menyebut media atau platform digital, jangan otomatis menambahkan perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi ke resources kecuali perangkat itu disebut eksplisit pada facilityAndTechnologyUse. "
-                            "Produk akhir, tugas utama, rubrik, dan asesmen harus konsisten dengan finalStudentProduct Stage 3. Jangan menambahkan produk besar lain seperti laporan tertulis, LKPD, poster, video, atau artefak tambahan jika tidak disebut pada Stage 1-4. "
-                            "Gunakan Stage 4 untuk mengisi formativeAssessment pada setiap pertemuan. "
-                            "Untuk setiap formativeAssessment, isi observedIndicators dengan 3-5 indikator konkret dan teacherRecordFormat dengan format catatan guru yang sesuai teknik asesmen. "
-                            "Jangan membiarkan observedIndicators kosong. Jangan membiarkan teacherRecordFormat kosong. "
-                            "Return hanya JSON valid dengan key contentJson."
-                        ),
-                        "project": payload.project.model_dump(),
-                        "sourceData": source_data,
-                        "requiredResponseShape": {
-                            "contentJson": response_shape,
-                        },
-                    },
-                    ensure_ascii=False,
-                ),
-            },
-        ]
-
-        generated = await self.llm_client.generate_json(
-            messages,
-            fallback={"contentJson": response_shape},
-            temperature=0.15,
+        content_json = await self._generate_content_json_in_sections(
+            source_data,
+            response_shape,
         )
 
-        content_json = generated.get("contentJson") if isinstance(generated, dict) else None
-
-        if not isinstance(content_json, dict):
-            content_json = response_shape
-
-        content_json = self._normalize_generated_text(content_json)
-        content_json = self._normalize_output_structure(content_json)
-
-        # Tetap full LLM: repair ini juga memakai LLM API, bukan parser/manual filler Python.
-        # Tujuannya hanya memastikan output tidak menambah data di luar Stage 1-4.
-        content_json = await self._repair_grounding_with_llm(content_json, source_data)
         content_json = self._normalize_generated_text(content_json)
         content_json = self._normalize_output_structure(content_json)
 
@@ -337,6 +288,130 @@ N. Struktur Asesmen
 - Rubrik, tindak lanjut, refleksi guru, checklist, dan ringkasan akhir harus nyambung dengan tujuan pembelajaran, produk akhir, dan asesmen.
 """.strip()
 
+    async def _generate_content_json_in_sections(
+        self,
+        source_data: dict[str, Any],
+        response_shape: dict[str, Any],
+    ) -> dict[str, Any]:
+        content = deepcopy(response_shape)
+
+        overview_shape = {
+            "materialContext": content.get("materialContext", ""),
+            "profileAndLearningDirection": content.get(
+                "profileAndLearningDirection", {}
+            ),
+            "learningDesign": content.get("learningDesign", {}),
+            "meetingActivitiesOverview": (
+                content.get("meetingActivities", {}).get("overview", "")
+            ),
+        }
+        overview = await self._generate_rpp_section(
+            section_name="profil, arah, dan desain pembelajaran",
+            source_data=source_data,
+            response_shape=overview_shape,
+            max_tokens=4500,
+        )
+        content["materialContext"] = str(overview.get("materialContext", ""))
+        if isinstance(overview.get("profileAndLearningDirection"), dict):
+            content["profileAndLearningDirection"] = overview[
+                "profileAndLearningDirection"
+            ]
+        if isinstance(overview.get("learningDesign"), dict):
+            content["learningDesign"] = overview["learningDesign"]
+        if isinstance(content.get("meetingActivities"), dict):
+            content["meetingActivities"]["overview"] = str(
+                overview.get("meetingActivitiesOverview", "")
+            )
+
+        meetings_shape = (
+            content.get("meetingActivities", {}).get("meetings", [])
+            if isinstance(content.get("meetingActivities"), dict)
+            else []
+        )
+        generated_meetings: list[dict[str, Any]] = []
+        for meeting_shape in meetings_shape:
+            if not isinstance(meeting_shape, dict):
+                continue
+            meeting_result = await self._generate_rpp_section(
+                section_name=f"rangkaian kegiatan pertemuan {meeting_shape.get('meetingOrder')}",
+                source_data={
+                    **source_data,
+                    "currentMeetingShape": meeting_shape,
+                },
+                response_shape={"meeting": meeting_shape},
+                max_tokens=4200,
+            )
+            meeting = meeting_result.get("meeting")
+            generated_meetings.append(meeting if isinstance(meeting, dict) else meeting_shape)
+
+        if isinstance(content.get("meetingActivities"), dict):
+            content["meetingActivities"]["meetings"] = generated_meetings
+
+        closing_shape = {
+            "assessment": content.get("assessment", {}),
+            "rubric": content.get("rubric", {}),
+            "followUp": content.get("followUp", {}),
+            "teacherReflection": content.get("teacherReflection", {}),
+            "completionChecklist": content.get("completionChecklist", []),
+            "finalFlowSummary": content.get("finalFlowSummary", ""),
+        }
+        closing = await self._generate_rpp_section(
+            section_name="asesmen, rubrik, tindak lanjut, refleksi, dan checklist",
+            source_data=source_data,
+            response_shape=closing_shape,
+            max_tokens=4500,
+        )
+        for key in closing_shape:
+            if key in closing:
+                content[key] = closing[key]
+
+        return content
+
+    async def _generate_rpp_section(
+        self,
+        *,
+        section_name: str,
+        source_data: dict[str, Any],
+        response_shape: dict[str, Any],
+        max_tokens: int,
+    ) -> dict[str, Any]:
+        messages = [
+            {
+                "role": "system",
+                "content": """
+Anda adalah AI Service Petunjukku untuk menyusun satu bagian RPP Intrakurikuler.
+
+Aturan:
+- Output wajib satu JSON object valid, tanpa markdown.
+- Isi semua field di requiredResponseShape sesuai sectionName.
+- Gunakan istilah "murid".
+- Gunakan hanya sourceData Stage 1, Stage 2, Stage 3, Stage 4, onboarding, dan project.
+- Jangan menambahkan perangkat, fasilitas, aplikasi, mitra, produk, atau tugas yang tidak disebut/diturunkan langsung dari sourceData.
+- learningDesign.resources hanya dari strictGroundingContract.resourcesSourceText.
+- learningDesign.digitalUse hanya dari strictGroundingContract.digitalUseSourceText.
+- learningDesign.partnership hanya dari strictGroundingContract.partnershipSourceText.
+- Produk, rubrik, asesmen, dan tugas utama harus konsisten dengan strictGroundingContract.finalStudentProductSourceText.
+- Untuk setiap formativeAssessment, observedIndicators wajib 3-5 indikator konkret dan teacherRecordFormat wajib praktis untuk guru.
+""".strip(),
+            },
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "sectionName": section_name,
+                        "sourceData": source_data,
+                        "requiredResponseShape": response_shape,
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+        ]
+        return await self.llm_client.generate_json_strict(
+            messages,
+            temperature=0.05,
+            max_tokens=max_tokens,
+        )
+
     def _build_source_data(
         self,
         payload: GenerateRppRequest,
@@ -364,7 +439,10 @@ N. Struktur Asesmen
 
         for stage in payload.stages or []:
             if stage.contentJson:
-                stages_by_number[stage.stageNumber] = stage.contentJson
+                stages_by_number[stage.stageNumber] = self._normalize_stage_content(
+                    stage.stageNumber,
+                    stage.contentJson,
+                )
 
         stage3_from_stages = stages_by_number.get(3, {}) or {}
         stage3_from_summary = self._as_dict(payload.kinaChatSummary)
@@ -414,6 +492,171 @@ N. Struktur Asesmen
             },
             "ragReferences": [reference.model_dump() for reference in references],
         }
+
+    def _normalize_stage_content(
+        self,
+        stage_number: int,
+        content: dict[str, Any],
+    ) -> dict[str, Any]:
+        if not isinstance(content, dict):
+            return {}
+
+        inputs = content.get("inputs") if isinstance(content.get("inputs"), dict) else {}
+        generated = (
+            content.get("generated") if isinstance(content.get("generated"), dict) else {}
+        )
+        wizard = content.get("wizard") if isinstance(content.get("wizard"), dict) else {}
+
+        if stage_number == 1:
+            mission = self._nested_dict(wizard, "konteks", "mission")
+            merged = self._merge_dicts_keep_non_empty(content, inputs, mission)
+            total_jp = merged.get("alokasiJpTotal") or merged.get("totalJp") or ""
+            minutes = merged.get("menitPerJp") or 35
+            return self._merge_dicts_keep_non_empty(
+                merged,
+                {
+                    "jenjangPendidikan": merged.get("jenjangPendidikan")
+                    or merged.get("jenjang"),
+                    "fase": merged.get("fase"),
+                    "kelas": merged.get("kelas")
+                    or merged.get("kelasSemester")
+                    or merged.get("gradeLevel"),
+                    "mataPelajaran": merged.get("mataPelajaran")
+                    or merged.get("subject"),
+                    "topikMateriPokok": merged.get("topikMateriPokok")
+                    or merged.get("materiPokokBahasan")
+                    or merged.get("topic"),
+                    "durasiPembelajaran": merged.get("durasiPembelajaran")
+                    or (f"{total_jp} JP x {minutes} menit" if total_jp else ""),
+                    "jumlahPertemuan": merged.get("jumlahPertemuan")
+                    or merged.get("meetingCount"),
+                    "kondisiKelas": merged.get("kondisiKelas")
+                    or merged.get("classConditions")
+                    or merged.get("studentNotes"),
+                    "fasilitasAwal": merged.get("fasilitasAwal")
+                    or merged.get("fasilitasKelas")
+                    or merged.get("facilities"),
+                },
+            )
+
+        if stage_number == 2:
+            fokus = self._nested_dict(wizard, "fokus", "fokus")
+            merged = self._merge_dicts_keep_non_empty(content, inputs, fokus)
+            lintas = (
+                merged.get("lintasDisiplin")
+                if isinstance(merged.get("lintasDisiplin"), dict)
+                else {}
+            )
+            lintas_labels = self._extract_lintas_disiplin_labels(lintas)
+            atp = merged.get("atpIndicators") or merged.get("tujuanPembelajaranTerpilih")
+            if not isinstance(atp, list):
+                atp = []
+            return self._merge_dicts_keep_non_empty(
+                merged,
+                {
+                    "dimensiProfilLulusan": merged.get("dimensiProfilLulusan")
+                    or merged.get("profilLulusan"),
+                    "mataPelajaranLintasDisiplin": merged.get(
+                        "mataPelajaranLintasDisiplin"
+                    )
+                    or lintas_labels,
+                    "capaianPembelajaran": merged.get("capaianPembelajaran")
+                    or merged.get("cpText"),
+                    "tujuanPembelajaranTerpilih": atp,
+                    "alurTujuanPembelajaran": [
+                        {
+                            "order": index + 1,
+                            "selected": True,
+                            "tujuanPembelajaran": str(item),
+                        }
+                        for index, item in enumerate(atp)
+                    ],
+                    "pertanyaanPemantik": merged.get("pertanyaanPemantik")
+                    or merged.get("essentialQuestion"),
+                },
+            )
+
+        if stage_number == 3:
+            alur = self._nested_dict(wizard, "alur", "alur")
+            merged = self._merge_dicts_keep_non_empty(content, inputs, generated, alur)
+            return self._merge_dicts_keep_non_empty(
+                merged,
+                {
+                    "discussionSummary": merged.get("discussionSummary")
+                    or merged.get("ringkasan")
+                    or merged.get("summary"),
+                    "learningStrategy": merged.get("learningStrategy")
+                    or self._join_list(merged.get("gayaPembelajaran")),
+                    "pedagogicalApproach": merged.get("pedagogicalApproach")
+                    or merged.get("preferensiPedagogis")
+                    or merged.get("praktikPedagogis"),
+                    "facilityAndTechnologyUse": merged.get(
+                        "facilityAndTechnologyUse"
+                    )
+                    or self._join_list(merged.get("fasilitasKelas")),
+                    "digitalPlatform": merged.get("digitalPlatform")
+                    or self._join_list(merged.get("platformDigital"))
+                    or merged.get("pemanfaatanDigital"),
+                    "partnership": merged.get("partnership")
+                    or self._stringify_stage3_partnership(merged.get("kemitraan"))
+                    or merged.get("kemitraanDetail"),
+                    "finalStudentProduct": merged.get("finalStudentProduct")
+                    or self._join_list(merged.get("produkKinerjaAkhir"))
+                    or merged.get("produkKinerjaAkhirNarasi"),
+                    "activityFlowDecision": merged.get("activityFlowDecision")
+                    or merged.get("diagramTerpilih")
+                    or merged.get("diagramVariants"),
+                    "differentiationPlan": merged.get("differentiationPlan"),
+                    "teacherNotes": merged.get("teacherNotes"),
+                },
+            )
+
+        if stage_number == 4:
+            penilaian = self._nested_dict(wizard, "penilaian", "penilaian")
+            merged = self._merge_dicts_keep_non_empty(content, inputs, penilaian)
+            return merged
+
+        return self._merge_dicts_keep_non_empty(content, inputs, generated)
+
+    def _nested_dict(self, value: dict[str, Any], *keys: str) -> dict[str, Any]:
+        current: Any = value
+        for key in keys:
+            if not isinstance(current, dict):
+                return {}
+            current = current.get(key)
+        return current if isinstance(current, dict) else {}
+
+    def _extract_lintas_disiplin_labels(self, lintas: dict[str, Any]) -> list[str]:
+        checked = lintas.get("mapelChecked")
+        custom = lintas.get("mapelCustom")
+        labels: list[str] = []
+
+        if isinstance(checked, list):
+            labels.extend(str(item) for item in checked if str(item).strip())
+
+        if isinstance(custom, list):
+            for item in custom:
+                if not isinstance(item, dict):
+                    continue
+                item_id = str(item.get("id") or "")
+                label = str(item.get("label") or "").strip()
+                if label and (not checked or item_id in checked):
+                    labels.append(label)
+
+        return labels
+
+    def _stringify_stage3_partnership(self, kemitraan: Any) -> str:
+        if isinstance(kemitraan, str):
+            return kemitraan
+        if not isinstance(kemitraan, dict):
+            return ""
+        if kemitraan.get("digunakan") is False:
+            return "Tidak digunakan"
+        values = [
+            self._join_list(kemitraan.get("pilihan")),
+            str(kemitraan.get("catatan") or ""),
+        ]
+        return ". ".join(item for item in values if item.strip())
 
     def _empty_response_shape(
         self,
@@ -632,73 +875,6 @@ N. Struktur Asesmen
             )
 
         return meetings
-
-    async def _repair_grounding_with_llm(
-        self,
-        content_json: dict[str, Any],
-        source_data: dict[str, Any],
-    ) -> dict[str, Any]:
-        messages = [
-            {
-                "role": "system",
-                "content": """
-Anda adalah pemeriksa grounding RPP Petunjukku.
-
-Tugas:
-1. Periksa contentJson yang sudah dibuat.
-2. Pastikan semua isi hanya berasal dari sourceData Stage 1, Stage 2, Stage 3, Stage 4, onboarding, dan project payload.
-3. Hapus atau tulis ulang isi yang tidak didukung sourceData.
-4. Pertahankan struktur contentJson.
-5. Jangan menambah data baru di luar sourceData.
-6. Jangan mengosongkan seluruh dokumen; perbaiki hanya bagian yang melanggar grounding.
-
-Aturan keras:
-- learningDesign.partnership hanya boleh berasal dari strictGroundingContract.partnershipSourceText.
-- learningDesign.digitalUse hanya boleh berasal dari strictGroundingContract.digitalUseSourceText.
-- learningDesign.resources hanya boleh berasal dari strictGroundingContract.resourcesSourceText.
-- Jangan menurunkan resources dari digitalUseSourceText.
-- Jika media/platform digital disebut, media/platform tersebut masuk ke digitalUse, bukan otomatis menjadi alasan menambah perangkat akses ke resources.
-- Perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi hanya boleh masuk resources jika disebut eksplisit pada resourcesSourceText atau Stage 1-4.
-- Jika resourcesSourceText hanya menyebut satu sumber daya, resources cukup memuat sumber daya tersebut.
-- Produk akhir, tugas utama, rubrik, dan asesmen harus konsisten dengan strictGroundingContract.finalStudentProductSourceText dan tujuan pembelajaran Stage 2.
-- Jangan menambahkan produk besar lain seperti laporan tertulis, LKPD, poster, video, infografis, makalah, atau artefak lain jika tidak disebut pada Stage 1-4.
-- Asesmen formatif tetap mengikuti Stage 4.
-- Indikator formatif boleh dikembangkan oleh LLM, tetapi harus sesuai teknik Stage 4, fokus pertemuan, target, aktivitas, dan produk yang tersedia dalam sourceData.
-- Jika ada item tidak didukung sourceData, hapus item tersebut atau tulis ulang agar sesuai sourceData.
-
-Output wajib hanya JSON valid:
-{"contentJson": {...}}
-""".strip(),
-            },
-            {
-                "role": "user",
-                "content": json.dumps(
-                    {
-                        "instruction": (
-                            "Perbaiki contentJson agar sepenuhnya grounded pada sourceData. "
-                            "Jangan menambahkan informasi di luar Stage 1-4. "
-                            "Return hanya JSON valid dengan key contentJson."
-                        ),
-                        "sourceData": source_data,
-                        "contentJsonToRepair": content_json,
-                    },
-                    ensure_ascii=False,
-                ),
-            },
-        ]
-
-        repaired = await self.llm_client.generate_json(
-            messages,
-            fallback={"contentJson": content_json},
-            temperature=0.0,
-        )
-
-        repaired_content = repaired.get("contentJson") if isinstance(repaired, dict) else None
-
-        if isinstance(repaired_content, dict):
-            return repaired_content
-
-        return content_json
 
     def _infer_element(self, stage1: dict[str, Any], stage2: dict[str, Any]) -> str:
         for key in ("elemen", "element", "domain", "domainMateri"):

@@ -80,7 +80,18 @@ class LLMClient:
                 max_tokens=max_tokens,
                 response_format={"type": "json_object"},
             )
-            return parse_json_object(content)
+            try:
+                return parse_json_object(content)
+            except Exception as parse_exc:
+                logger.warning(
+                    "LLM JSON parse failed, trying repair: %s", parse_exc
+                )
+                repaired = await self._repair_json_content(
+                    content,
+                    temperature=0,
+                    max_tokens=max_tokens,
+                )
+                return parse_json_object(repaired)
         except Exception as exc:
             logger.warning("LLM JSON generation failed: %s", exc)
             return fallback
@@ -101,7 +112,38 @@ class LLMClient:
             max_tokens=max_tokens,
             response_format={"type": "json_object"},
         )
-        return parse_json_object(content)
+        try:
+            return parse_json_object(content)
+        except Exception:
+            repaired = await self._repair_json_content(
+                content,
+                temperature=0,
+                max_tokens=max_tokens,
+            )
+            return parse_json_object(repaired)
+
+    async def _repair_json_content(
+        self,
+        content: str,
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> str:
+        return await self._chat_completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Perbaiki teks berikut menjadi satu JSON object valid. "
+                        "Jangan menambah data baru, jangan menulis markdown, dan return hanya JSON."
+                    ),
+                },
+                {"role": "user", "content": content},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_format={"type": "json_object"},
+        )
 
     async def _chat_completion(
         self,

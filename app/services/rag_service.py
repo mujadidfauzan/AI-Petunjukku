@@ -59,11 +59,16 @@ class RAGService:
         sources = [self._to_source(match) for match in matches]
         best_match = matches[0] if matches else None
         best_source = sources[0] if sources else None
+        fallback_cp_text = self._fallback_cp_text(payload.query, best_match)
         cp_text = await self._generate_cp_text(
             query=query,
             matches=matches,
-            fallback=self._fallback_cp_text(payload.query, best_match),
+            fallback=fallback_cp_text,
         )
+        if self._is_no_context_answer(cp_text) and not self._is_no_context_answer(
+            fallback_cp_text
+        ):
+            cp_text = fallback_cp_text
         return RagSearchResponse(
             cpText=cp_text,
             selectedRecordId=str(best_source.metadata.get("cp_record_id"))
@@ -213,6 +218,10 @@ Aturan:
             temperature=0.1,
             max_tokens=700,
         )
+
+    def _is_no_context_answer(self, value: str) -> bool:
+        normalized = re.sub(r"\s+", " ", value or "").strip().casefold()
+        return normalized == NO_CONTEXT_ANSWER.casefold()
 
     def _format_retrieved_context(self, matches: list[dict[str, Any]]) -> str:
         blocks = []
@@ -512,6 +521,24 @@ Aturan:
             return []
         key = "_".join("".join(char.lower() if char.isalnum() else " " for char in subject).split())
         keys = {key}
+        subject_aliases = [
+            "matematika",
+            "bahasa_indonesia",
+            "bahasa_inggris",
+            "fisika",
+            "kimia",
+            "biologi",
+            "informatika",
+            "sejarah",
+            "geografi",
+            "ekonomi",
+            "sosiologi",
+            "pjok",
+            "prakarya",
+        ]
+        for alias in subject_aliases:
+            if alias in key:
+                keys.add(alias)
         is_special_education = key.startswith("pendidikan_khusus_")
         if not is_special_education and ("ilmu_pengetahuan_alam_dan_sosial" in key or key == "ipas"):
             keys.update({"ipa", "ipas", "ilmu_pengetahuan_alam_dan_sosial"})
