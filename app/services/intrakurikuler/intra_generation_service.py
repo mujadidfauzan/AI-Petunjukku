@@ -1088,6 +1088,15 @@ Aturan:
                 if text:
                     lines.append(f"{prefix} {text}")
 
+    def _format_checklist_status(self, status: Any) -> str:
+        if isinstance(status, bool):
+            return "[x]" if status else "[ ]"
+
+        text = str(status or "").strip().lower()
+        if text in {"true", "yes", "ya", "done", "selesai", "checked", "terpenuhi"}:
+            return "[x]"
+        return "[ ]"
+
     def _to_markdown(self, content: dict[str, Any]) -> str:
         title = content.get("title") or "RPP Pembelajaran"
         lines = [f"# {title}", ""]
@@ -1345,10 +1354,14 @@ Aturan:
 
         lines.extend(["", "## I. Checklist Kelengkapan RPP"])
         for item in content.get("completionChecklist") or []:
-            item_text = str(item.get("item", "")).strip()
-            status_text = str(item.get("status", "")).strip()
-            if item_text or status_text:
-                lines.append(f"- {item_text}: {status_text}")
+            if isinstance(item, dict):
+                item_text = str(item.get("item", "")).strip()
+                if item_text:
+                    lines.append(f"- {self._format_checklist_status(item.get('status'))} {item_text}")
+            else:
+                item_text = str(item).strip()
+                if item_text:
+                    lines.append(f"- ☐ {item_text}")
 
         if content.get("finalFlowSummary"):
             lines.extend(["", "## Ringkasan Alur Final"])
