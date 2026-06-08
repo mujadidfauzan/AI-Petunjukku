@@ -1262,7 +1262,7 @@ Aturan:
 
             step9_text = str(formative.get("step9Description") or formative.get("description") or "")
             if step9_text:
-                lines.append(f"**Langkah - 9** {step9_text}")
+                lines.append(step9_text)
 
             if formative.get("technique"):
                 lines.append("")
@@ -1271,16 +1271,16 @@ Aturan:
             observed_indicators = formative.get("observedIndicators") or []
             if observed_indicators:
                 lines.append("")
-                lines.append("> **Indikator yang Diamati Guru**")
+                lines.append("**Indikator yang Diamati Guru**")
                 for indicator in observed_indicators:
                     indicator_text = str(indicator).strip()
                     if indicator_text:
-                        lines.append(f"> - {indicator_text}")
+                        lines.append(f"- {indicator_text}")
 
             if formative.get("teacherRecordFormat"):
                 lines.append("")
-                lines.append("> **Format Catatan Guru**")
-                lines.append(f"> {formative.get('teacherRecordFormat')}")
+                lines.append("**Format Catatan Guru**")
+                lines.append(str(formative.get("teacherRecordFormat")))
 
         assessment = content.get("assessment") or {}
         summative = assessment.get("summative") or {}
