@@ -9,6 +9,10 @@ from app.schemas.kina_schema import (
     KinaSummaryRequest,
     KinaSummaryResponse,
 )
+from app.schemas.lintas_disiplin_schema import (
+    RecommendLintasDisiplinRequest,
+    RecommendLintasDisiplinResponse,
+)
 from app.schemas.recommendation_schema import (
     RecommendStageRequest,
     RecommendStageResponse,
@@ -26,6 +30,16 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 @router.post("/recommend-stage", response_model=RecommendStageResponse)
 async def recommend_stage(payload: RecommendStageRequest) -> RecommendStageResponse:
     return await AIOrchestratorService().recommend_stage(payload)
+
+
+@router.post(
+    "/recommend-lintas-disiplin",
+    response_model=RecommendLintasDisiplinResponse,
+)
+async def recommend_lintas_disiplin(
+    payload: RecommendLintasDisiplinRequest,
+) -> RecommendLintasDisiplinResponse:
+    return await AIOrchestratorService().recommend_lintas_disiplin(payload)
 
 
 @router.post("/kina-chat", response_model=KinaChatResponse)

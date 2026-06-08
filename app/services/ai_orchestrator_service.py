@@ -13,6 +13,10 @@ from app.schemas.recommendation_schema import (
     RecommendStageRequest,
     RecommendStageResponse,
 )
+from app.schemas.lintas_disiplin_schema import (
+    RecommendLintasDisiplinRequest,
+    RecommendLintasDisiplinResponse,
+)
 from app.schemas.stage3_diagram_schema import (
     Stage3DiagramRequest,
     Stage3DiagramResponse,
@@ -21,6 +25,9 @@ from app.services.intrakurikuler.intra_generation_service import (
     IntraGenerationService,
 )
 from app.services.intrakurikuler.intra_kina_service import IntraKinaService
+from app.services.intrakurikuler.intra_lintas_disiplin_service import (
+    IntraLintasDisiplinService,
+)
 from app.services.intrakurikuler.intra_recommendation_service import (
     IntraRecommendationService,
 )
@@ -35,6 +42,13 @@ from app.services.pjbl.pjbl_summary_service import PjblSummaryService
 
 
 class AIOrchestratorService:
+    async def recommend_lintas_disiplin(
+        self, payload: RecommendLintasDisiplinRequest
+    ) -> RecommendLintasDisiplinResponse:
+        if payload.project.rppType == "intrakurikuler":
+            return await IntraLintasDisiplinService().recommend(payload)
+        raise self._unsupported_rpp_type(payload.project.rppType)
+
     async def recommend_stage(
         self, payload: RecommendStageRequest
     ) -> RecommendStageResponse:
