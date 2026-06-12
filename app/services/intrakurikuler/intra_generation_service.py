@@ -603,9 +603,7 @@ Aturan:
                     "finalStudentProduct": merged.get("finalStudentProduct")
                     or self._join_list(merged.get("produkKinerjaAkhir"))
                     or merged.get("produkKinerjaAkhirNarasi"),
-                    "activityFlowDecision": merged.get("activityFlowDecision")
-                    or merged.get("diagramTerpilih")
-                    or merged.get("diagramVariants"),
+                    "activityFlowDecision": merged.get("activityFlowDecision"),
                     "differentiationPlan": merged.get("differentiationPlan"),
                     "teacherNotes": merged.get("teacherNotes"),
                 },

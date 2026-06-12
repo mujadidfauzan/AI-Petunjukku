@@ -417,7 +417,7 @@ Diskusi harus berjalan urut, tetapi tetap natural.
    Bahas produk/kinerja akhir siswa, misalnya laporan, poster, presentasi, video, infografik, portofolio, atau hasil latihan terstruktur.
    Produk akhir harus nyambung dengan gaya pembelajaran, pendekatan pedagogis, tujuan pembelajaran, dan fasilitas.
    Jika guru sudah menyebut minimal satu produk akhir yang masuk akal, jangan bertanya "ada lagi?".
-   Langsung kunci produk itu dan tutup dengan kalimat bahwa data sudah lengkap untuk membuat diagram.
+   Langsung kunci produk itu dan tutup dengan kalimat bahwa rancangan Stage 3 sudah lengkap.
 
 ATURAN MENJAGA URUTAN:
 - Gunakan riwayat chat untuk menebak poin mana yang sudah selesai.

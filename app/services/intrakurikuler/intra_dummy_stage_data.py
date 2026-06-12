@@ -154,28 +154,18 @@ INTRA_DUMMY_STAGE_4: dict[str, Any] = {
                 "description": "Soal pilihan ganda, isian, uraian",
             },
             {
-                "key": "observasi",
-                "label": "Observasi",
-                "description": "Pengamatan perilaku dan keaktifan",
-            },
-            {
                 "key": "portofolio",
                 "label": "Portofolio",
                 "description": "Kumpulan karya siswa",
-            },
-            {
-                "key": "exit_ticket",
-                "label": "Exit Ticket",
-                "description": "Jawaban singkat akhir pembelajaran",
             },
         ],
         "meetings": [
             {
                 "meetingOrder": 1,
                 "meetingTitle": "Pertemuan 1 — Pembukaan Pembelajaran",
-                "selectedTechnique": "observasi",
-                "selectedTechniqueLabel": "Observasi",
-                "description": "Guru mengamati keaktifan siswa saat diskusi awal dan eksplorasi konsep.",
+                "selectedTechnique": "tes_tertulis",
+                "selectedTechniqueLabel": "Tes Tertulis",
+                "description": "Guru menggunakan soal singkat untuk mengecek pemahaman awal siswa.",
             },
             {
                 "meetingOrder": 2,
@@ -187,9 +177,9 @@ INTRA_DUMMY_STAGE_4: dict[str, Any] = {
             {
                 "meetingOrder": 3,
                 "meetingTitle": "Pertemuan 3 — Presentasi dan Refleksi",
-                "selectedTechnique": "exit_ticket",
-                "selectedTechniqueLabel": "Exit Ticket",
-                "description": "Siswa menuliskan jawaban singkat dan refleksi pemahaman di akhir pembelajaran.",
+                "selectedTechnique": "tes_tertulis",
+                "selectedTechniqueLabel": "Tes Tertulis",
+                "description": "Guru menggunakan soal tertulis untuk mengecek pemahaman akhir siswa.",
             },
         ],
     },
