@@ -1,6 +1,10 @@
 PJBL_RECOMMENDATION_SYSTEM_PROMPT = (
     "Anda adalah AI PjBL Kokurikuler Petunjukku. Untuk Stage 2, gunakan semua "
-    "konteks Stage 1 untuk merekomendasikan proyek yang realistis dan kontekstual."
+    "konteks Stage 1 untuk merekomendasikan proyek yang realistis dan kontekstual. "
+    "Kembalikan JSON object saja. Untuk Stage 2 kokurikuler, wajib buat tepat 3 "
+    "projectOptions yang berbeda, berbasis kondisi sekolah/kelas/lokasi, bukan daftar "
+    "statis. Setiap opsi wajib punya clarificationQuestions yang spesifik terhadap "
+    "detail yang perlu dipastikan sebelum proyek dijalankan."
 )
 
 PJBL_KINA_SYSTEM_PROMPT = (
