@@ -26,18 +26,29 @@ class Settings(BaseSettings):
         default="https://openrouter.ai/api/v1",
         validation_alias=AliasChoices("OPENROUTER_BASE_URL", "OPENROUTER_API_BASE_URL"),
     )
-    llm_model: str = Field(default="gemini-1.5-flash", alias="LLM_MODEL")
+    llm_model: str = Field(default="google/gemini-2.5-flash", alias="LLM_MODEL")
     llm_temperature: float = Field(default=0.3, alias="LLM_TEMPERATURE")
     llm_max_tokens: int = Field(default=2048, alias="LLM_MAX_TOKENS")
 
-    embedding_provider: str = Field(default="local", alias="EMBEDDING_PROVIDER")
+    embedding_provider: str = Field(default="openrouter", alias="EMBEDDING_PROVIDER")
     embedding_model_name: str = Field(
-        default="sentence-transformers/all-MiniLM-L6-v2",
-        alias="EMBEDDING_MODEL_NAME",
+        default="google/gemini-embedding-2-preview",
+        validation_alias=AliasChoices("EMBEDDING_MODEL_NAME", "EMBEDDING_MODEL"),
     )
-    embedding_dimension: int = Field(default=384, alias="EMBEDDING_DIMENSION")
+    embedding_dimension: int = Field(
+        default=1536,
+        validation_alias=AliasChoices("EMBEDDING_DIMENSION", "EMBEDDING_DIMENSIONS"),
+    )
 
     request_timeout_seconds: int = Field(default=60, alias="REQUEST_TIMEOUT_SECONDS")
+    cp_pdf_path: str = Field(
+        default="../../rag/data/Kepka_BSKAP_No_01k17e8396ajn15j3hcw0k773b.pdf",
+        alias="CP_PDF_PATH",
+    )
+    local_vector_index_path: str = Field(
+        default="app/data/vector_store/local_vector_index.json",
+        alias="LOCAL_VECTOR_INDEX_PATH",
+    )
     faiss_index_path: str = Field(
         default="app/data/vector_store/cp.index",
         alias="FAISS_INDEX_PATH",

@@ -174,12 +174,22 @@ class LLMClient:
         async with httpx.AsyncClient(
             timeout=self.settings.request_timeout_seconds
         ) as client:
-            response = await client.post(
-                self.settings.openrouter_chat_url,
-                headers=headers,
-                json=payload,
-            )
-            response.raise_for_status()
+            try:
+                response = await client.post(
+                    self.settings.openrouter_chat_url,
+                    headers=headers,
+                    json=payload,
+                )
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                detail = ""
+                try:
+                    detail = exc.response.text.strip()
+                except Exception:
+                    detail = ""
+                if detail:
+                    logger.warning("LLM provider returned %s: %s", exc.response.status_code, detail)
+                raise
             data = response.json()
 
         choices = data.get("choices") or []

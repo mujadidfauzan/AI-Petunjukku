@@ -215,6 +215,11 @@ class IntraRecommendationService:
         payload: RecommendStageRequest,
         reference: RagReference,
     ) -> str:
+        if isinstance(reference.metadata, dict):
+            full_text = reference.metadata.get("cpFullText")
+            if isinstance(full_text, str) and full_text.strip():
+                return full_text
+
         records = self.rag_service.vector_store.list_references(
             subject=payload.project.subject,
             phase=payload.project.phase,
@@ -229,6 +234,9 @@ class IntraRecommendationService:
                 or metadata.get("cp_record_id")
             )
             if str(record_id) == reference.cpReferenceId:
+                full_text = metadata.get("cpFullText")
+                if isinstance(full_text, str) and full_text.strip():
+                    return full_text
                 return str(record.get("chunkText") or "")
 
         return reference.chunkText
