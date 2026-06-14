@@ -942,6 +942,48 @@ Catatan:
 
 FastAPI hanya menghasilkan jawaban. Penyimpanan chat dilakukan oleh NestJS ke tabel `kina_chats`.
 
+Contoh request Kina untuk PjBL Kokurikuler:
+
+```json
+{
+  "project": {
+    "id": "uuid",
+    "title": "RPP PjBL Sampah Plastik",
+    "rppType": "pjbl_kokurikuler",
+    "subject": "IPA",
+    "phase": "Fase D",
+    "gradeLevel": "Kelas 7"
+  },
+  "stages": [
+    {
+      "stageNumber": 1,
+      "stageName": "Konteks Dasar Proyek",
+      "contentJson": {
+        "localIssue": "Sampah plastik setelah jam istirahat",
+        "projectDuration": "3 minggu",
+        "schoolFacilities": ["Proyektor", "Halaman sekolah"]
+      }
+    },
+    {
+      "stageNumber": 2,
+      "stageName": "Rekomendasi Proyek",
+      "contentJson": {
+        "recommendedProjectTitle": "Kampanye Sekolah Minim Sampah Plastik",
+        "drivingQuestion": "Bagaimana mengurangi sampah plastik di kelas?"
+      }
+    }
+  ],
+  "chatHistory": [],
+  "message": "Saya ingin mulai mematangkan proyek ini."
+}
+```
+
+Validasi kompilasi service dapat dijalankan dengan:
+
+```bash
+python -m compileall -q app
+```
+
 ---
 
 ### 9.5 Summarize Kina Chat
