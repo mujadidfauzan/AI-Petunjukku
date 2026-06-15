@@ -27,6 +27,10 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("OPENROUTER_BASE_URL", "OPENROUTER_API_BASE_URL"),
     )
     llm_model: str = Field(default="gemini-1.5-flash", alias="LLM_MODEL")
+    kina_llm_model: str = Field(
+        default="deepseek/deepseek-v4-flash",
+        alias="KINA_LLM_MODEL",
+    )
     llm_temperature: float = Field(default=0.3, alias="LLM_TEMPERATURE")
     llm_max_tokens: int = Field(default=2048, alias="LLM_MAX_TOKENS")
 

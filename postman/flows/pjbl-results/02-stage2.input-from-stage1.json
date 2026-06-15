@@ -1,0 +1,88 @@
+﻿{
+    "project":  {
+                    "id":  "test-pjbl-001",
+                    "title":  "Proyek Pengelolaan Sampah Plastik di Sekolah",
+                    "rppType":  "pjbl_kokurikuler",
+                    "subject":  "Projek Penguatan Profil Pelajar Pancasila",
+                    "phase":  "D",
+                    "gradeLevel":  "VII"
+                },
+    "teacherProfile":  {
+                           "fullName":  "Guru Test",
+                           "position":  "Guru"
+                       },
+    "school":  {
+                   "name":  "SMP Test",
+                   "city":  "Jakarta",
+                   "schoolEnvironment":  "Sekolah perkotaan dengan kantin dan halaman kecil",
+                   "availableFacilities":  [
+                                               "kelas",
+                                               "halaman sekolah",
+                                               "proyektor",
+                                               "tempat sampah terpilah"
+                                           ],
+                   "localContext":  "Sampah plastik dari kantin masih banyak tercampur dengan sampah lain."
+               },
+    "teacherClass":  {
+                         "className":  "VII A",
+                         "gradeLevel":  "VII",
+                         "studentCount":  32,
+                         "studentCharacteristics":  "Siswa aktif berdiskusi, suka kegiatan observasi, dan mudah terlibat jika aktivitas dekat dengan kehidupan sehari-hari.",
+                         "learningChallenges":  [
+                                                    "sebagian siswa kurang teliti mencatat data",
+                                                    "waktu kegiatan proyek perlu dibatasi"
+                                                ],
+                         "dominantLearningStyle":  "kinestetik dan visual"
+                     },
+    "previousStages":  [
+                           {
+                               "stageNumber":  1,
+                               "stageName":  "Konteks dan Kebutuhan Proyek",
+                               "contentJson":  {
+                                                   "theme":  "Gaya Hidup Berkelanjutan",
+                                                   "localIssue":  "Sampah plastik di lingkungan sekolah",
+                                                   "projectDuration":  "2 x 35 menit (Jam Pelajaran)",
+                                                   "studentNeeds":  "Butuh kegiatan nyata, sederhana, dan dekat dengan keseharian siswa.",
+                                                   "schoolContext":  {
+                                                                         "name":  "SMP Test",
+                                                                         "city":  "Jakarta",
+                                                                         "environment":  "Sekolah perkotaan dengan kantin dan halaman kecil",
+                                                                         "facilities":  [
+                                                                                            "kelas",
+                                                                                            "halaman sekolah",
+                                                                                            "proyektor",
+                                                                                            "tempat sampah terpilah"
+                                                                                        ],
+                                                                         "localContext":  "Sampah plastik dari kantin masih banyak tercampur dengan sampah lain."
+                                                                     },
+                                                   "classContext":  {
+                                                                        "className":  "VII A",
+                                                                        "studentCount":  32,
+                                                                        "studentCharacteristics":  "Siswa aktif berdiskusi, suka kegiatan observasi, dan mudah terlibat jika aktivitas dekat dengan kehidupan sehari-hari.",
+                                                                        "learningChallenges":  [
+                                                                                                   "sebagian siswa kurang teliti mencatat data",
+                                                                                                   "waktu kegiatan proyek perlu dibatasi"
+                                                                                               ],
+                                                                        "dominantLearningStyle":  "kinestetik dan visual"
+                                                                    },
+                                                   "constraints":  [
+                                                                       "biaya rendah",
+                                                                       "alat mudah ditemukan",
+                                                                       "dilakukan di area sekolah",
+                                                                       "produk akhir harus realistis untuk siswa kelas VII"
+                                                                   ],
+                                                   "teacherExpectation":  "Proyek menghasilkan aksi sederhana yang dapat dipresentasikan dan diterapkan di sekolah."
+                                               }
+                           }
+                       ],
+    "targetStage":  {
+                        "stageNumber":  2,
+                        "stageName":  "Rekomendasi Proyek",
+                        "recommendationType":  "project_recommendation",
+                        "topic":  "Sampah plastik di lingkungan sekolah",
+                        "selectedTheme":  "Kesehatan"
+                    },
+    "options":  {
+                    "topK":  3
+                }
+}

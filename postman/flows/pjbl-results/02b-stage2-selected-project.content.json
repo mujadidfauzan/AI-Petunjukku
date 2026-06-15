@@ -1,0 +1,168 @@
+﻿{
+    "selectedProjectIndex":  1,
+    "selectedProjectTitle":  "Pemetaan Limbah di Sekitar Sekolah",
+    "selectedProjectRecommendation":  {
+                                          "recommendedProjectTitle":  "Pemetaan Limbah di Sekitar Sekolah",
+                                          "projectTheme":  "Limbah",
+                                          "projectFocus":  "Observasi dan pemetaan data sederhana.",
+                                          "projectBackground":  "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan sekolah",
+                                          "projectObjectives":  [
+                                                                    "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+                                                                    "Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.",
+                                                                    "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+                                                                ],
+                                          "drivingQuestion":  "Apa pola masalah Limbah yang terlihat dari data sekitar sekolah?",
+                                          "studentProduct":  [
+                                                                 "Tabel data",
+                                                                 "Peta temuan",
+                                                                 "Presentasi hasil"
+                                                             ],
+                                          "projectActivitiesOverview":  [
+                                                                            "Observasi konteks Stage 1",
+                                                                            "Pengumpulan data",
+                                                                            "Penyajian temuan",
+                                                                            "Presentasi"
+                                                                        ],
+                                          "feasibilityNotes":  "Opsi ini dibuat sederhana agar realistis dilakukan sesuai konteks Stage 1.",
+                                          "riskMitigation":  [
+                                                                 {
+                                                                     "risk":  "Data siswa kurang konsisten.",
+                                                                     "mitigation":  "Guru menyiapkan format observasi singkat dan contoh pengisian."
+                                                                 }
+                                                             ],
+                                          "independenceNote":  "Proyek ini berdiri sendiri dan bukan tahap dari opsi proyek lain.",
+                                          "reasoningSummary":  "Rekomendasi project_recommendation ini memakai tema Limbah dan konteks Stage 1 sebagai dasar."
+                                      },
+    "recommendedProjectTitle":  "Pemetaan Limbah di Sekitar Sekolah",
+    "projectTheme":  "Limbah",
+    "projectFocus":  "Observasi dan pemetaan data sederhana.",
+    "projectBackground":  "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan sekolah",
+    "projectObjectives":  [
+                              "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+                              "Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.",
+                              "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+                          ],
+    "drivingQuestion":  "Apa pola masalah Limbah yang terlihat dari data sekitar sekolah?",
+    "studentProduct":  [
+                           "Tabel data",
+                           "Peta temuan",
+                           "Presentasi hasil"
+                       ],
+    "projectActivitiesOverview":  [
+                                      "Observasi konteks Stage 1",
+                                      "Pengumpulan data",
+                                      "Penyajian temuan",
+                                      "Presentasi"
+                                  ],
+    "feasibilityNotes":  "Opsi ini dibuat sederhana agar realistis dilakukan sesuai konteks Stage 1.",
+    "riskMitigation":  [
+                           {
+                               "risk":  "Data siswa kurang konsisten.",
+                               "mitigation":  "Guru menyiapkan format observasi singkat dan contoh pengisian."
+                           }
+                       ],
+    "projectRecommendations":  [
+                                   {
+                                       "recommendedProjectTitle":  "Pemetaan Limbah di Sekitar Sekolah",
+                                       "projectTheme":  "Limbah",
+                                       "projectFocus":  "Observasi dan pemetaan data sederhana.",
+                                       "projectBackground":  "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan sekolah",
+                                       "projectObjectives":  [
+                                                                 "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+                                                                 "Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.",
+                                                                 "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+                                                             ],
+                                       "drivingQuestion":  "Apa pola masalah Limbah yang terlihat dari data sekitar sekolah?",
+                                       "studentProduct":  [
+                                                              "Tabel data",
+                                                              "Peta temuan",
+                                                              "Presentasi hasil"
+                                                          ],
+                                       "projectActivitiesOverview":  [
+                                                                         "Observasi konteks Stage 1",
+                                                                         "Pengumpulan data",
+                                                                         "Penyajian temuan",
+                                                                         "Presentasi"
+                                                                     ],
+                                       "feasibilityNotes":  "Opsi ini dibuat sederhana agar realistis dilakukan sesuai konteks Stage 1.",
+                                       "riskMitigation":  [
+                                                              {
+                                                                  "risk":  "Data siswa kurang konsisten.",
+                                                                  "mitigation":  "Guru menyiapkan format observasi singkat dan contoh pengisian."
+                                                              }
+                                                          ],
+                                       "independenceNote":  "Proyek ini berdiri sendiri dan bukan tahap dari opsi proyek lain.",
+                                       "reasoningSummary":  "Rekomendasi project_recommendation ini memakai tema Limbah dan konteks Stage 1 sebagai dasar."
+                                   },
+                                   {
+                                       "recommendedProjectTitle":  "Simulasi Solusi Limbah",
+                                       "projectTheme":  "Limbah",
+                                       "projectFocus":  "Simulasi pilihan, dampak, dan pengambilan keputusan.",
+                                       "projectBackground":  "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan sekolah",
+                                       "projectObjectives":  [
+                                                                 "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+                                                                 "Peserta didik mampu membandingkan beberapa pilihan solusi dan dampaknya.",
+                                                                 "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+                                                             ],
+                                       "drivingQuestion":  "Pilihan solusi apa yang paling realistis untuk masalah Limbah?",
+                                       "studentProduct":  [
+                                                              "Skenario simulasi",
+                                                              "Tabel perbandingan",
+                                                              "Rekomendasi solusi"
+                                                          ],
+                                       "projectActivitiesOverview":  [
+                                                                         "Menyusun skenario",
+                                                                         "Membandingkan pilihan",
+                                                                         "Simulasi keputusan",
+                                                                         "Refleksi"
+                                                                     ],
+                                       "feasibilityNotes":  "Opsi ini dibuat sederhana agar realistis dilakukan sesuai konteks Stage 1.",
+                                       "riskMitigation":  [
+                                                              {
+                                                                  "risk":  "Diskusi melebar dari konteks utama.",
+                                                                  "mitigation":  "Guru memberi batasan skenario dan kriteria keputusan yang jelas."
+                                                              }
+                                                          ],
+                                       "independenceNote":  "Proyek ini berdiri sendiri dan bukan tahap dari opsi proyek lain.",
+                                       "reasoningSummary":  "Rekomendasi project_recommendation ini memakai tema Limbah dan konteks Stage 1 sebagai dasar."
+                                   },
+                                   {
+                                       "recommendedProjectTitle":  "Kampanye Aksi Limbah",
+                                       "projectTheme":  "Limbah",
+                                       "projectFocus":  "Komunikasi solusi dan aksi edukasi warga sekolah.",
+                                       "projectBackground":  "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan sekolah",
+                                       "projectObjectives":  [
+                                                                 "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+                                                                 "Peserta didik mampu merancang pesan aksi yang relevan dengan konteks Stage 1.",
+                                                                 "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+                                                             ],
+                                       "drivingQuestion":  "Bagaimana siswa dapat mengajak warga sekolah merespons masalah Limbah?",
+                                       "studentProduct":  [
+                                                              "Media kampanye",
+                                                              "Naskah ajakan",
+                                                              "Dokumentasi aksi"
+                                                          ],
+                                       "projectActivitiesOverview":  [
+                                                                         "Merumuskan pesan",
+                                                                         "Membuat media",
+                                                                         "Melakukan kampanye kecil",
+                                                                         "Refleksi respons"
+                                                                     ],
+                                       "feasibilityNotes":  "Opsi ini dibuat sederhana agar realistis dilakukan sesuai konteks Stage 1.",
+                                       "riskMitigation":  [
+                                                              {
+                                                                  "risk":  "Pesan kampanye terlalu umum.",
+                                                                  "mitigation":  "Guru meminta setiap pesan dikaitkan langsung dengan konteks Stage 1."
+                                                              }
+                                                          ],
+                                       "independenceNote":  "Proyek ini berdiri sendiri dan bukan tahap dari opsi proyek lain.",
+                                       "reasoningSummary":  "Rekomendasi project_recommendation ini memakai tema Limbah dan konteks Stage 1 sebagai dasar."
+                                   }
+                               ],
+    "projectTitleOptions":  [
+                                "Pemetaan Limbah di Sekitar Sekolah",
+                                "Simulasi Solusi Limbah",
+                                "Kampanye Aksi Limbah"
+                            ],
+    "selectionNote":  "Dipilih dari terminal interaktif Stage 2."
+}

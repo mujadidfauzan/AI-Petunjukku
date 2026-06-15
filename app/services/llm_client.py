@@ -25,6 +25,7 @@ class LLMClient:
         messages: list[dict[str, str]],
         fallback: str,
         *,
+        model: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> str:
@@ -34,6 +35,7 @@ class LLMClient:
         try:
             content = await self._chat_completion(
                 messages=messages,
+                model=model,
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
@@ -47,6 +49,7 @@ class LLMClient:
         messages: list[dict[str, str]],
         fallback: dict[str, Any],
         *,
+        model: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> dict[str, Any]:
@@ -56,6 +59,7 @@ class LLMClient:
         try:
             content = await self._chat_completion(
                 messages=messages,
+                model=model,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 response_format={"type": "json_object"},
@@ -69,12 +73,13 @@ class LLMClient:
         self,
         *,
         messages: list[dict[str, str]],
+        model: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
         response_format: dict[str, str] | None = None,
     ) -> str:
         payload: dict[str, Any] = {
-            "model": self.settings.llm_model,
+            "model": model or self.settings.llm_model,
             "messages": messages,
             "temperature": (
                 self.settings.llm_temperature if temperature is None else temperature
