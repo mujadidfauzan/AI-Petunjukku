@@ -127,7 +127,7 @@ Alur Tujuan Pembelajaran = output rekomendasi LLM.
 
 #### 3.2.2 Recommendation Stage 2 PjBL Kokurikuler
 
-Pada PjBL Kokurikuler, Stage 2 berfokus pada rekomendasi **proyek yang akan dilakukan**.
+Pada PjBL Kokurikuler, Stage 2 berfokus pada dua langkah rekomendasi: pertama rekomendasi **tema proyek** maksimal 7 pilihan, lalu rekomendasi **opsi proyek** setelah guru memilih salah satu tema.
 
 Flow:
 
@@ -136,7 +136,11 @@ Input semua konteks dari Stage 1
 ↓
 LLM membaca konteks sekolah, siswa, lingkungan, mata pelajaran, fase, dan masalah sekitar
 ↓
-LLM menyusun rekomendasi proyek yang akan dilakukan
+LLM menyusun rekomendasi tema proyek maksimal 7 pilihan
+↓
+Guru memilih satu tema proyek
+↓
+LLM menyusun opsi proyek yang dapat dipilih berdasarkan tema terpilih
 ↓
 FastAPI mengembalikan JSON rekomendasi ke NestJS
 ```
@@ -144,7 +148,8 @@ FastAPI mengembalikan JSON rekomendasi ke NestJS
 Output utama:
 
 ```text
-Rekomendasi Proyek yang Akan Dilakukan
+Langkah 1: Tema proyek yang dapat dipilih.
+Langkah 2: Opsi proyek berdasarkan tema terpilih.
 ```
 
 Data utama yang digunakan:
@@ -171,7 +176,7 @@ Catatan penting:
 
 ```text
 PjBL Stage 2 tidak berfokus pada rekomendasi CP sebagai output.
-AI menggunakan konteks Stage 1 untuk menyarankan proyek yang realistis, kontekstual, dan dapat dilakukan oleh siswa.
+AI menggunakan konteks Stage 1 untuk menyarankan tema proyek terlebih dahulu, kemudian menyarankan opsi proyek yang realistis, kontekstual, dan dapat dilakukan oleh siswa setelah tema dipilih.
 ```
 
 ---
@@ -318,7 +323,7 @@ Developer 2 bertanggung jawab untuk semua logic AI yang berhubungan dengan RPP P
 Fokus kerja Developer 2:
 
 - recommendation Stage 2 PjBL Kokurikuler,
-- prompt dari semua konteks Stage 1 menjadi rekomendasi proyek yang akan dilakukan,
+- prompt dari semua konteks Stage 1 menjadi rekomendasi tema proyek lalu opsi proyek berdasarkan tema terpilih,
 - Kina Chat khusus PjBL Kokurikuler,
 - summary Kina Chat untuk PjBL Kokurikuler,
 - generate final text RPP PjBL Kokurikuler.
@@ -341,7 +346,11 @@ Stage 2 PjBL Kokurikuler
 ↓
 Mengambil semua konteks dari Stage 1
 ↓
-LLM menyusun rekomendasi proyek yang akan dilakukan
+LLM menyusun tema proyek maksimal 7 pilihan
+↓
+Guru memilih satu tema proyek
+↓
+LLM menyusun opsi proyek berdasarkan tema terpilih
 ↓
 FastAPI mengembalikan JSON rekomendasi ke NestJS
 ```
@@ -349,7 +358,7 @@ FastAPI mengembalikan JSON rekomendasi ke NestJS
 Output utama Stage 2 PjBL Kokurikuler:
 
 ```text
-Rekomendasi Proyek yang Akan Dilakukan
+Tema proyek dan opsi proyek berdasarkan tema terpilih
 ```
 
 ---
@@ -797,19 +806,68 @@ Untuk PjBL Kokurikuler, rekomendasi Stage 2 dibuat berdasarkan semua konteks yan
       "stageNumber": 1,
       "stageName": "Konteks Dasar Proyek",
       "contentJson": {
-        "localIssue": "Sampah plastik banyak ditemukan di lingkungan sekolah setelah jam istirahat.",
-        "schoolFacilities": ["Tempat sampah", "Halaman sekolah", "Proyektor"],
-        "studentCharacteristics": "Siswa aktif, suka observasi, tetapi perlu arahan dalam kerja kelompok.",
-        "projectDuration": "3 minggu",
-        "implementationConstraints": ["Waktu terbatas", "Perlu pengawasan saat observasi lingkungan"]
+        "schoolInformation": {
+          "schoolName": "SMP Negeri 1 Bandung",
+          "address": "Jl. Merdeka No. 10, Bandung",
+          "locationVerificationStatus": "Terverifikasi"
+        },
+        "environmentScanner": {
+          "summary": "Sekolah berada dekat kantin, taman kota kecil, kawasan permukiman, dan beberapa UMKM makanan.",
+          "nearbyLocations": [
+            {
+              "name": "Kantin sekolah",
+              "type": "Fasilitas sekolah",
+              "distance": "50 meter",
+              "learningPotential": "Observasi jenis sampah plastik setelah jam istirahat."
+            },
+            {
+              "name": "Taman kota",
+              "type": "Fasilitas publik",
+              "distance": "300 meter",
+              "learningPotential": "Perbandingan kebersihan dan pengelolaan sampah ruang publik."
+            },
+            {
+              "name": "UMKM makanan ringan",
+              "type": "UMKM",
+              "distance": "450 meter",
+              "learningPotential": "Wawancara sederhana tentang penggunaan kemasan plastik."
+            }
+          ]
+        },
+        "riskMonitoring": {
+          "risks": [
+            {
+              "type": "Risiko lokasi",
+              "description": "Observasi luar pagar sekolah perlu izin dan pengawasan guru."
+            },
+            {
+              "type": "Risiko keamanan",
+              "description": "Siswa perlu batas area pengamatan yang jelas."
+            },
+            {
+              "type": "Risiko cuaca atau lingkungan",
+              "description": "Kegiatan luar ruang perlu alternatif jika hujan."
+            }
+          ]
+        },
+        "missionSpec": {
+          "educationLevel": "SMP/MTs",
+          "educationPhase": "Fase D",
+          "relatedSubjects": ["IPA", "Bahasa Indonesia"],
+          "learningDuration": {
+            "jpPerMeeting": 2,
+            "minutesPerMeeting": 40,
+            "meetingCount": 6
+          },
+          "classCondition": "Siswa aktif berdiskusi namun kurang percaya diri saat presentasi; kemampuan akademik beragam; dominan menyukai praktik dan visual; sebagian besar memiliki gawai, tetapi akses internet perlu dibatasi; kerja kelompok dan presentasi perlu arahan bertahap."
+        }
       }
     }
   ],
   "targetStage": {
     "stageNumber": 2,
-    "stageName": "Rekomendasi Proyek",
-    "recommendationType": "project_recommendation",
-    "topic": "Sampah Plastik di Lingkungan Sekolah"
+    "stageName": "Rekomendasi Tema Proyek",
+    "recommendationType": "project_theme_recommendation"
   },
   "options": {
     "language": "id",
@@ -818,47 +876,371 @@ Untuk PjBL Kokurikuler, rekomendasi Stage 2 dibuat berdasarkan semua konteks yan
 }
 ```
 
-#### Response PjBL Stage 2
+#### Response PjBL Stage 2 - Langkah 1: Tema Proyek
+
+```json
+{
+  "rppType": "pjbl_kokurikuler",
+  "recommendationType": "project_theme_recommendation",
+  "targetStageNumber": 2,
+  "ragReferences": [],
+  "recommendations": {
+    "projectThemes": [
+      {
+        "label": "Kantin"
+      },
+      {
+        "label": "UMKM"
+      },
+      {
+        "label": "Kemasan"
+      }
+    ],
+    "selectionGuidance": "Pilih satu tema yang paling dekat dengan konteks sekolah, aman dijalankan, dan sesuai dengan mata pelajaran serta durasi.",
+    "reasoningSummary": "Tema proyek disusun dari informasi sekolah, pemindai lingkungan, pemantauan risiko, spesifikasi misi, dan kondisi kelas pada Stage 1."
+  }
+}
+```
+
+#### Request PjBL Stage 2 - Langkah 2: Opsi Proyek
+
+Setelah guru memilih satu tema dari `projectThemes`, panggil endpoint yang sama dengan menambahkan `selectedTheme`.
+
+```json
+{
+  "project": {
+    "id": "uuid",
+    "title": "RPP PjBL Sampah Plastik",
+    "rppType": "pjbl_kokurikuler",
+    "subject": "IPA",
+    "phase": "Fase D",
+    "gradeLevel": "Kelas 7"
+  },
+  "previousStages": [
+    {
+      "stageNumber": 1,
+      "stageName": "Konteks Dasar Proyek",
+      "contentJson": {
+        "schoolInformation": {
+          "schoolName": "SMP Negeri 1 Bandung",
+          "address": "Jl. Merdeka No. 10, Bandung",
+          "locationVerificationStatus": "Terverifikasi"
+        },
+        "environmentScanner": {
+          "summary": "Sekolah berada dekat kantin, taman kota kecil, kawasan permukiman, dan beberapa UMKM makanan.",
+          "nearbyLocations": [
+            {
+              "name": "Kantin sekolah",
+              "type": "Fasilitas sekolah",
+              "distance": "50 meter",
+              "learningPotential": "Observasi jenis sampah plastik setelah jam istirahat."
+            },
+            {
+              "name": "UMKM makanan ringan",
+              "type": "UMKM",
+              "distance": "450 meter",
+              "learningPotential": "Wawancara sederhana tentang penggunaan kemasan plastik."
+            }
+          ]
+        },
+        "riskMonitoring": {
+          "risks": [
+            {
+              "type": "Risiko lokasi",
+              "description": "Observasi luar pagar sekolah perlu izin dan pengawasan guru."
+            },
+            {
+              "type": "Risiko keamanan",
+              "description": "Siswa perlu batas area pengamatan yang jelas."
+            }
+          ]
+        },
+        "missionSpec": {
+          "educationLevel": "SMP/MTs",
+          "educationPhase": "Fase D",
+          "relatedSubjects": ["IPA", "Bahasa Indonesia"],
+          "learningDuration": {
+            "jpPerMeeting": 2,
+            "minutesPerMeeting": 40,
+            "meetingCount": 6
+          },
+          "classCondition": "Siswa aktif berdiskusi namun kurang percaya diri saat presentasi; kemampuan akademik beragam; dominan menyukai praktik dan visual; sebagian besar memiliki gawai, tetapi akses internet perlu dibatasi; kerja kelompok dan presentasi perlu arahan bertahap."
+        }
+      }
+    }
+  ],
+  "targetStage": {
+    "stageNumber": 2,
+    "stageName": "Rekomendasi Proyek",
+    "recommendationType": "project_recommendation",
+    "selectedTheme": "UMKM"
+  },
+  "options": {
+    "language": "id",
+    "outputFormat": "json"
+  }
+}
+```
+
+#### Response PjBL Stage 2 - Langkah 2: Opsi Proyek
 
 ```json
 {
   "rppType": "pjbl_kokurikuler",
   "recommendationType": "project_recommendation",
   "targetStageNumber": 2,
+  "ragReferences": [],
   "recommendations": {
-    "recommendedProjectTitle": "Aksi Sekolah Minim Sampah Plastik",
-    "projectTheme": "Pengelolaan Sampah Plastik di Lingkungan Sekolah",
-    "projectBackground": "Proyek ini berangkat dari masalah banyaknya sampah plastik di lingkungan sekolah setelah jam istirahat. Siswa diajak mengamati masalah, mencari penyebab, merancang solusi sederhana, dan membuat kampanye pengurangan sampah plastik.",
-    "projectObjectives": [
-      "Peserta didik mampu mengidentifikasi masalah sampah plastik di lingkungan sekolah.",
-      "Peserta didik mampu menganalisis penyebab munculnya sampah plastik di lingkungan sekolah.",
-      "Peserta didik mampu merancang solusi sederhana untuk mengurangi sampah plastik.",
-      "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
-    ],
-    "drivingQuestion": "Bagaimana cara mengurangi sampah plastik di lingkungan sekolah melalui aksi nyata siswa?",
-    "studentProduct": ["Poster kampanye pengurangan sampah plastik", "Laporan observasi sampah plastik", "Rancangan tempat pemilahan sampah sederhana"],
-    "projectActivitiesOverview": [
-      "Observasi kondisi sampah plastik di lingkungan sekolah.",
-      "Diskusi kelompok tentang penyebab dan dampak sampah plastik.",
-      "Perancangan solusi atau kampanye pengurangan sampah plastik.",
-      "Pembuatan produk kampanye atau prototype sederhana.",
-      "Presentasi hasil proyek di kelas."
-    ],
-    "feasibilityNotes": "Proyek ini realistis dilakukan dalam durasi 3 minggu karena menggunakan fasilitas yang tersedia di sekolah dan dekat dengan pengalaman sehari-hari siswa.",
-    "riskMitigation": [
+    "projectOptions": [
       {
-        "risk": "Siswa kurang terarah saat observasi lingkungan.",
-        "mitigation": "Guru menyediakan lembar observasi dan batas area pengamatan."
+        "id": "analisis-kewirausahaan-sekitar-sekolah",
+        "title": "Analisis UMKM Sekitar",
+        "themeId": "umkm",
+        "themeLabel": "UMKM",
+        "description": "Siswa mengamati aktivitas kantin atau UMKM sekitar sekolah untuk memahami kebutuhan warga, penggunaan kemasan, dan peluang solusi sederhana.",
+        "lens": "IPA & Bahasa Indonesia",
+        "overview": "Proyek dimulai dari observasi area aman seperti kantin sekolah atau UMKM terdekat. Kelompok siswa mencatat temuan sederhana, mendiskusikan peluang perbaikan, lalu mempresentasikan ide solusi yang realistis.",
+        "confirmationTags": [
+          {
+            "id": "izin_observasi",
+            "label": "Izin observasi area sekolah"
+          },
+          {
+            "id": "batas_area",
+            "label": "Batas area pengamatan"
+          },
+          {
+            "id": "jadwal",
+            "label": "Jadwal observasi"
+          }
+        ],
+        "clarificationQuestions": [
+          {
+            "id": "lokasi_observasi",
+            "inputType": "textarea",
+            "label": "Area usaha atau aktivitas ekonomi mana yang paling aman untuk diamati siswa?",
+            "placeholder": "Contoh: kantin sekolah, koperasi, warung dekat gerbang, atau UMKM yang bisa diawasi guru.",
+            "required": true,
+            "answerKey": "observationPermit"
+          },
+          {
+            "id": "data_sampah",
+            "inputType": "single_choice",
+            "label": "Data sederhana apa yang paling mungkin dikumpulkan siswa?",
+            "required": true,
+            "answerKey": "mathFocusId",
+            "options": [
+              {
+                "id": "jenis_produk",
+                "label": "Jenis produk atau kemasan yang paling sering digunakan."
+              },
+              {
+                "id": "pola_transaksi",
+                "label": "Pola transaksi atau waktu paling ramai."
+              }
+            ]
+          }
+        ],
+        "reasoningSummary": "Opsi ini dekat dengan temuan UMKM dan kantin pada pemindai lingkungan serta tetap aman dilakukan sebagai observasi terbatas."
       },
       {
-        "risk": "Waktu pengerjaan produk terlalu panjang.",
-        "mitigation": "Produk dibuat sederhana dan fokus pada pesan kampanye atau solusi awal."
+        "id": "rancangan-produk-ramah-lingkungan",
+        "title": "Rancangan Produk UMKM",
+        "themeId": "umkm",
+        "themeLabel": "UMKM",
+        "description": "Siswa merancang ide produk, kemasan, atau layanan sederhana yang lebih ramah lingkungan dan sesuai kebutuhan warga sekolah.",
+        "lens": "IPA & Komunikasi",
+        "overview": "Kelompok siswa menggunakan hasil observasi kantin atau UMKM untuk membuat rancangan produk sederhana, menghitung kebutuhan dasar, dan menyampaikan nilai manfaatnya.",
+        "confirmationTags": [
+          {
+            "id": "media_kampanye",
+            "label": "Media kampanye tersedia"
+          },
+          {
+            "id": "izin_publikasi",
+            "label": "Izin publikasi karya"
+          }
+        ],
+        "clarificationQuestions": [
+          {
+            "id": "produk_kampanye",
+            "inputType": "single_choice",
+            "label": "Produk akhir mana yang paling sesuai dengan fasilitas kelas?",
+            "required": true,
+            "answerKey": "mainConfirmations",
+            "options": [
+              {
+                "id": "poster_produk",
+                "label": "Poster rancangan produk."
+              },
+              {
+                "id": "pitch_deck",
+                "label": "Presentasi singkat ide usaha."
+              }
+            ]
+          }
+        ],
+        "reasoningSummary": "Opsi ini cocok jika guru ingin proyek kewirausahaan yang menghasilkan produk akhir visual dan mudah direview bersama."
+      },
+      {
+        "id": "audit-kebutuhan-warga-sekolah",
+        "title": "Audit Kebutuhan UMKM",
+        "themeId": "umkm",
+        "themeLabel": "UMKM",
+        "description": "Siswa mengumpulkan data sederhana tentang kebutuhan warga sekolah lalu menyusun prioritas ide usaha atau layanan kecil berbasis bukti.",
+        "lens": "IPA & Data",
+        "overview": "Siswa membuat checklist atau survei singkat, mencatat kebutuhan yang sering muncul, lalu menyusun usulan produk atau layanan yang sopan dan dapat ditindaklanjuti.",
+        "confirmationTags": [
+          {
+            "id": "akses_fasilitas",
+            "label": "Akses fasilitas"
+          },
+          {
+            "id": "alat_data",
+            "label": "Alat pencatatan data"
+          }
+        ],
+        "clarificationQuestions": [
+          {
+            "id": "fasilitas_prioritas",
+            "inputType": "textarea",
+            "label": "Kebutuhan warga sekolah apa yang paling layak diaudit siswa terlebih dahulu?",
+            "placeholder": "Contoh: kebutuhan saat istirahat, kemasan makanan, alat tulis, atau layanan sederhana di kelas.",
+            "required": true,
+            "answerKey": "classAdjustments"
+          }
+        ],
+        "reasoningSummary": "Opsi ini memberi struktur data yang jelas dan mudah disesuaikan dengan fasilitas sekolah."
       }
     ],
+    "selectionGuidance": "Pilih opsi yang paling mudah diberi izin, paling aman, dan paling sesuai dengan alokasi waktu kelas.",
     "reasoningSummary": "Rekomendasi proyek disusun berdasarkan konteks Stage 1, yaitu masalah sampah plastik di lingkungan sekolah, karakteristik siswa yang aktif, fasilitas yang tersedia, serta durasi proyek 3 minggu."
   }
 }
 ```
+
+#### Cara Menggunakan API Rekomendasi Proyek PjBL
+
+Endpoint:
+
+```text
+POST /internal/ai/recommend-stage
+```
+
+Syarat request:
+
+- Header wajib: `X-Internal-API-Key: <INTERNAL_API_KEY>`
+- `project.rppType` wajib bernilai `pjbl_kokurikuler`
+- `targetStage.stageNumber` wajib bernilai `2`
+- `previousStages` minimal berisi Stage 1 karena konteks proyek diambil dari sana
+- Langkah 1 tidak mengirim `selectedTheme` dan menghasilkan `recommendations.projectThemes`
+- Langkah 2 mengirim `targetStage.selectedTheme` dan menghasilkan `recommendations.projectOptions`
+
+Contoh `curl` langkah 1, generate tema proyek:
+
+```bash
+curl -X POST "http://localhost:8000/internal/ai/recommend-stage" \
+  -H "Content-Type: application/json" \
+  -H "X-Internal-API-Key: change-this-internal-key" \
+  -d '{
+    "project": {
+      "id": "uuid",
+      "title": "RPP PjBL Sampah Plastik",
+      "rppType": "pjbl_kokurikuler",
+      "subject": "IPA",
+      "phase": "Fase D",
+      "gradeLevel": "Kelas 7"
+    },
+    "school": {
+      "name": "SMP Negeri 1 Bandung",
+      "province": "Jawa Barat",
+      "city": "Bandung",
+      "schoolEnvironment": "Sekolah berada di area perkotaan.",
+      "availableFacilities": ["Proyektor", "Tempat sampah terpilah", "Halaman sekolah"],
+      "localContext": "Sekolah memiliki masalah sampah plastik setelah jam istirahat."
+    },
+    "teacherClass": {
+      "className": "7A",
+      "gradeLevel": "Kelas 7",
+      "studentCount": 32,
+      "studentCharacteristics": "Siswa aktif dan suka kegiatan praktik.",
+      "learningChallenges": ["Kemampuan kerja kelompok masih perlu diarahkan"],
+      "dominantLearningStyle": "praktik dan visual"
+    },
+    "previousStages": [
+      {
+        "stageNumber": 1,
+        "stageName": "Konteks Dasar Proyek",
+        "contentJson": {
+          "schoolInformation": {
+            "schoolName": "SMP Negeri 1 Bandung",
+            "address": "Jl. Merdeka No. 10, Bandung",
+            "locationVerificationStatus": "Terverifikasi"
+          },
+          "environmentScanner": {
+            "summary": "Sekolah berada dekat kantin, taman kota kecil, kawasan permukiman, dan beberapa UMKM makanan.",
+            "nearbyLocations": [
+              {
+                "name": "Kantin sekolah",
+                "type": "Fasilitas sekolah",
+                "distance": "50 meter",
+                "learningPotential": "Observasi jenis sampah plastik setelah jam istirahat."
+              },
+              {
+                "name": "Taman kota",
+                "type": "Fasilitas publik",
+                "distance": "300 meter",
+                "learningPotential": "Perbandingan kebersihan dan pengelolaan sampah ruang publik."
+              }
+            ]
+          },
+          "riskMonitoring": {
+            "risks": [
+              {
+                "type": "Risiko lokasi",
+                "description": "Observasi luar pagar sekolah perlu izin dan pengawasan guru."
+              },
+              {
+                "type": "Risiko keamanan",
+                "description": "Siswa perlu batas area pengamatan yang jelas."
+              }
+            ]
+          },
+          "missionSpec": {
+            "educationLevel": "SMP/MTs",
+            "educationPhase": "Fase D",
+            "relatedSubjects": ["IPA", "Bahasa Indonesia"],
+            "learningDuration": {
+              "jpPerMeeting": 2,
+              "minutesPerMeeting": 40,
+              "meetingCount": 6
+            },
+            "classCondition": "Siswa aktif berdiskusi namun kurang percaya diri saat presentasi; kemampuan akademik beragam; dominan menyukai praktik dan visual; sebagian besar memiliki gawai, tetapi akses internet perlu dibatasi; kerja kelompok dan presentasi perlu arahan bertahap."
+          }
+        }
+      }
+    ],
+    "targetStage": {
+      "stageNumber": 2,
+      "stageName": "Rekomendasi Tema Proyek",
+      "recommendationType": "project_theme_recommendation"
+    },
+    "options": {
+      "language": "id",
+      "outputFormat": "json"
+    }
+  }'
+```
+
+Cara membaca response:
+
+- `recommendations.projectThemes` adalah daftar maksimal 7 tema untuk ditampilkan sebagai pilihan fokus proyek.
+- Setelah guru memilih satu tema, kirim request kedua dengan `targetStage.selectedTheme`.
+- `recommendations.projectOptions` adalah daftar 3 opsi proyek yang bisa ditampilkan ke guru setelah tema dipilih.
+- `confirmationTags` adalah hal yang perlu dipastikan sebelum proyek dipilih.
+- `clarificationQuestions` adalah pertanyaan lanjutan untuk mengunci detail proyek.
+- `selectionGuidance` membantu guru memilih opsi paling realistis.
+- `ragReferences` biasanya kosong untuk PjBL karena rekomendasi proyek memakai konteks Stage 1, bukan CP dari RAG.
 
 Catatan:
 
@@ -1240,7 +1622,11 @@ semua konteks dari Stage 1
 ↓
 LLM
 ↓
-rekomendasi proyek yang akan dilakukan
+rekomendasi tema proyek maksimal 7 pilihan
+↓
+guru memilih satu tema proyek
+↓
+rekomendasi opsi proyek berdasarkan tema terpilih
 ```
 
 ---
@@ -1344,4 +1730,4 @@ curl -H "X-Internal-API-Key: change-this-internal-key" \
 - Developer 2 fokus pada AI PjBL Kokurikuler.
 - Recommendation hanya tersedia untuk Stage 2.
 - Stage 2 Intrakurikuler menggunakan CP dari RAG sebagai referensi untuk menghasilkan Alur Tujuan Pembelajaran.
-- Stage 2 PjBL menggunakan semua konteks dari Stage 1 untuk menghasilkan rekomendasi proyek yang akan dilakukan.
+- Stage 2 PjBL menggunakan semua konteks dari Stage 1 untuk menghasilkan rekomendasi tema proyek terlebih dahulu, lalu opsi proyek setelah guru memilih tema.

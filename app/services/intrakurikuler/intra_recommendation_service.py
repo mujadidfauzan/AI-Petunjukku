@@ -4,17 +4,17 @@ import json
 import re
 from typing import Any
 
+from app.schemas.rag_schema import RagReference, RagSearchRequest, RagSearchResponse
 from app.schemas.recommendation_schema import (
     RecommendStageRequest,
     RecommendStageResponse,
 )
-from app.schemas.rag_schema import RagReference, RagSearchRequest, RagSearchResponse
-from app.services.llm_client import LLMClient
-from app.services.prompt_builder_service import PromptBuilderService
-from app.services.rag_service import RAGService
 from app.services.intrakurikuler.intra_prompt_templates import (
     INTRA_RECOMMENDATION_SYSTEM_PROMPT,
 )
+from app.services.llm_client import LLMClient
+from app.services.prompt_builder_service import PromptBuilderService
+from app.services.rag_service import RAGService
 
 
 class IntraRecommendationService:
@@ -77,13 +77,17 @@ class IntraRecommendationService:
                             "capaianPembelajaran dan tujuanPembelajaran."
                         ),
                         "project": payload.project.model_dump(),
-                        "teacherProfile": payload.teacherProfile.model_dump()
-                        if payload.teacherProfile
-                        else {},
+                        "teacherProfile": (
+                            payload.teacherProfile.model_dump()
+                            if payload.teacherProfile
+                            else {}
+                        ),
                         "school": payload.school.model_dump() if payload.school else {},
-                        "teacherClass": payload.teacherClass.model_dump()
-                        if payload.teacherClass
-                        else {},
+                        "teacherClass": (
+                            payload.teacherClass.model_dump()
+                            if payload.teacherClass
+                            else {}
+                        ),
                         "previousStages": [
                             stage.model_dump() for stage in payload.previousStages
                         ],
@@ -103,9 +107,9 @@ class IntraRecommendationService:
         return RecommendStageResponse(
             rppType=payload.project.rppType,
             recommendationType=recommendation_type,
-            targetStageNumber=int(target_stage_number)
-            if target_stage_number is not None
-            else None,
+            targetStageNumber=(
+                int(target_stage_number) if target_stage_number is not None else None
+            ),
             ragReferences=references,
             recommendations=recommendations,
         )
@@ -116,7 +120,9 @@ class IntraRecommendationService:
     ) -> list[RagReference]:
         return [
             RagReference(
-                cpReferenceId=str(source.metadata.get("cp_record_id") or source.chunk_id),
+                cpReferenceId=str(
+                    source.metadata.get("cp_record_id") or source.chunk_id
+                ),
                 sourceTitle=str(
                     source.metadata.get("source")
                     or source.metadata.get("file_name")
@@ -125,12 +131,16 @@ class IntraRecommendationService:
                 documentType=str(
                     source.metadata.get("content_type") or "capaian_pembelajaran"
                 ),
-                phase=str(source.metadata.get("phase"))
-                if source.metadata.get("phase")
-                else None,
-                subject=str(source.metadata.get("subject"))
-                if source.metadata.get("subject")
-                else None,
+                phase=(
+                    str(source.metadata.get("phase"))
+                    if source.metadata.get("phase")
+                    else None
+                ),
+                subject=(
+                    str(source.metadata.get("subject"))
+                    if source.metadata.get("subject")
+                    else None
+                ),
                 element=source.metadata.get("element"),
                 chunkText=source.preview,
                 similarityScore=source.similarity,
@@ -400,7 +410,13 @@ class IntraRecommendationService:
         topic_lower = topic.casefold()
         if any(
             keyword in f"{cp_lower} {topic_lower}"
-            for keyword in ("aljabar", "polinomial", "variabel", "koefisien", "konstanta")
+            for keyword in (
+                "aljabar",
+                "polinomial",
+                "variabel",
+                "koefisien",
+                "konstanta",
+            )
         ):
             objectives = [
                 "Murid mampu mengenali dan menjelaskan pola dalam susunan benda "
@@ -440,12 +456,15 @@ class IntraRecommendationService:
         return [
             fragment
             for fragment in fragments
-            if len(fragment.split()) >= 4 and not fragment.casefold().startswith("fase ")
+            if len(fragment.split()) >= 4
+            and not fragment.casefold().startswith("fase ")
         ]
 
     def _objective_from_fragment(self, fragment: str) -> str:
         cleaned = fragment.strip(" .")
-        cleaned = re.sub(r"^(?:murid|peserta didik)\s+", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(
+            r"^(?:murid|peserta didik)\s+", "", cleaned, flags=re.IGNORECASE
+        )
         cleaned = re.sub(r"^(?:dapat|mampu)\s+", "", cleaned, flags=re.IGNORECASE)
         if not cleaned:
             return ""

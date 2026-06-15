@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 import uuid
 from pathlib import Path
 from typing import Any
@@ -63,9 +64,16 @@ class RAGService:
         matches = self.vector_store.match_document_chunks(
             query_embedding=embedding,
             match_count=payload.topK,
-            similarity_threshold=0.2,
+            similarity_threshold=payload.similarityThreshold,
             metadata_filters=metadata_filters,
         )
+        if not matches and self._has_cp_exact_filters(metadata_filters):
+            matches = self.vector_store.match_document_chunks(
+                query_embedding=embedding,
+                match_count=payload.topK,
+                similarity_threshold=None,
+                metadata_filters=metadata_filters,
+            )
 
         sources = [self._to_source(match) for match in matches]
         best_source = sources[0] if sources else None
@@ -76,6 +84,13 @@ class RAGService:
 
         if not matches:
             cp_text = NO_CONTEXT_ANSWER
+        elif payload.documentType == "capaian_pembelajaran":
+            retrieved_context = self._format_retrieved_context(matches)
+            cp_text = await self._generate_cp_text(
+                query=query,
+                retrieved_context=retrieved_context,
+                fallback=self._cp_text_from_matches(matches),
+            )
         else:
             retrieved_context = self._format_retrieved_context(matches)
             cp_text = await self._generate_cp_text(
@@ -94,6 +109,32 @@ class RAGService:
                 llm=self.settings.llm_model,
             ),
         )
+
+    def _has_cp_exact_filters(self, metadata_filters: dict[str, str]) -> bool:
+        return all(
+            metadata_filters.get(key)
+            for key in ("subject_normalized", "phase", "content_type")
+        )
+
+    def _cp_text_from_matches(self, matches: list[dict[str, Any]]) -> str:
+        for match in matches:
+            metadata = match.get("metadata") or {}
+            candidates = [
+                metadata.get("cpFullText"),
+                metadata.get("cp_full_text"),
+                match.get("content"),
+            ]
+            for candidate in candidates:
+                if isinstance(candidate, str) and candidate.strip():
+                    return self._clean_cp_record_text(candidate)
+        return NO_CONTEXT_ANSWER
+
+    def _clean_cp_record_text(self, value: str) -> str:
+        text = value.strip()
+        marker = "Capaian Pembelajaran:"
+        if marker in text:
+            text = text.split(marker, 1)[-1].strip()
+        return text
 
     async def search_for_context(
         self,
@@ -279,6 +320,7 @@ class RAGService:
         *,
         query: str,
         retrieved_context: str,
+        fallback: str = NO_CONTEXT_ANSWER,
     ) -> str:
         if not retrieved_context.strip():
             return NO_CONTEXT_ANSWER
@@ -290,7 +332,9 @@ class RAGService:
                     "Kamu adalah asisten kurikulum yang mengekstrak Capaian "
                     "Pembelajaran dari konteks dokumen. Gunakan hanya konteks "
                     "yang diberikan. Jangan menambah kebijakan, tujuan "
-                    "pembelajaran, atau interpretasi di luar dokumen."
+                    "pembelajaran, atau interpretasi di luar dokumen. "
+                    "Output harus berupa teks final yang bersih dan langsung "
+                    "dapat ditampilkan di frontend."
                 ),
             },
             {
@@ -305,20 +349,57 @@ Kebutuhan:
 {query}
 
 Aturan output:
-1. Tulis hanya teks Capaian Pembelajaran yang relevan.
-2. Jika ada beberapa elemen CP dalam konteks, gabungkan secara ringkas tetapi tetap setia pada dokumen.
-3. Jangan membuat CP baru.
-4. Jangan menulis daftar sumber di dalam jawaban; sumber dikirim lewat field sources.
-5. Jika konteks tidak cukup, jawab persis: {NO_CONTEXT_ANSWER}
+1. Tulis hanya teks Capaian Pembelajaran yang relevan dengan kebutuhan.
+2. Jika kebutuhan menyebut elemen/topik tertentu, misalnya Geometri, Bilangan, Aljabar, Pengukuran, atau Analisis Data dan Peluang, ambil hanya elemen CP tersebut dari konteks.
+3. Jika kebutuhan menyebut kelas, gunakan kelas hanya sebagai petunjuk fase; jangan membuat CP khusus kelas jika dokumen hanya menyediakan CP fase.
+4. Pertahankan rumusan resmi dari dokumen. Boleh merapikan spasi agar nyaman dibaca frontend.
+5. Jangan menulis penjelasan, alasan pemilihan, markdown, atau daftar sumber.
+6. Jangan membuat CP baru.
+7. Jika konteks tidak cukup, jawab persis: {NO_CONTEXT_ANSWER}
+
+Format wajib:
+- Output hanya paragraf isi CP resmi yang relevan.
+- Jangan tulis judul elemen, contoh "4.4. Geometri".
+- Jangan awali output dengan label "Capaian Pembelajaran:" atau "CP:".
+- Jangan gunakan line break, bullet, numbering tambahan, bold, heading markdown, code fence, atau spasi ganda.
 """.strip(),
             },
         ]
-        return await self.llm_client.generate_text(
+        generated_text = await self.llm_client.generate_text(
             messages,
-            NO_CONTEXT_ANSWER,
+            fallback,
             temperature=0.2,
             max_tokens=900,
         )
+        return self._clean_frontend_cp_text(generated_text)
+
+    def _clean_frontend_cp_text(self, value: str) -> str:
+        text = value.strip()
+        if not text or text == NO_CONTEXT_ANSWER:
+            return text or NO_CONTEXT_ANSWER
+
+        text = re.sub(r"^\s*```(?:\w+)?\s*", "", text)
+        text = re.sub(r"\s*```\s*$", "", text)
+        text = re.sub(
+            r"(?i)^\s*(?:capaian\s+pembelajaran|cp)\s*:\s*",
+            "",
+            text,
+        ).strip()
+        text = re.sub(
+            r"(?i)^\s*\d+(?:\.\d+)*\.?\s+[a-z][a-z \t&/-]{1,80}(?:\n+| {2,})",
+            "",
+            text,
+        ).strip()
+        text = re.sub(
+            r"(?i)^\s*\d+(?:\.\d+)*\.?\s+"
+            r"(?:bilangan|aljabar|pengukuran|geometri|analisis\s+data\s+dan\s+peluang)"
+            r"\b\.?\s*",
+            "",
+            text,
+        ).strip()
+        text = text.replace("\\n", " ")
+        text = re.sub(r"\s+", " ", text)
+        return text.strip()
 
     def _format_retrieved_context(self, matches: list[dict[str, Any]]) -> str:
         blocks = []
