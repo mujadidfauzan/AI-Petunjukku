@@ -50,7 +50,10 @@ class IntraGenerationService:
                             "Gunakan seluruh data Stage 1, Stage 2, Stage 3, dan Stage 4 sebagai satu-satunya dasar penyusunan RPM. "
                             "Semua isi naratif harus ditulis oleh LLM API berdasarkan sourceData, bukan oleh kode backend. "
                             "Jangan memilih sebagian data jika sourceData menyediakan beberapa item. "
-                            "Object kosong pada requiredResponseShape hanya contoh struktur; jumlah item boleh ditambah atau dikurangi sesuai isi sourceData. "
+                            "requiredResponseShape adalah skema wajib. Semua key root dan key nested wajib tetap ada di output akhir. "
+                            "Field string pada requiredResponseShape tidak boleh dibiarkan kosong jika sourceData cukup untuk mengisinya. "
+                            "Jumlah item list boleh disesuaikan dengan sourceData, tetapi struktur utama tidak boleh dihapus. "
+                            "Output dianggap gagal jika hanya mengisi bagian identitas, profil, atau konteks materi tanpa mengisi learningDesign, meetingActivities, dan assessment. "
                             "Jangan menambahkan informasi, perangkat, sumber daya, produk, tugas, tautan, aplikasi, atau fasilitas yang tidak disebut atau tidak dapat diturunkan langsung dari Stage 1-4. "
                             "Gunakan Stage 3 untuk mengisi learningDesign.partnership, learningDesign.digitalUse, learningDesign.resources, produk akhir, diferensiasi, dan alur kegiatan. "
                             "learningDesign.partnership hanya boleh berasal dari Stage 3 field partnership. "
@@ -61,7 +64,11 @@ class IntraGenerationService:
                             "Gunakan Stage 4 untuk mengisi formativeAssessment pada setiap pertemuan. "
                             "Untuk setiap formativeAssessment, isi observedIndicators dengan 3-5 indikator konkret dan teacherRecordFormat dengan format catatan guru yang sesuai teknik asesmen. "
                             "Jangan membiarkan observedIndicators kosong. Jangan membiarkan teacherRecordFormat kosong. "
-                            "Return hanya JSON valid dengan key contentJson."
+                            "Wajib isi root contentJson berikut: title, identity, materialContext, profileAndLearningDirection, learningDesign, meetingActivities, assessment, followUp, teacherReflection, completionChecklist, dan finalFlowSummary. "
+                            "Wajib isi learningDesign.pedagogicalPractice, learningDesign.partnership, learningDesign.digitalUse, dan learningDesign.resources. "
+                            "Wajib isi meetingActivities.overview dan seluruh meetings sesuai jumlah pertemuan. "
+                            "Wajib isi setiap meeting dengan diagnostic, understanding, applying, reflecting, dan formativeAssessment. "
+                            "Jangan mengembalikan JSON parsial. "
                         ),
                         "project": payload.project.model_dump(),
                         "sourceData": source_data,
@@ -74,25 +81,51 @@ class IntraGenerationService:
             },
         ]
 
-        generated = await self.llm_client.generate_json(
-            messages,
-            fallback={"contentJson": response_shape},
-            temperature=0.15,
-        )
+        content_json = None
 
-        content_json = generated.get("contentJson") if isinstance(generated, dict) else None
+        for attempt in range(3):
+            generated = await self.llm_client.generate_json(
+                messages,
+                fallback={"contentJson": {}},
+                temperature=0.0,
+            )
+
+            candidate = generated.get("contentJson") if isinstance(generated, dict) else None
+
+            if not isinstance(candidate, dict):
+                continue
+
+            candidate = self._normalize_generated_text(candidate)
+            candidate = self._normalize_output_structure(candidate)
+
+            if self._is_content_complete_enough(candidate):
+                content_json = candidate
+                break
 
         if not isinstance(content_json, dict):
-            content_json = response_shape
+            raise ValueError(
+                "Generate RPM gagal: output LLM masih kosong/tidak lengkap setelah 3 percobaan."
+            )
 
-        content_json = self._normalize_generated_text(content_json)
-        content_json = self._normalize_output_structure(content_json)
+        
+        # content_json = self._normalize_generated_text(content_json)
+        # content_json = self._normalize_output_structure(content_json)
 
-        # Tetap full LLM: repair ini juga memakai LLM API, bukan parser/manual filler Python.
-        # Tujuannya hanya memastikan output tidak menambah data di luar Stage 1-4.
-        content_json = await self._repair_grounding_with_llm(content_json, source_data)
-        content_json = self._normalize_generated_text(content_json)
-        content_json = self._normalize_output_structure(content_json)
+        # pre_repair_content_json = content_json
+
+        # repaired_content_json = await self._repair_grounding_with_llm(
+        #     content_json=content_json,
+        #     source_data=source_data,
+        #     response_shape=response_shape,
+        # )
+
+        # repaired_content_json = self._normalize_generated_text(repaired_content_json)
+        # repaired_content_json = self._normalize_output_structure(repaired_content_json)
+
+        # if self._has_required_rpm_sections(repaired_content_json):
+        #     content_json = repaired_content_json
+        # else:
+        #     content_json = pre_repair_content_json
 
         content_markdown = self._to_markdown(content_json)
 
@@ -111,7 +144,87 @@ class IntraGenerationService:
             contentJson=content_json,
             contentMarkdown=content_markdown,
         )
+    def _is_content_complete_enough(self, content: dict[str, Any]) -> bool:
+        if not isinstance(content, dict):
+            return False
 
+        required_root_keys = [
+            "title",
+            "identity",
+            "materialContext",
+            "profileAndLearningDirection",
+            "learningDesign",
+            "meetingActivities",
+            "assessment",
+            "followUp",
+            "teacherReflection",
+            "completionChecklist",
+            "finalFlowSummary",
+        ]
+
+        for key in required_root_keys:
+            if key not in content:
+                return False
+
+        learning_design = content.get("learningDesign") or {}
+        if self._is_empty_value(learning_design.get("pedagogicalPractice")):
+            return False
+        if self._is_empty_value(learning_design.get("digitalUse")):
+            return False
+        if self._is_empty_value(learning_design.get("resources")):
+            return False
+
+        meeting_activities = content.get("meetingActivities") or {}
+        if not str(meeting_activities.get("overview", "")).strip():
+            return False
+
+        meetings = meeting_activities.get("meetings")
+        if not isinstance(meetings, list) or not meetings:
+            return False
+
+        for meeting in meetings:
+            if not isinstance(meeting, dict):
+                return False
+
+            if not str(meeting.get("introParagraph", "")).strip():
+                return False
+            if not str(meeting.get("focus", "")).strip():
+                return False
+            if not str(meeting.get("target", "")).strip():
+                return False
+
+            diagnostic = meeting.get("diagnostic") or {}
+            understanding = meeting.get("understanding") or {}
+            applying = meeting.get("applying") or {}
+            reflecting = meeting.get("reflecting") or {}
+            formative = meeting.get("formativeAssessment") or {}
+
+            if not str(diagnostic.get("step1Description", "")).strip():
+                return False
+            if not str(understanding.get("step4Description", "")).strip():
+                return False
+            if not str(applying.get("step6Description", "")).strip():
+                return False
+            if not str(reflecting.get("step8Description", "")).strip():
+                return False
+            if not str(formative.get("teacherRecordFormat", "")).strip():
+                return False
+
+            indicators = formative.get("observedIndicators") or []
+            valid_indicators = [
+                item for item in indicators
+                if isinstance(item, str) and item.strip()
+            ]
+            if len(valid_indicators) < 3:
+                return False
+
+        assessment = content.get("assessment") or {}
+        summative = assessment.get("summative") or {}
+
+        if not str(summative.get("description", "")).strip():
+            return False
+
+        return True
     def _build_system_prompt(self) -> str:
         return """
 Anda adalah AI Service Petunjukku untuk menyusun RPM Intrakurikuler final.
@@ -298,11 +411,11 @@ Setiap diagnostic wajib berisi:
 - answerOptions: pilihan A dan B jika sesuai.
 - correctAnswer: jawaban tepat dan alasan singkat.
 - step2Description: cara guru membaca hasil jawaban dan membentuk kelompok sementara.
-- teacherNotes: kelompok A/B bersifat sementara, bukan label pintar/kurang pintar.
+- teacherNotes: buat banyak kata dan inti penjelasan sama dengan contoh, berikut "Kelompok A/B bersifat sementara dan tidak boleh disebut sebagai kelompok pintar atau kurang pintar. Guru perlu menyampaikan bahwa pengelompokan hanya digunakan untuk menyesuaikan bentuk bantuan belajar. Murid dapat berpindah kelompok pada kegiatan berikutnya ketika pemahamannya berubah" .
 
 K. Struktur Memahami
 Setiap understanding wajib berisi:
-- teacherNotes: semua murid mendapat dasar konsep yang sama.
+- teacherNotes: buat banyak kata dan inti penjelasan sama dengan contoh, berikut "Pada tahap memahami, guru belum membedakan tugas antara Kelompok A dan Kelompok B. Semua murid tetap mendapatkan penjelasan konsep yang sama agar memiliki dasar pemahaman bersama. Hasil diagnostik digunakan sebagai pintu masuk untuk memilih contoh yang perlu dibahas"
 - step4Description: guru membahas jawaban murid dan meluruskan miskonsepsi.
 - step5Description: guru menguatkan konsep dengan media atau sumber daya yang relevan.
 - triggerQuestions: 3-4 pertanyaan pemantik.
@@ -429,13 +542,22 @@ N. Struktur Asesmen
 
         return {
             "title": payload.project.title or "",
-            "identity": {
-                "schoolName": school.get("schoolName", ""),
-                "teacherName": teacher_profile.get("teacherName", ""),
-                "educationLevel": school.get("educationLevel", stage1.get("jenjangPendidikan", "")),
+          "identity": {
+                "schoolName": school.get("schoolName") or school.get("name", ""),
+                "teacherName": teacher_profile.get("teacherName") or teacher_profile.get("fullName", ""),
+                "educationLevel": (
+                    school.get("educationLevel")
+                    or teacher_profile.get("educationLevel")
+                    or stage1.get("jenjangPendidikan", "")
+                ),
                 "phase": teacher_class.get("phase", payload.project.phase or stage1.get("fase", "")),
                 "gradeLevel": teacher_class.get("gradeLevel", payload.project.gradeLevel or stage1.get("kelas", "")),
-                "subject": teacher_subject.get("subject", payload.project.subject or stage1.get("mataPelajaran", "")),
+                "subject": (
+                    teacher_subject.get("subject")
+                    or teacher_subject.get("subjectName")
+                    or payload.project.subject
+                    or stage1.get("mataPelajaran", "")
+                ),
                 "topic": stage1.get("topikMateriPokok", ""),
                 "element": self._infer_element(stage1, stage2),
                 "timeAllocation": stage1.get("durasiPembelajaran", ""),
@@ -563,7 +685,52 @@ N. Struktur Asesmen
                 return objectives
 
         return []
+    def _has_required_rpm_sections(self, content: dict[str, Any]) -> bool:
+        if not isinstance(content, dict):
+            return False
 
+        required_root_keys = [
+            "title",
+            "identity",
+            "materialContext",
+            "profileAndLearningDirection",
+            "learningDesign",
+            "meetingActivities",
+            "assessment",
+            "followUp",
+            "teacherReflection",
+            "completionChecklist",
+            "finalFlowSummary",
+        ]
+
+        for key in required_root_keys:
+            if key not in content:
+                return False
+
+        learning_design = content.get("learningDesign")
+        if not isinstance(learning_design, dict):
+            return False
+
+        for key in ("pedagogicalPractice", "partnership", "digitalUse", "resources"):
+            if key not in learning_design:
+                return False
+
+        meeting_activities = content.get("meetingActivities")
+        if not isinstance(meeting_activities, dict):
+            return False
+
+        meetings = meeting_activities.get("meetings")
+        if not isinstance(meetings, list) or not meetings:
+            return False
+
+        assessment = content.get("assessment")
+        if not isinstance(assessment, dict):
+            return False
+
+        if "summative" not in assessment:
+            return False
+
+        return True
     def _build_meeting_shape(self, source_data: dict[str, Any]) -> list[dict[str, Any]]:
         stage1 = source_data.get("stage1_basicContext") or {}
         stage4 = source_data.get("stage4_formativeAssessment") or {}
@@ -629,6 +796,7 @@ N. Struktur Asesmen
         self,
         content_json: dict[str, Any],
         source_data: dict[str, Any],
+        response_shape: dict[str, Any],
     ) -> dict[str, Any]:
         messages = [
             {
@@ -659,7 +827,11 @@ Aturan keras:
 - Jika ada item tidak didukung sourceData, hapus item tersebut atau tulis ulang agar sesuai sourceData.
 - Jangan membuat atau mempertahankan root-level rubric.
 - Jika contentJsonToRepair memiliki root-level rubric, hapus field tersebut.
-
+- Pertahankan seluruh struktur utama contentJson.
+- Jangan menghapus root utama contentJson.
+- Root utama yang wajib tetap ada: title, identity, materialContext, profileAndLearningDirection, learningDesign, meetingActivities, assessment, followUp, teacherReflection, completionChecklist, finalFlowSummary.
+- Jika suatu bagian kurang grounded, tulis ulang isinya agar grounded, bukan menghapus seluruh bagian.
+- Jika ragu, pertahankan struktur dan kosongkan hanya item spesifik yang melanggar, bukan seluruh section.
 Output wajib hanya JSON valid:
 {"contentJson": {...}}
 """.strip(),
@@ -671,9 +843,14 @@ Output wajib hanya JSON valid:
                         "instruction": (
                             "Perbaiki contentJson agar sepenuhnya grounded pada sourceData. "
                             "Jangan menambahkan informasi di luar Stage 1-4. "
+                            "Pertahankan struktur lengkap seperti requiredResponseShape. "
+                            "Jangan menghapus root utama seperti learningDesign, meetingActivities, assessment, followUp, teacherReflection, completionChecklist, atau finalFlowSummary. "
                             "Return hanya JSON valid dengan key contentJson."
                         ),
                         "sourceData": source_data,
+                        "requiredResponseShape": {
+                            "contentJson": response_shape,
+                        },
                         "contentJsonToRepair": content_json,
                     },
                     ensure_ascii=False,
@@ -683,7 +860,7 @@ Output wajib hanya JSON valid:
 
         repaired = await self.llm_client.generate_json(
             messages,
-            fallback={"contentJson": content_json},
+            fallback={"contentJson": {}},
             temperature=0.0,
         )
 
@@ -836,15 +1013,14 @@ Output wajib hanya JSON valid:
                 if key in assessment:
                     assessment.pop(key, None)
 
+            assessment.pop("rubric", None)
+
             summative = assessment.get("summative") or {}
             content["assessment"] = {
                 "summative": summative,
             }
 
-        if self._is_empty_value(content.get("rubric")):
-            content["rubric"] = {
-                "criteria": []
-            }
+        content.pop("rubric", None)
 
         if self._is_empty_value(content.get("followUp")):
             content["followUp"] = {
@@ -869,7 +1045,6 @@ Output wajib hanya JSON valid:
             content["finalFlowSummary"] = ""
 
         return content
-
     def _is_empty_value(self, value: Any) -> bool:
         if value is None:
             return True
@@ -1122,22 +1297,8 @@ Output wajib hanya JSON valid:
                     f"Tindak lanjut: {level.get('followUp', '')}"
                 )
 
-        rubric = content.get("rubric") or {}
-        lines.extend(["", "## F. Rubrik Penilaian"])
-        for item in rubric.get("criteria") or []:
-            criterion = item.get("criterion", "")
-            excellent = item.get("excellent", "")
-            good = item.get("good", "")
-            needs_support = item.get("needsSupport", "")
-
-            if criterion or excellent or good or needs_support:
-                lines.append(f"- **{criterion}**")
-                lines.append(f"  - Sangat Baik: {excellent}")
-                lines.append(f"  - Baik: {good}")
-                lines.append(f"  - Perlu Dukungan: {needs_support}")
-
         follow_up = content.get("followUp") or {}
-        lines.extend(["", "## G. Tindak Lanjut Pembelajaran"])
+        lines.extend(["", "## F. Tindak Lanjut Pembelajaran"])
         if follow_up.get("description"):
             lines.append(str(follow_up.get("description", "")))
         if follow_up.get("notYetAchieved"):
@@ -1152,7 +1313,7 @@ Output wajib hanya JSON valid:
             lines.append(f"- Contoh pengayaan: {follow_up.get('enrichmentExample', '')}")
 
         teacher_reflection = content.get("teacherReflection") or {}
-        lines.extend(["", "## H. Refleksi Guru"])
+        lines.extend(["", "## G. Refleksi Guru"])
         if teacher_reflection.get("description"):
             lines.append(str(teacher_reflection.get("description", "")))
         for question in teacher_reflection.get("questions") or []:
@@ -1160,7 +1321,7 @@ Output wajib hanya JSON valid:
             if question_text:
                 lines.append(f"- {question_text}")
 
-        lines.extend(["", "## I. Checklist Kelengkapan RPM"])
+        lines.extend(["", "## H. Checklist Kelengkapan RPM"])
         for item in content.get("completionChecklist") or []:
             item_text = str(item.get("item", "")).strip()
             status_text = str(item.get("status", "")).strip()
