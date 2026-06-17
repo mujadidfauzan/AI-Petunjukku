@@ -54,7 +54,7 @@ class IntraStage3DiagramService:
     def _system_prompt(self) -> str:
         return """
 Anda adalah KINA, AI Teaching Companion Petunjukku.
-Tugas Anda adalah membuat 3 alternatif diagram alur pembelajaran Stage 3 RPP Intrakurikuler.
+Tugas Anda adalah membuat 3 alternatif diagram alur pembelajaran Stage 3 RPM Intrakurikuler.
 
 ATURAN WAJIB:
 - Balas hanya JSON valid.
@@ -67,7 +67,7 @@ ATURAN WAJIB:
 - Step type hanya: "start", "process", "decision", "end".
 - Jika type "decision", wajib isi "yes" dan "no".
 - Label step pendek agar muat di UI, maksimal 8 kata.
-- Jangan menambahkan fasilitas/platform/kemitraan yang tidak dipilih guru.
+- Jangan menambahkan fasilitas atau platform yang tidak dipilih guru.
 - Produk akhir harus konsisten dengan input Stage 3.
 
 FORMAT JSON:
@@ -75,7 +75,6 @@ FORMAT JSON:
   "summary": "ringkasan pendek",
   "praktikPedagogis": "nama praktik pedagogis",
   "alasanPraktikPedagogis": "alasan singkat",
-  "kemitraanDetail": "detail kemitraan atau tidak digunakan",
   "pemanfaatanDigital": "cara pemanfaatan digital",
   "fungsiTeknologiDigital": "fungsi teknologi",
   "produkKinerjaAkhirNarasi": "narasi produk akhir",
@@ -127,7 +126,6 @@ FORMAT JSON:
             summary=self._text(raw.get("summary"), "Diagram Stage 3 siap dipilih."),
             praktikPedagogis=self._text(raw.get("praktikPedagogis")),
             alasanPraktikPedagogis=self._text(raw.get("alasanPraktikPedagogis")),
-            kemitraanDetail=self._text(raw.get("kemitraanDetail")),
             pemanfaatanDigital=self._text(raw.get("pemanfaatanDigital")),
             fungsiTeknologiDigital=self._text(raw.get("fungsiTeknologiDigital")),
             produkKinerjaAkhirNarasi=self._text(raw.get("produkKinerjaAkhirNarasi")),

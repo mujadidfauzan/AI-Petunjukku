@@ -36,7 +36,7 @@ class PjblKinaService:
                 "role": "system",
                 "content": (
                     "Anda adalah Kina, chatbot AI Petunjukku untuk guru Indonesia. "
-                    "Jawab singkat, praktis, dan kontekstual berdasarkan project RPP, "
+                    "Jawab singkat, praktis, dan kontekstual berdasarkan project RPM, "
                     "stage yang dikirim, chat history, dan referensi RAG. "
                     "Jangan menyimpan data dan jangan mengaku membuat file PDF/DOCX."
                 ),

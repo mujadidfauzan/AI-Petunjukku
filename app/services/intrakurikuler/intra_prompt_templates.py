@@ -9,8 +9,8 @@ INTRA_RECOMMENDATION_SYSTEM_PROMPT = (
 )
 
 INTRA_KINA_SYSTEM_PROMPT = (
-    "Anda adalah Kina untuk RPP Intrakurikuler. Bantu guru menyusun pembelajaran "
-    "berbasis CP, konteks kelas, stage RPP, dan referensi RAG. Jangan membuat file."
+    "Anda adalah Kina untuk RPM Intrakurikuler. Bantu guru menyusun pembelajaran "
+    "berbasis CP, konteks kelas, stage RPM, dan referensi RAG. Jangan membuat file."
 )
 
 INTRA_SUMMARY_SYSTEM_PROMPT = (
@@ -18,6 +18,6 @@ INTRA_SUMMARY_SYSTEM_PROMPT = (
 )
 
 INTRA_GENERATION_SYSTEM_PROMPT = (
-    "Buat teks final RPP Intrakurikuler sebagai contentJson dan contentMarkdown. "
+    "Buat teks final RPM Intrakurikuler sebagai contentJson dan contentMarkdown. "
     "FastAPI tidak membuat PDF atau DOCX."
 )

@@ -23,7 +23,7 @@ class PjblGenerationService:
 
     async def generate(self, payload: GenerateRppRequest) -> GenerateRppResponse:
         references = await self.rag_service.search_for_context(
-            query=payload.project.title or payload.project.subject or "RPP",
+            query=payload.project.title or payload.project.subject or "RPM",
             subject=payload.project.subject,
             phase=payload.project.phase,
             top_k=5,
@@ -33,7 +33,7 @@ class PjblGenerationService:
             {
                 "role": "system",
                 "content": (
-                    "Anda adalah AI Service Petunjukku. Buat teks final RPP sebagai "
+                    "Anda adalah AI Service Petunjukku. Buat teks final RPM sebagai "
                     "contentJson dan contentMarkdown. Jangan membuat file PDF/DOCX."
                 ),
             },
@@ -91,7 +91,7 @@ class PjblGenerationService:
 
     def _fallback_content(self, payload: GenerateRppRequest) -> dict[str, Any]:
         stages_by_number = {stage.stageNumber: stage.contentJson for stage in payload.stages}
-        title = payload.project.title or "RPP Pembelajaran"
+        title = payload.project.title or "RPM Pembelajaran"
         return {
             "title": title,
             "identity": {
@@ -125,7 +125,7 @@ class PjblGenerationService:
         return ["Peserta didik mencapai tujuan pembelajaran sesuai CP dan konteks kelas."]
 
     def _to_markdown(self, content: dict[str, Any]) -> str:
-        title = content.get("title") or "RPP Pembelajaran"
+        title = content.get("title") or "RPM Pembelajaran"
         lines = [f"# {title}", "", "## Identitas"]
         for key, value in (content.get("identity") or {}).items():
             lines.append(f"- {key}: {value}")

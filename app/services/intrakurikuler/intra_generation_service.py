@@ -28,7 +28,7 @@ class IntraGenerationService:
 
     async def generate(self, payload: GenerateRppRequest) -> GenerateRppResponse:
         references = await self.rag_service.search_for_context(
-            query=payload.project.title or payload.project.subject or "RPP",
+            query=payload.project.title or payload.project.subject or "RPM",
             subject=payload.project.subject,
             phase=payload.project.phase,
             top_k=5,
@@ -65,7 +65,7 @@ class IntraGenerationService:
 
     def _build_system_prompt(self) -> str:
         return """
-Anda adalah AI Service Petunjukku untuk menyusun RPP Intrakurikuler final.
+Anda adalah AI Service Petunjukku untuk menyusun RPM Intrakurikuler final.
 
 Output wajib hanya JSON valid:
 {"contentJson": {...}}
@@ -73,8 +73,8 @@ Output wajib hanya JSON valid:
 A. Cara Membaca Source Data
 1. onboarding digunakan untuk identitas sekolah, guru, kelas, fase, dan mata pelajaran.
 2. Stage 1 digunakan untuk konteks dasar kelas, topik, durasi, jumlah pertemuan, dan fasilitas awal yang tersedia.
-3. Stage 2 digunakan untuk CP/ATP, profil lulusan, lintas disiplin, tujuan pembelajaran, dan pertanyaan pemantik.
-4. Stage 3 digunakan sebagai keputusan final diskusi tentang strategi pembelajaran, praktik pedagogis, media digital, kemitraan, sumber daya yang dipilih, produk akhir, diferensiasi, dan alur kegiatan.
+3. Stage 2 digunakan untuk CP/ATP, profil lulusan, tujuan pembelajaran, dan pertanyaan pemantik.
+4. Stage 3 digunakan sebagai keputusan final diskusi tentang strategi pembelajaran, praktik pedagogis, media digital, sumber daya yang dipilih, produk akhir, diferensiasi, dan alur kegiatan.
 5. Stage 4 digunakan untuk teknik asesmen formatif per pertemuan.
 6. lockedDecisionsFromStage3 adalah ringkasan keputusan final Stage 3 dan wajib diprioritaskan.
 7. strictGroundingContract adalah batas grounding yang wajib ditaati agar tidak ada input tambahan di luar Stage 1-4.
@@ -85,11 +85,11 @@ B. Prinsip Utama
 3. Isi semua field naratif utama berdasarkan Stage 1-4.
 4. Semua isi naratif ditulis oleh LLM API berdasarkan sourceData.
 5. Jangan mengembalikan shape kosong.
-6. Jangan mengarang identitas, fasilitas, platform, mitra, tautan, sumber daya, produk, perangkat, atau tugas yang tidak ada pada Stage 1-4.
+6. Jangan mengarang identitas, fasilitas, platform, tautan, sumber daya, produk, perangkat, atau tugas yang tidak ada pada Stage 1-4.
 7. Jangan memilih hanya satu item jika sourceData berisi beberapa item.
 8. Gunakan istilah "murid", bukan "siswa" atau "peserta didik".
 9. learningObjectives dan target pertemuan harus diawali "Murid mampu ...".
-10. Gaya bahasa harus naratif, siap ditempel ke dokumen RPP, dan tidak berupa frasa pendek.
+10. Gaya bahasa harus naratif, siap ditempel ke dokumen RPM, dan tidak berupa frasa pendek.
 
 C. Prioritas Keputusan
 Jika ada konflik antar data, gunakan urutan prioritas berikut:
@@ -101,21 +101,18 @@ Jika ada konflik antar data, gunakan urutan prioritas berikut:
 Aturan prioritas:
 - topic, timeAllocation, dan meetingCount mengikuti Stage 1.
 - element disimpulkan dari Stage 1 dan Stage 2.
-- profil lulusan, lintas disiplin, tujuan pembelajaran, dan pertanyaan pemantik mengikuti Stage 2.
+- profil lulusan, tujuan pembelajaran, dan pertanyaan pemantik mengikuti Stage 2.
 - teknik asesmen formatif per pertemuan mengikuti Stage 4.
-- produk akhir, media digital, kemitraan, sumber daya yang dipilih, alur kegiatan, dan diferensiasi mengikuti Stage 3.
+- produk akhir, media digital, sumber daya yang dipilih, alur kegiatan, dan diferensiasi mengikuti Stage 3.
 - fasilitasAwal pada Stage 1 hanya menunjukkan fasilitas yang tersedia. Fasilitas awal tidak otomatis menjadi sumber daya yang digunakan.
-- partnership berasal dari field partnership Stage 3.
 - digitalUse berasal dari field digitalPlatform Stage 3.
 - resources berasal dari field facilityAndTechnologyUse Stage 3.
 - discussionSummary digunakan sebagai konteks penguat agar narasi setiap bagian saling nyambung.
 
 D. Aturan Learning Design
 - pedagogicalPractice dikembangkan dari learningStrategy dan pedagogicalApproach Stage 3.
-- partnership dikembangkan dari partnership Stage 3.
 - digitalUse dikembangkan dari digitalPlatform Stage 3.
 - resources dikembangkan dari facilityAndTechnologyUse Stage 3.
-- partnership hanya memuat mitra pembelajaran.
 - digitalUse hanya memuat media, aplikasi, sumber digital, atau platform digital.
 - resources hanya memuat alat, bahan, fasilitas, atau sumber daya fisik yang disebut eksplisit pada Stage 3 field facilityAndTechnologyUse.
 - Jangan memasukkan alat fisik ke digitalUse jika alat tersebut dijelaskan pada facilityAndTechnologyUse.
@@ -124,9 +121,9 @@ D. Aturan Learning Design
 - Jika digitalPlatform menyebut media digital atau platform digital, media tersebut masuk ke digitalUse, bukan otomatis membuat perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi masuk ke resources.
 - Perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi hanya boleh masuk resources jika disebut eksplisit pada Stage 3 field facilityAndTechnologyUse.
 - Jika facilityAndTechnologyUse hanya menyebut satu sumber daya, maka resources cukup memuat sumber daya tersebut.
-- Jangan menulis "tidak digunakan" pada partnership, digitalUse, atau resources apabila Stage 3 menyebut bagian tersebut digunakan.
-- Jika Stage 3 menyebut lebih dari satu mitra, media digital, atau sumber daya, pisahkan menjadi beberapa item.
-- Jangan menambahkan mitra, media digital, atau sumber daya baru hanya karena dianggap umum dipakai di pembelajaran.
+- Jangan menulis "tidak digunakan" pada digitalUse atau resources apabila Stage 3 menyebut bagian tersebut digunakan.
+- Jika Stage 3 menyebut lebih dari satu media digital atau sumber daya, pisahkan menjadi beberapa item.
+- Jangan menambahkan media digital atau sumber daya baru hanya karena dianggap umum dipakai di pembelajaran.
 
 E. Aturan Produk, Tugas, Rubrik, dan Asesmen
 - finalStudentProduct Stage 3 adalah acuan utama produk/kinerja murid.
@@ -139,18 +136,11 @@ F. Field Naratif yang Tidak Boleh Kosong
 Field berikut wajib diisi:
 - materialContext
 - profileAndLearningDirection.graduateProfiles[].description
-- profileAndLearningDirection.interdisciplinaryIntegration.relatedDiscipline
-- profileAndLearningDirection.interdisciplinaryIntegration.rationale
-- profileAndLearningDirection.interdisciplinaryIntegration.integrationForm
-- profileAndLearningDirection.interdisciplinaryIntegration.notes
 - profileAndLearningDirection.learningObjectives
 - profileAndLearningDirection.essentialQuestion
 - learningDesign.pedagogicalPractice.description
 - learningDesign.pedagogicalPractice.forms[].name
 - learningDesign.pedagogicalPractice.forms[].description
-- learningDesign.partnership.items[].partner
-- learningDesign.partnership.items[].partnerRole
-- learningDesign.partnership.notes
 - learningDesign.digitalUse.items[].sourceOrPlatform
 - learningDesign.digitalUse.items[].function
 - learningDesign.digitalUse.notes
@@ -176,13 +166,8 @@ Field berikut wajib diisi:
 G. Kedalaman Narasi Minimal
 - materialContext: 1 paragraf, 3 kalimat.
 - graduateProfiles.description: 1 kalimat konkret tentang perilaku murid.
-- interdisciplinaryIntegration.rationale: 3-4 kalimat.
-- interdisciplinaryIntegration.integrationForm: 2-3 kalimat.
-- interdisciplinaryIntegration.notes: 2 kalimat.
 - pedagogicalPractice.description: 4 kalimat.
 - pedagogicalPractice.forms[].description: 2 kalimat.
-- partnership.items[].partnerRole: 2-3 kalimat.
-- partnership.notes: 2 kalimat.
 - digitalUse.items[].function: 2 kalimat.
 - digitalUse.notes: 2 kalimat.
 - resources[].function: 2 kalimat.
@@ -208,14 +193,7 @@ G. Kedalaman Narasi Minimal
 - completionChecklist: 4-6 item.
 - finalFlowSummary: 2-3 kalimat.
 
-H. Lintas Disiplin
-- relatedDiscipline diambil dari Stage 2 jika tersedia.
-- rationale menjelaskan alasan disiplin terkait relevan dengan pembelajaran.
-- integrationForm menjelaskan bentuk integrasi lintas disiplin dalam kegiatan belajar, produk akhir, komunikasi hasil, atau penggunaan teknologi sesuai Stage 3.
-- notes menjelaskan bahwa lintas disiplin bersifat pendukung, sedangkan kompetensi utama tetap berada pada mata pelajaran utama.
-- Jangan menambah disiplin lain yang tidak ada pada Stage 2 atau Stage 3.
-
-I. Struktur Meeting Activities
+H. Struktur Meeting Activities
 meetingActivities harus berisi:
 1. overview
 2. meetings dengan jumlah sama seperti identity.meetingCount
@@ -379,17 +357,16 @@ N. Struktur Asesmen
             {
                 "role": "system",
                 "content": """
-Anda adalah AI Service Petunjukku untuk menyusun satu bagian RPP Intrakurikuler.
+Anda adalah AI Service Petunjukku untuk menyusun satu bagian RPM Intrakurikuler.
 
 Aturan:
 - Output wajib satu JSON object valid, tanpa markdown.
 - Isi semua field di requiredResponseShape sesuai sectionName.
 - Gunakan istilah "murid".
 - Gunakan hanya sourceData Stage 1, Stage 2, Stage 3, Stage 4, onboarding, dan project.
-- Jangan menambahkan perangkat, fasilitas, aplikasi, mitra, produk, atau tugas yang tidak disebut/diturunkan langsung dari sourceData.
+- Jangan menambahkan perangkat, fasilitas, aplikasi, produk, atau tugas yang tidak disebut/diturunkan langsung dari sourceData.
 - learningDesign.resources hanya dari strictGroundingContract.resourcesSourceText.
 - learningDesign.digitalUse hanya dari strictGroundingContract.digitalUseSourceText.
-- learningDesign.partnership hanya dari strictGroundingContract.partnershipSourceText.
 - Produk, rubrik, asesmen, dan tugas utama harus konsisten dengan strictGroundingContract.finalStudentProductSourceText.
 - Untuk setiap formativeAssessment, observedIndicators wajib 3-5 indikator konkret dan teacherRecordFormat wajib praktis untuk guru.
 """.strip(),
@@ -454,7 +431,6 @@ Aturan:
             "pedagogicalApproach": stage3.get("pedagogicalApproach", ""),
             "facilityAndTechnologyUse": stage3.get("facilityAndTechnologyUse", ""),
             "digitalPlatform": stage3.get("digitalPlatform", ""),
-            "partnership": stage3.get("partnership", ""),
             "finalStudentProduct": stage3.get("finalStudentProduct", ""),
             "activityFlowDecision": stage3.get("activityFlowDecision", {}),
             "differentiationPlan": stage3.get("differentiationPlan", {}),
@@ -475,14 +451,12 @@ Aturan:
                 "learningObjectivesSource": "Stage 2.",
                 "meetingCountSource": "Stage 1.",
                 "formativeAssessmentSource": "Stage 4.",
-                "partnershipSourceText": locked_decisions_from_stage3["partnership"],
                 "digitalUseSourceText": locked_decisions_from_stage3["digitalPlatform"],
                 "resourcesSourceText": locked_decisions_from_stage3["facilityAndTechnologyUse"],
                 "finalStudentProductSourceText": locked_decisions_from_stage3["finalStudentProduct"],
                 "differentiationSource": locked_decisions_from_stage3["differentiationPlan"],
                 "activityFlowSource": locked_decisions_from_stage3["activityFlowDecision"],
                 "hardRules": [
-                    "partnership hanya boleh berasal dari partnershipSourceText.",
                     "digitalUse hanya boleh berasal dari digitalUseSourceText.",
                     "resources hanya boleh berasal dari resourcesSourceText.",
                     "produk akhir, tugas utama, rubrik, dan asesmen harus konsisten dengan finalStudentProductSourceText.",
@@ -542,12 +516,6 @@ Aturan:
         if stage_number == 2:
             fokus = self._nested_dict(wizard, "fokus", "fokus")
             merged = self._merge_dicts_keep_non_empty(content, inputs, fokus)
-            lintas = (
-                merged.get("lintasDisiplin")
-                if isinstance(merged.get("lintasDisiplin"), dict)
-                else {}
-            )
-            lintas_labels = self._extract_lintas_disiplin_labels(lintas)
             atp = merged.get("atpIndicators") or merged.get("tujuanPembelajaranTerpilih")
             if not isinstance(atp, list):
                 atp = []
@@ -556,10 +524,6 @@ Aturan:
                 {
                     "dimensiProfilLulusan": merged.get("dimensiProfilLulusan")
                     or merged.get("profilLulusan"),
-                    "mataPelajaranLintasDisiplin": merged.get(
-                        "mataPelajaranLintasDisiplin"
-                    )
-                    or lintas_labels,
                     "capaianPembelajaran": merged.get("capaianPembelajaran")
                     or merged.get("cpText"),
                     "tujuanPembelajaranTerpilih": atp,
@@ -597,9 +561,6 @@ Aturan:
                     "digitalPlatform": merged.get("digitalPlatform")
                     or self._join_list(merged.get("platformDigital"))
                     or merged.get("pemanfaatanDigital"),
-                    "partnership": merged.get("partnership")
-                    or self._stringify_stage3_partnership(merged.get("kemitraan"))
-                    or merged.get("kemitraanDetail"),
                     "finalStudentProduct": merged.get("finalStudentProduct")
                     or self._join_list(merged.get("produkKinerjaAkhir"))
                     or merged.get("produkKinerjaAkhirNarasi"),
@@ -623,38 +584,6 @@ Aturan:
                 return {}
             current = current.get(key)
         return current if isinstance(current, dict) else {}
-
-    def _extract_lintas_disiplin_labels(self, lintas: dict[str, Any]) -> list[str]:
-        checked = lintas.get("mapelChecked")
-        custom = lintas.get("mapelCustom")
-        labels: list[str] = []
-
-        if isinstance(checked, list):
-            labels.extend(str(item) for item in checked if str(item).strip())
-
-        if isinstance(custom, list):
-            for item in custom:
-                if not isinstance(item, dict):
-                    continue
-                item_id = str(item.get("id") or "")
-                label = str(item.get("label") or "").strip()
-                if label and (not checked or item_id in checked):
-                    labels.append(label)
-
-        return labels
-
-    def _stringify_stage3_partnership(self, kemitraan: Any) -> str:
-        if isinstance(kemitraan, str):
-            return kemitraan
-        if not isinstance(kemitraan, dict):
-            return ""
-        if kemitraan.get("digunakan") is False:
-            return "Tidak digunakan"
-        values = [
-            self._join_list(kemitraan.get("pilihan")),
-            str(kemitraan.get("catatan") or ""),
-        ]
-        return ". ".join(item for item in values if item.strip())
 
     def _empty_response_shape(
         self,
@@ -688,12 +617,6 @@ Aturan:
             "materialContext": "",
             "profileAndLearningDirection": {
                 "graduateProfiles": self._build_graduate_profile_shape(stage2),
-                "interdisciplinaryIntegration": {
-                    "relatedDiscipline": self._join_list(stage2.get("mataPelajaranLintasDisiplin")),
-                    "rationale": "",
-                    "integrationForm": "",
-                    "notes": "",
-                },
                 "learningObjectives": self._build_learning_objectives(stage2),
                 "essentialQuestion": stage2.get("pertanyaanPemantik", ""),
             },
@@ -704,12 +627,6 @@ Aturan:
                         {"name": "", "description": ""},
                         {"name": "", "description": ""},
                     ],
-                },
-                "partnership": {
-                    "items": [
-                        {"partner": "", "partnerRole": ""},
-                    ],
-                    "notes": "",
                 },
                 "digitalUse": {
                     "items": [
@@ -994,6 +911,14 @@ Aturan:
         if not isinstance(content, dict):
             return content
 
+        profile = content.get("profileAndLearningDirection")
+        if isinstance(profile, dict):
+            profile.pop("interdisciplinaryIntegration", None)
+
+        learning_design = content.get("learningDesign")
+        if isinstance(learning_design, dict):
+            learning_design.pop("partnership", None)
+
         assessment = content.get("assessment")
 
         if isinstance(assessment, dict):
@@ -1096,7 +1021,7 @@ Aturan:
         return "[ ]"
 
     def _to_markdown(self, content: dict[str, Any]) -> str:
-        title = content.get("title") or "RPP Pembelajaran"
+        title = content.get("title") or "RPM Pembelajaran"
         lines = [f"# {title}", ""]
 
         identity = content.get("identity") or {}
@@ -1115,15 +1040,7 @@ Aturan:
             lines.append(f"- **{item.get('dimension', '')}**: {item.get('description', '')}")
 
         lines.append("")
-        lines.append("### 2. Lintas Disiplin Ilmu")
-        interdisciplinary = profile.get("interdisciplinaryIntegration") or {}
-        lines.append(f"- Disiplin ilmu terkait: {interdisciplinary.get('relatedDiscipline', '')}")
-        lines.append(f"- Alasan keterkaitan: {interdisciplinary.get('rationale', '')}")
-        lines.append(f"- Bentuk integrasi: {interdisciplinary.get('integrationForm', '')}")
-        lines.append(f"- Catatan: {interdisciplinary.get('notes', '')}")
-
-        lines.append("")
-        lines.append("### 3. Tujuan Pembelajaran")
+        lines.append("### 2. Tujuan Pembelajaran")
         for objective in profile.get("learningObjectives") or []:
             lines.append(f"- {objective}")
 
@@ -1140,20 +1057,9 @@ Aturan:
         for item in pedagogical.get("forms") or []:
             lines.append(f"- **{item.get('name', '')}**: {item.get('description', '')}")
 
-        partnership = learning_design.get("partnership") or {}
-        lines.append("")
-        lines.append("### 2. Kemitraan Pembelajaran")
-        for item in partnership.get("items") or []:
-            partner = item.get("partner", "")
-            role = item.get("partnerRole", "")
-            if partner or role:
-                lines.append(f"- **{partner}**: {role}")
-        if partnership.get("notes"):
-            lines.append(str(partnership.get("notes", "")))
-
         digital = learning_design.get("digitalUse") or {}
         lines.append("")
-        lines.append("### 3. Pemanfaatan Digital")
+        lines.append("### 2. Pemanfaatan Digital")
         for item in digital.get("items") or []:
             source = item.get("sourceOrPlatform", "")
             access = item.get("linkOrAccess", "")
@@ -1166,7 +1072,7 @@ Aturan:
             lines.append(str(digital.get("notes", "")))
 
         lines.append("")
-        lines.append("### 4. Sumber Daya")
+        lines.append("### 3. Sumber Daya")
         for item in learning_design.get("resources") or []:
             name = item.get("name", "")
             function = item.get("function", "")
@@ -1350,7 +1256,7 @@ Aturan:
             if question_text:
                 lines.append(f"- {question_text}")
 
-        lines.extend(["", "## I. Checklist Kelengkapan RPP"])
+        lines.extend(["", "## I. Checklist Kelengkapan RPM"])
         for item in content.get("completionChecklist") or []:
             if isinstance(item, dict):
                 item_text = str(item.get("item", "")).strip()

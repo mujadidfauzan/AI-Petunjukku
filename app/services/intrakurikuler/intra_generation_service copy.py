@@ -28,7 +28,7 @@ class IntraGenerationService:
 
     async def generate(self, payload: GenerateRppRequest) -> GenerateRppResponse:
         references = await self.rag_service.search_for_context(
-            query=payload.project.title or payload.project.subject or "RPP",
+            query=payload.project.title or payload.project.subject or "RPM",
             subject=payload.project.subject,
             phase=payload.project.phase,
             top_k=5,
@@ -47,8 +47,8 @@ class IntraGenerationService:
                 "content": json.dumps(
                     {
                         "instruction": (
-                            "Isi requiredResponseShape menjadi contentJson RPP final berdasarkan sourceData. "
-                            "Gunakan seluruh data Stage 1, Stage 2, Stage 3, dan Stage 4 sebagai dasar penyusunan RPP. "
+                            "Isi requiredResponseShape menjadi contentJson RPM final berdasarkan sourceData. "
+                            "Gunakan seluruh data Stage 1, Stage 2, Stage 3, dan Stage 4 sebagai dasar penyusunan RPM. "
                             "Jangan memilih sebagian data jika sourceData menyediakan beberapa item. "
                             "Semua isi naratif harus dikembangkan oleh LLM API berdasarkan sourceData. "
                             "Return hanya JSON valid dengan key contentJson."
@@ -100,7 +100,7 @@ class IntraGenerationService:
 
     def _build_system_prompt(self) -> str:
         return """
-Anda adalah AI Service Petunjukku untuk menyusun RPP Intrakurikuler final.
+Anda adalah AI Service Petunjukku untuk menyusun RPM Intrakurikuler final.
 
 Output wajib hanya JSON valid:
 {"contentJson": {...}}
@@ -121,7 +121,7 @@ B. Prinsip Utama
 5. Jangan memilih hanya satu item jika sourceData berisi beberapa item.
 6. Gunakan istilah "murid", bukan "siswa" atau "peserta didik".
 7. learningObjectives dan target pertemuan harus diawali "Murid mampu ...".
-8. Gaya bahasa harus naratif, siap ditempel ke dokumen RPP, dan tidak berupa frasa pendek.
+8. Gaya bahasa harus naratif, siap ditempel ke dokumen RPM, dan tidak berupa frasa pendek.
 
 C. Prioritas Keputusan
 Jika ada konflik antar data, gunakan urutan prioritas berikut:
@@ -475,7 +475,7 @@ M. Struktur Asesmen
                     "Apakah asesmen diagnostik membantu menentukan kebutuhan belajar murid?",
                     "Bagaimana respons murid terhadap kegiatan mini proyek?",
                     "Apakah asesmen formatif memberi informasi yang cukup untuk tindak lanjut?",
-                    "Apa perbaikan untuk RPP berikutnya?",
+                    "Apa perbaikan untuk RPM berikutnya?",
                 ],
             },
             "completionChecklist": [
@@ -1112,7 +1112,7 @@ M. Struktur Asesmen
                     lines.append(f"{prefix} {text}")
 
     def _to_markdown(self, content: dict[str, Any]) -> str:
-        title = content.get("title") or "RPP Pembelajaran"
+        title = content.get("title") or "RPM Pembelajaran"
         lines = [f"# {title}", ""]
 
         identity = content.get("identity") or {}
@@ -1328,7 +1328,7 @@ M. Struktur Asesmen
         for question in teacher_reflection.get("questions") or []:
             lines.append(f"- {question}")
 
-        lines.extend(["", "## I. Checklist Kelengkapan RPP"])
+        lines.extend(["", "## I. Checklist Kelengkapan RPM"])
         for item in content.get("completionChecklist") or []:
             lines.append(f"- {item.get('item', '')}: {item.get('status', '')}")
 

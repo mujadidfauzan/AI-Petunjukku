@@ -37,7 +37,6 @@ class Stage3GeneratedDesignSchema(FlexibleModel):
     summary: str
     praktikPedagogis: str
     alasanPraktikPedagogis: str
-    kemitraanDetail: str
     pemanfaatanDigital: str
     fungsiTeknologiDigital: str
     produkKinerjaAkhirNarasi: str

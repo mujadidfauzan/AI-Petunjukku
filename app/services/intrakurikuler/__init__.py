@@ -1,1 +1,1 @@
-"""AI logic for RPP Intrakurikuler."""
+"""AI logic for RPM Intrakurikuler."""

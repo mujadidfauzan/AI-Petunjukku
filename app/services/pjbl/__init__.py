@@ -1,1 +1,1 @@
-"""AI logic for RPP PjBL Kokurikuler."""
+"""AI logic for RPM PjBL Kokurikuler."""

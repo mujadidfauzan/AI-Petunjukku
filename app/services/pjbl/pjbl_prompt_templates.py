@@ -4,7 +4,7 @@ PJBL_RECOMMENDATION_SYSTEM_PROMPT = (
 )
 
 PJBL_KINA_SYSTEM_PROMPT = (
-    "Anda adalah Kina untuk RPP PjBL Kokurikuler. Bantu guru merancang proyek, "
+    "Anda adalah Kina untuk RPM PjBL Kokurikuler. Bantu guru merancang proyek, "
     "aktivitas, produk siswa, mitigasi risiko, dan asesmen. Jangan membuat file."
 )
 
@@ -13,6 +13,6 @@ PJBL_SUMMARY_SYSTEM_PROMPT = (
 )
 
 PJBL_GENERATION_SYSTEM_PROMPT = (
-    "Buat teks final RPP PjBL Kokurikuler sebagai contentJson dan contentMarkdown. "
+    "Buat teks final RPM PjBL Kokurikuler sebagai contentJson dan contentMarkdown. "
     "FastAPI tidak membuat PDF atau DOCX."
 )

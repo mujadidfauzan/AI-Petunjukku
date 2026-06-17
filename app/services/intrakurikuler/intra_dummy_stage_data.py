@@ -59,17 +59,13 @@ INTRA_DUMMY_STAGE_1: dict[str, Any] = {
 INTRA_DUMMY_STAGE_2: dict[str, Any] = {
     "stageNumber": 2,
     "stageName": "Fondasi Tujuan Pembelajaran",
-    "title": "CP, Dimensi Profil Lulusan, Lintas Disiplin, dan ATP",
+    "title": "CP, Dimensi Profil Lulusan, dan ATP",
     "contentJson": {
         "dimensiProfilLulusan": [
             "Penalaran Kritis",
             "Kolaborasi",
             "Kreativitas",
             "Komunikasi",
-        ],
-        "mataPelajaranLintasDisiplin": [
-            "Bahasa Indonesia",
-            "Informatika",
         ],
         "capaianPembelajaran": (
             "Peserta didik mampu memahami, merepresentasikan, dan menggunakan "

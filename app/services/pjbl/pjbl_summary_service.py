@@ -19,7 +19,7 @@ class PjblSummaryService:
                 "role": "system",
                 "content": (
                     "Ringkas chat Kina menjadi JSON terstruktur untuk disimpan oleh NestJS "
-                    "ke stage RPP. Jangan menyimpan data di FastAPI."
+                    "ke stage RPM. Jangan menyimpan data di FastAPI."
                 ),
             },
             {

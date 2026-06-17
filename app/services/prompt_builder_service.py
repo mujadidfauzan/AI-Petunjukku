@@ -14,7 +14,7 @@ class PromptBuilderService:
             part
             for part in [
                 f"Judul: {project.title}",
-                f"Tipe RPP: {project.rppType}",
+                f"Tipe RPM: {project.rppType}",
                 f"Mata pelajaran: {project.subject}",
                 f"Fase: {project.phase}",
                 f"Kelas/Jenjang: {project.gradeLevel}",

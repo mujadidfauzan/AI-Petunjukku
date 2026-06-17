@@ -1,6 +1,6 @@
 # Petunjukku AI Service
 
-Petunjukku AI Service adalah backend berbasis **FastAPI** yang bertanggung jawab untuk menjalankan proses AI pada aplikasi Petunjukku, seperti **RAG retrieval**, **AI recommendation Stage 2**, **Kina Chat**, **summary chat**, dan **generate teks RPP**.
+Petunjukku AI Service adalah backend berbasis **FastAPI** yang bertanggung jawab untuk menjalankan proses AI pada aplikasi Petunjukku, seperti **RAG retrieval**, **AI recommendation Stage 2**, **Kina Chat**, **summary chat**, dan **generate teks RPM**.
 
 Service ini **tidak dipanggil langsung oleh frontend**. Frontend Next.js hanya berkomunikasi dengan **NestJS Application Backend**. NestJS kemudian memanggil FastAPI melalui internal API.
 
@@ -26,12 +26,12 @@ Pembagian tanggung jawab:
 
 | Komponen            | Tanggung Jawab                                                             |
 | ------------------- | -------------------------------------------------------------------------- |
-| Next.js             | UI, form stage, preview RPP, export action                                 |
-| NestJS              | Auth, user, teacher profile, RPP project, stage, database, orchestration   |
+| Next.js             | UI, form stage, preview RPM, export action                                 |
+| NestJS              | Auth, user, teacher profile, RPM project, stage, database, orchestration   |
 | Supabase PostgreSQL | Penyimpanan data aplikasi                                                  |
-| FastAPI             | RAG, AI recommendation Stage 2, Kina Chat, summary chat, generate teks RPP |
+| FastAPI             | RAG, AI recommendation Stage 2, Kina Chat, summary chat, generate teks RPM |
 | FAISS               | Vector search dokumen Capaian Pembelajaran                                 |
-| LLM API             | Generate rekomendasi, jawaban chat, summary chat, dan teks RPP             |
+| LLM API             | Generate rekomendasi, jawaban chat, summary chat, dan teks RPM             |
 
 ---
 
@@ -40,14 +40,14 @@ Pembagian tanggung jawab:
 AI Service mengikuti prinsip berikut:
 
 1. **FastAPI hanya dipanggil oleh NestJS**, bukan oleh frontend.
-2. **FastAPI tidak menyimpan data utama aplikasi** seperti project RPP, stage, chat, atau hasil generated RPP.
+2. **FastAPI tidak menyimpan data utama aplikasi** seperti project RPM, stage, chat, atau hasil generated RPM.
 3. **FastAPI tidak membuat file PDF/DOCX**.
 4. **FastAPI hanya mengembalikan hasil AI berupa teks atau JSON terstruktur**.
 5. **NestJS yang menyimpan hasil AI ke Supabase**.
-6. **Guru tetap melakukan review/edit sebelum hasil AI disimpan sebagai bagian final RPP**.
+6. **Guru tetap melakukan review/edit sebelum hasil AI disimpan sebagai bagian final RPM**.
 7. **RAG digunakan sebagai sumber referensi resmi**, terutama untuk mengambil Capaian Pembelajaran yang relevan.
 8. **AI Recommendation hanya digunakan pada Stage 2**.
-9. **Logic AI dipisahkan berdasarkan jenis RPP**, yaitu Intrakurikuler dan PjBL Kokurikuler.
+9. **Logic AI dipisahkan berdasarkan jenis RPM**, yaitu Intrakurikuler dan PjBL Kokurikuler.
 10. **Endpoint FastAPI tetap umum**, sedangkan pemilihan logic dilakukan oleh AI Orchestrator berdasarkan `project.rppType`.
 
 ---
@@ -64,7 +64,7 @@ Contoh penggunaan:
 
 - mencari Capaian Pembelajaran berdasarkan fase dan mata pelajaran,
 - mengambil referensi Capaian Pembelajaran untuk Stage 2 Intrakurikuler,
-- mengambil konteks resmi untuk generate final RPP,
+- mengambil konteks resmi untuk generate final RPM,
 - memberi dasar referensi pada Kina Chat jika diperlukan.
 
 Status saat ini:
@@ -88,7 +88,7 @@ Stage 4
 Stage 5
 ```
 
-Stage selain Stage 2 tetap bisa menggunakan AI dalam bentuk lain, misalnya Kina Chat, summarize chat, atau generate final RPP. Namun fitur **recommend-stage** hanya difokuskan untuk Stage 2.
+Stage selain Stage 2 tetap bisa menggunakan AI dalam bentuk lain, misalnya Kina Chat, summarize chat, atau generate final RPM. Namun fitur **recommend-stage** hanya difokuskan untuk Stage 2.
 
 ---
 
@@ -180,7 +180,7 @@ AI menggunakan konteks Stage 1 untuk menyarankan proyek yang realistis, kontekst
 
 Kina Chat menghasilkan jawaban chatbot Kina berdasarkan:
 
-- konteks project RPP,
+- konteks project RPM,
 - stage yang sudah diisi,
 - profil guru,
 - data sekolah,
@@ -208,9 +208,9 @@ Contoh isi summary:
 
 ---
 
-### 3.5 Generate Final RPP Text
+### 3.5 Generate Final RPM Text
 
-Generate Final RPP Text digunakan untuk membuat teks final RPP berdasarkan:
+Generate Final RPM Text digunakan untuk membuat teks final RPM berdasarkan:
 
 - data project,
 - profil guru,
@@ -234,16 +234,16 @@ FastAPI tidak membuat file dokumen. File PDF/DOCX dibuat setelah data ini dimasu
 
 ---
 
-## 4. Pembagian Logic AI Berdasarkan Jenis RPP
+## 4. Pembagian Logic AI Berdasarkan Jenis RPM
 
-Petunjukku memiliki dua jenis RPP utama:
+Petunjukku memiliki dua jenis RPM utama:
 
 ```text
 intrakurikuler
 pjbl_kokurikuler
 ```
 
-Kedua jenis RPP ini memiliki stage, prompt, struktur output, dan kebutuhan AI yang berbeda. Karena itu, logic FastAPI dipisahkan menjadi dua domain service:
+Kedua jenis RPM ini memiliki stage, prompt, struktur output, dan kebutuhan AI yang berbeda. Karena itu, logic FastAPI dipisahkan menjadi dua domain service:
 
 ```text
 app/services/intrakurikuler/
@@ -270,7 +270,7 @@ Jika stageNumber selain 2 → return error bahwa recommendation hanya tersedia u
 
 ### 5.1 Developer 1 — AI Intrakurikuler
 
-Developer 1 bertanggung jawab untuk semua logic AI yang berhubungan dengan RPP Intrakurikuler.
+Developer 1 bertanggung jawab untuk semua logic AI yang berhubungan dengan RPM Intrakurikuler.
 
 Fokus kerja Developer 1:
 
@@ -278,7 +278,7 @@ Fokus kerja Developer 1:
 - prompt dari CP hasil RAG menjadi rekomendasi Alur Tujuan Pembelajaran,
 - Kina Chat khusus Intrakurikuler,
 - summary Kina Chat untuk Intrakurikuler,
-- generate final text RPP Intrakurikuler.
+- generate final text RPM Intrakurikuler.
 
 Folder utama Developer 1:
 
@@ -313,7 +313,7 @@ Alur Tujuan Pembelajaran
 
 ### 5.2 Developer 2 — AI PjBL Kokurikuler
 
-Developer 2 bertanggung jawab untuk semua logic AI yang berhubungan dengan RPP PjBL Kokurikuler.
+Developer 2 bertanggung jawab untuk semua logic AI yang berhubungan dengan RPM PjBL Kokurikuler.
 
 Fokus kerja Developer 2:
 
@@ -321,7 +321,7 @@ Fokus kerja Developer 2:
 - prompt dari semua konteks Stage 1 menjadi rekomendasi proyek yang akan dilakukan,
 - Kina Chat khusus PjBL Kokurikuler,
 - summary Kina Chat untuk PjBL Kokurikuler,
-- generate final text RPP PjBL Kokurikuler.
+- generate final text RPM PjBL Kokurikuler.
 
 Folder utama Developer 2:
 
@@ -470,7 +470,7 @@ Berisi Pydantic schema untuk validasi request dan response.
 | `rag_schema.py`            | Schema RAG search dan RAG references                       |
 | `recommendation_schema.py` | Schema rekomendasi stage                                   |
 | `kina_schema.py`           | Schema Kina Chat dan summary                               |
-| `generate_rpp_schema.py`   | Schema generate final RPP text                             |
+| `generate_rpp_schema.py`   | Schema generate final RPM text                             |
 
 ---
 
@@ -487,8 +487,8 @@ Berisi business logic AI.
 | `cp_reference_service.py`    | Mengambil metadata CP dari database atau metadata file                        |
 | `prompt_builder_service.py`  | Helper umum untuk menyusun prompt                                             |
 | `llm_client.py`              | Client untuk Gemini/OpenRouter/LLM API                                        |
-| `intrakurikuler/`            | Logic AI khusus RPP Intrakurikuler                                            |
-| `pjbl/`                      | Logic AI khusus RPP PjBL Kokurikuler                                          |
+| `intrakurikuler/`            | Logic AI khusus RPM Intrakurikuler                                            |
+| `pjbl/`                      | Logic AI khusus RPM PjBL Kokurikuler                                          |
 
 ---
 
@@ -647,7 +647,7 @@ Stage 2 PjBL Kokurikuler
 
 Jika `targetStage.stageNumber` bukan `2`, service sebaiknya mengembalikan error validasi bahwa recommendation hanya tersedia untuk Stage 2.
 
-Endpoint ini digunakan untuk dua jenis RPP:
+Endpoint ini digunakan untuk dua jenis RPM:
 
 ```text
 intrakurikuler
@@ -664,7 +664,7 @@ FastAPI akan memilih service berdasarkan `project.rppType`.
 {
   "project": {
     "id": "uuid",
-    "title": "RPP Sistem Pencernaan Manusia",
+    "title": "RPM Sistem Pencernaan Manusia",
     "rppType": "intrakurikuler",
     "subject": "IPA",
     "phase": "Fase D",
@@ -765,7 +765,7 @@ Untuk PjBL Kokurikuler, rekomendasi Stage 2 dibuat berdasarkan semua konteks yan
 {
   "project": {
     "id": "uuid",
-    "title": "RPP PjBL Sampah Plastik",
+    "title": "RPM PjBL Sampah Plastik",
     "rppType": "pjbl_kokurikuler",
     "subject": "IPA",
     "phase": "Fase D",
@@ -890,7 +890,7 @@ Request:
 {
   "project": {
     "id": "uuid",
-    "title": "RPP Sistem Pencernaan Manusia",
+    "title": "RPM Sistem Pencernaan Manusia",
     "rppType": "intrakurikuler",
     "subject": "IPA",
     "phase": "Fase D",
@@ -1000,11 +1000,11 @@ Response:
 
 ### Ini tolong direview lagi nanti disesuaikan dengan output masing masing!
 
-### 9.6 Generate Final RPP Text
+### 9.6 Generate Final RPM Text
 
 #### `POST /internal/ai/generate-rpp`
 
-Endpoint untuk menghasilkan teks final RPP.
+Endpoint untuk menghasilkan teks final RPM.
 
 FastAPI hanya menghasilkan teks dan JSON terstruktur. FastAPI tidak menghasilkan PDF atau DOCX.
 
@@ -1014,7 +1014,7 @@ Request:
 {
   "project": {
     "id": "uuid",
-    "title": "RPP Sistem Pencernaan Manusia",
+    "title": "RPM Sistem Pencernaan Manusia",
     "rppType": "intrakurikuler",
     "subject": "IPA",
     "phase": "Fase D",
@@ -1066,7 +1066,7 @@ Response:
     }
   ],
   "contentJson": {
-    "title": "RPP Sistem Pencernaan Manusia",
+    "title": "RPM Sistem Pencernaan Manusia",
     "identity": {},
     "learningObjectives": [],
     "learningActivities": {},
@@ -1074,7 +1074,7 @@ Response:
     "rubric": {},
     "reflection": {}
   },
-  "contentMarkdown": "# RPP Sistem Pencernaan Manusia\n\n..."
+  "contentMarkdown": "# RPM Sistem Pencernaan Manusia\n\n..."
 }
 ```
 
@@ -1170,7 +1170,7 @@ Alasannya:
 Flow yang benar:
 
 ```text
-Guru klik Generate RPP
+Guru klik Generate RPM
 ↓
 Next.js call NestJS
 ↓
@@ -1285,7 +1285,7 @@ Summary PjBL Kokurikuler
 
 ---
 
-### Tahap 5 — Generate Final RPP Text
+### Tahap 5 — Generate Final RPM Text
 
 ```text
 POST /internal/ai/generate-rpp
@@ -1294,13 +1294,13 @@ POST /internal/ai/generate-rpp
 Fokus Developer 1:
 
 ```text
-Generate final text RPP Intrakurikuler
+Generate final text RPM Intrakurikuler
 ```
 
 Fokus Developer 2:
 
 ```text
-Generate final text RPP PjBL Kokurikuler
+Generate final text RPM PjBL Kokurikuler
 ```
 
 ---
@@ -1331,7 +1331,7 @@ curl -H "X-Internal-API-Key: change-this-internal-key" \
 ## 14. Catatan Pengembangan
 
 - FastAPI hanya menghasilkan teks dan JSON AI.
-- FastAPI tidak menyimpan project, stage, chat, atau generated RPP.
+- FastAPI tidak menyimpan project, stage, chat, atau generated RPM.
 - FastAPI tidak membuat PDF/DOCX.
 - NestJS tetap menjadi pemilik data aplikasi.
 - NestJS menyimpan hasil AI ke Supabase.

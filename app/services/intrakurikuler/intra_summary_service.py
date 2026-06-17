@@ -19,7 +19,7 @@
 #                 "role": "system",
 #                 "content": (
 #                     "Ringkas chat Kina menjadi JSON terstruktur untuk disimpan oleh NestJS "
-#                     "ke stage RPP. Jangan menyimpan data di FastAPI."
+#                     "ke stage RPM. Jangan menyimpan data di FastAPI."
 #                 ),
 #             },
 #             {
@@ -115,7 +115,7 @@ class IntraSummaryService:
 
     def _build_system_prompt(self) -> str:
         return """
-Anda adalah AI Petunjukku yang bertugas merangkum diskusi Kina Chat menjadi contentJson Stage 3 RPP Intrakurikuler.
+Anda adalah AI Petunjukku yang bertugas merangkum diskusi Kina Chat menjadi contentJson Stage 3 RPM Intrakurikuler.
 
 Tugas Anda:
 - Baca seluruh chatHistory antara guru dan Kina.
@@ -134,7 +134,6 @@ Wajib kembalikan JSON valid dengan struktur:
   "pedagogicalApproach": "",
   "facilityAndTechnologyUse": "",
   "digitalPlatform": "",
-  "partnership": "",
   "finalStudentProduct": "",
   "activityFlowDecision": {
     "opening": "",
@@ -155,7 +154,6 @@ Aturan isi:
 - pedagogicalApproach: pendekatan pedagogis/model pembelajaran yang disepakati.
 - facilityAndTechnologyUse: bagaimana fasilitas dan teknologi dimanfaatkan.
 - digitalPlatform: platform digital yang dipakai. Jika tidak ada, isi "Tidak digunakan".
-- partnership: bentuk kemitraan. Jika tidak ada, isi "Tidak digunakan".
 - finalStudentProduct: produk atau kinerja akhir murid.
 - activityFlowDecision.opening: kegiatan pembuka pembelajaran.
 - activityFlowDecision.mainActivity: kegiatan inti pembelajaran.
@@ -193,7 +191,6 @@ Jika ada informasi yang tidak disebut eksplisit oleh guru:
                 "menyajikan hasil diskusi kelompok."
             ),
             "digitalPlatform": "Google Slides",
-            "partnership": "Tidak digunakan",
             "finalStudentProduct": (
                 "Presentasi kelompok singkat tentang contoh penerapan polinomial sederhana."
             ),
