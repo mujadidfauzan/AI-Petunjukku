@@ -27,6 +27,12 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("OPENROUTER_BASE_URL", "OPENROUTER_API_BASE_URL"),
     )
     llm_model: str = Field(default="google/gemini-2.5-flash", alias="LLM_MODEL")
+    kina_llm_model: str = Field(
+        default="qwen/qwen3-coder-flash",
+        alias="KINA_LLM_MODEL",
+    )
+    kina_solver_model: str | None = Field(default=None, alias="KINA_SOLVER_MODEL")
+    kina_evaluator_model: str | None = Field(default=None, alias="KINA_EVALUATOR_MODEL")
     llm_temperature: float = Field(default=0.3, alias="LLM_TEMPERATURE")
     llm_max_tokens: int = Field(default=2048, alias="LLM_MAX_TOKENS")
 

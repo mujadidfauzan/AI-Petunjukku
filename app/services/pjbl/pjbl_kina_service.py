@@ -28,7 +28,7 @@ COMPLETION_MESSAGE = (
     "tahap berikutnya."
 )
 
-DEFAULT_KINA_MODEL = "deepseek/deepseek-v4-flash"
+DEFAULT_KINA_MODEL = "qwen/qwen3-coder-flash"
 MAX_KINA_RESPONSE_WORDS = 120
 
 DISCUSSION_STAGES: tuple[tuple[str, str], ...] = (
@@ -583,6 +583,17 @@ class PjblKinaService:
                 for reference in references[:3]
             ],
             "response_rules": list(KINA_RESPONSE_RULES),
+            "communication_method": [
+                "Validasi maksud guru sebelum memberi arahan.",
+                "Tangkap dan rangkum keputusan guru secara singkat.",
+                "Berikan saran atau contoh konkret jika jawaban guru masih umum.",
+                "Ajukan satu pertanyaan kecil untuk melanjutkan bagian aktif.",
+                "Jaga percakapan tetap natural, bukan seperti formulir.",
+            ],
+            "discussion_flow": [
+                {"key": key, "label": label}
+                for key, label in DISCUSSION_STAGES
+            ],
         }
 
     def _can_use_local_solver(
@@ -727,6 +738,7 @@ class PjblKinaService:
                 },
             ],
             {},
+            model=self._solver_model(),
             temperature=0.2,
             max_tokens=900,
         )
@@ -751,6 +763,26 @@ class PjblKinaService:
                             f"PESAN GURU:\n{user_message}",
                             "SUBSTANSI DARI SOLVER:",
                             json.dumps(solver_output, ensure_ascii=False),
+                            "KONTEKS RANCANGAN PJBL:",
+                            json.dumps(
+                                {
+                                    "project": context["project"],
+                                    "stage_1_summary": context["stage_1_summary"],
+                                    "stage_2_summary": context["stage_2_summary"],
+                                    "teacher_decisions": context[
+                                        "teacher_decisions"
+                                    ],
+                                    "saved_stage_decisions": context[
+                                        "saved_stage_decisions"
+                                    ],
+                                    "recent_exchange": context["recent_exchange"],
+                                    "communication_method": context[
+                                        "communication_method"
+                                    ],
+                                    "discussion_flow": context["discussion_flow"],
+                                },
+                                ensure_ascii=False,
+                            ),
                             "KONTEKS GILIRAN:",
                             json.dumps(
                                 {
@@ -786,6 +818,7 @@ class PjblKinaService:
                 },
             ],
             "",
+            model=self._kina_model(),
             temperature=0.55,
             max_tokens=700,
         )
@@ -823,6 +856,7 @@ class PjblKinaService:
                 },
             ],
             {},
+            model=self._evaluator_model(),
             temperature=0.0,
             max_tokens=450,
         )
@@ -870,6 +904,7 @@ class PjblKinaService:
                 },
             ],
             "",
+            model=self._kina_model(),
             temperature=0.4,
             max_tokens=700,
         )
@@ -893,6 +928,7 @@ class PjblKinaService:
         generated_reply = await self.llm_client.generate_text(
             self._build_messages(payload, references, analysis),
             fallback,
+            model=self._kina_model(),
             temperature=0.55,
         )
         return self._sanitize_reply(
@@ -1062,6 +1098,14 @@ class PjblKinaService:
         llm_settings = getattr(self.llm_client, "settings", None)
         return getattr(llm_settings, "kina_llm_model", DEFAULT_KINA_MODEL)
 
+    def _solver_model(self) -> str:
+        llm_settings = getattr(self.llm_client, "settings", None)
+        return getattr(llm_settings, "kina_solver_model", None) or self._kina_model()
+
+    def _evaluator_model(self) -> str:
+        llm_settings = getattr(self.llm_client, "settings", None)
+        return getattr(llm_settings, "kina_evaluator_model", None) or self._kina_model()
+
     def _clean_string_list(self, value: Any, *, limit: int) -> list[str]:
         if not isinstance(value, list):
             return []
@@ -1091,6 +1135,16 @@ class PjblKinaService:
                 f"PESAN TERBARU GURU:\n{payload.message}",
                 f"POSISI DISKUSI SAAT INI:\n{analysis['active_label']}",
                 f"INSTRUKSI UNTUK GILIRAN INI:\n{self._turn_instruction(analysis)}",
+                "METODE KOMUNIKASI:",
+                "\n".join(
+                    [
+                        "- Validasi maksud guru.",
+                        "- Rangkum keputusan yang baru diberikan.",
+                        "- Beri saran konkret jika jawaban masih umum.",
+                        "- Ajukan satu pertanyaan ringan untuk bagian aktif.",
+                        "- Jaga percakapan tetap natural, bukan seperti formulir.",
+                    ]
+                ),
             ]
         )
         return [
