@@ -457,6 +457,7 @@ class PjblKinaService:
                     for reference in references
                 ],
                 suggestedFollowUpQuestions=self._suggested_questions(analysis),
+                progress=self._progress_payload(analysis),
             )
         finally:
             timings["total"] = self._elapsed_ms(total_started)
@@ -1226,6 +1227,27 @@ class PjblKinaService:
                 continue
             return key, label, completed_count
         return "complete", "selesai", completed_count
+
+    def _progress_payload(self, analysis: dict[str, Any]) -> dict[str, Any]:
+        evidence = analysis["evidence"]
+        total_count = len(DISCUSSION_STAGES)
+        completed_count = sum(1 for key, _ in DISCUSSION_STAGES if evidence[key])
+        return {
+            "activeStage": analysis["active_stage"],
+            "activeLabel": analysis["active_label"],
+            "completedCount": completed_count,
+            "totalCount": total_count,
+            "percentage": round((completed_count / total_count) * 100),
+            "isComplete": analysis["is_complete"],
+            "stages": [
+                {
+                    "key": key,
+                    "label": label,
+                    "complete": evidence[key],
+                }
+                for key, label in DISCUSSION_STAGES
+            ],
+        }
 
     def _classify_input_relevance(
         self,

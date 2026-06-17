@@ -1,0 +1,97 @@
+{
+  "stageNumber": 1,
+  "stageName": "Konteks Dasar Proyek",
+  "contentJson": {
+    "theme": "Gaya Hidup Berkelanjutan",
+    "localIssue": "Sampah plastik di lingkungan MTsN 1 Banyuwangi",
+    "projectDuration": "2 x 35 menit (Jam Pelajaran)",
+    "studentNeeds": "Butuh kegiatan nyata, sederhana, terarah, dan dekat dengan kebiasaan siswa di madrasah.",
+    "schoolContext": {
+      "name": "MTsN 1 Banyuwangi",
+      "city": "Banyuwangi",
+      "address": "Banyuwangi, Jawa Timur",
+      "locationStatus": "Terverifikasi",
+      "environment": "Madrasah dengan kantin aktif, halaman cukup luas, dan area kelas yang ramai saat istirahat.",
+      "facilities": [
+        "kelas",
+        "halaman madrasah",
+        "kantin",
+        "proyektor",
+        "papan tulis",
+        "tempat sampah",
+        "kertas plano",
+        "spidol"
+      ],
+      "localContext": "Sampah plastik dari kantin dan bekal siswa masih sering tercampur dengan sampah lain."
+    },
+    "areaContext": {
+      "locationStatus": "Terverifikasi",
+      "address": "Banyuwangi, Jawa Timur",
+      "surroundingArea": [
+        "kantin madrasah sebagai sumber utama sampah plastik saat jam istirahat",
+        "halaman madrasah yang sering menjadi area berkumpul siswa",
+        "ruang kelas dengan sampah plastik dari bekal dan alat tulis",
+        "permukiman warga di sekitar madrasah"
+      ],
+      "regionalContext": "Lingkungan sekitar madrasah cukup ramai pada jam masuk, istirahat, dan pulang sekolah sehingga pengelolaan sampah perlu dibuat sederhana dan terpantau."
+    },
+    "riskMonitoring": [
+      {
+        "risk": "Data observasi antarkelompok tidak konsisten.",
+        "level": "sedang",
+        "signal": "Kelompok dapat memakai kategori sampah yang berbeda jika tidak diberi format yang sama.",
+        "mitigationNeed": "Gunakan lembar observasi seragam dan contoh pengisian sebelum observasi."
+      },
+      {
+        "risk": "Siswa keluar dari area pengamatan.",
+        "level": "sedang",
+        "signal": "Area madrasah cukup luas dan ramai saat jam istirahat.",
+        "mitigationNeed": "Tetapkan batas area tiap kelompok dan lakukan cek kemajuan oleh guru."
+      },
+      {
+        "risk": "Waktu observasi terbatas.",
+        "level": "sedang",
+        "signal": "Durasi proyek hanya 2 x 35 menit.",
+        "mitigationNeed": "Gunakan timer dan batasi jumlah titik observasi."
+      }
+    ],
+    "missionSpec": {
+      "educationLevel": "SMP/MTs",
+      "educationPhase": "Fase D (Kelas 7-9)",
+      "gradeLevel": "VII",
+      "className": "VII B",
+      "relatedSubjects": [
+        "Projek Penguatan Profil Pelajar Pancasila",
+        "IPA",
+        "Bahasa Indonesia",
+        "Matematika"
+      ],
+      "learningDuration": {
+        "meetingCount": 1,
+        "jpPerMeeting": 2,
+        "minutesPerJp": 35,
+        "durationText": "2 x 35 menit (Jam Pelajaran)"
+      },
+      "classCondition": "Siswa aktif berdiskusi, suka kegiatan visual, dan lebih mudah terlibat jika proyek dekat dengan kehidupan sehari-hari. Koordinasi kelompok tetap perlu diarahkan agar observasi berjalan rapi."
+    },
+    "classContext": {
+      "className": "VII B",
+      "studentCount": 34,
+      "studentCharacteristics": "Siswa aktif berdiskusi, suka kegiatan visual, dan lebih mudah terlibat jika proyek dekat dengan kehidupan sehari-hari.",
+      "learningChallenges": [
+        "sebagian siswa kurang teliti mencatat data",
+        "koordinasi kelompok perlu diarahkan",
+        "waktu proyek terbatas"
+      ],
+      "dominantLearningStyle": "visual dan kinestetik"
+    },
+    "constraints": [
+      "biaya rendah",
+      "alat mudah ditemukan",
+      "dilakukan di area madrasah",
+      "tidak membutuhkan mitra luar",
+      "produk akhir realistis untuk kelas VII"
+    ],
+    "teacherExpectation": "Siswa mampu memetakan masalah sampah plastik dan menyampaikan solusi sederhana yang bisa diterapkan di madrasah."
+  }
+}

@@ -20,6 +20,7 @@ class KinaChatResponse(BaseModel):
     reply: str
     usedReferences: list[UsedReferenceSchema] = Field(default_factory=list)
     suggestedFollowUpQuestions: list[str] = Field(default_factory=list)
+    progress: dict[str, Any] | None = None
 
 
 class KinaSummaryRequest(BaseModel):
