@@ -90,7 +90,9 @@ class PjblGenerationService:
         )
 
     def _fallback_content(self, payload: GenerateRppRequest) -> dict[str, Any]:
-        stages_by_number = {stage.stageNumber: stage.contentJson for stage in payload.stages}
+        stages_by_number = {
+            stage.stageNumber: stage.contentJson for stage in payload.stages
+        }
         title = payload.project.title or "RPP Pembelajaran"
         return {
             "title": title,
@@ -110,7 +112,9 @@ class PjblGenerationService:
             },
         }
 
-    def _extract_objectives(self, stages_by_number: dict[int, dict[str, Any]]) -> list[str]:
+    def _extract_objectives(
+        self, stages_by_number: dict[int, dict[str, Any]]
+    ) -> list[str]:
         stage_two = stages_by_number.get(2, {})
         for key in (
             "learningObjectives",
@@ -122,7 +126,9 @@ class PjblGenerationService:
                 return [str(item) for item in value]
             if isinstance(value, str) and value.strip():
                 return [value]
-        return ["Peserta didik mencapai tujuan pembelajaran sesuai CP dan konteks kelas."]
+        return [
+            "Peserta didik mencapai tujuan pembelajaran sesuai CP dan konteks kelas."
+        ]
 
     def _to_markdown(self, content: dict[str, Any]) -> str:
         title = content.get("title") or "RPP Pembelajaran"
@@ -133,7 +139,9 @@ class PjblGenerationService:
         for objective in content.get("learningObjectives") or []:
             lines.append(f"- {objective}")
         lines.extend(["", "## Kegiatan Pembelajaran"])
-        lines.append(json.dumps(content.get("learningActivities") or {}, ensure_ascii=False))
+        lines.append(
+            json.dumps(content.get("learningActivities") or {}, ensure_ascii=False)
+        )
         lines.extend(["", "## Asesmen"])
         lines.append(json.dumps(content.get("assessment") or {}, ensure_ascii=False))
         return "\n".join(lines)

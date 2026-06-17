@@ -13,6 +13,7 @@ from app.services.llm_client import LLMClient
 from app.services.pjbl.pjbl_prompt_templates import PJBL_RECOMMENDATION_SYSTEM_PROMPT
 from app.services.prompt_builder_service import PromptBuilderService
 from app.services.rag_service import RAGService
+from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
 
@@ -31,19 +32,39 @@ class PjblRecommendationService:
     async def recommend(self, payload: RecommendStageRequest) -> RecommendStageResponse:
         target_stage = payload.targetStage
         selected_theme = self._selected_theme(payload)
-        recommendation_type = (
-            "project_recommendation"
-            if selected_theme
-            else "project_theme_recommendation"
-        )
+        recommendation_type = self._recommendation_type(payload, selected_theme)
         target_stage_number = target_stage.get("stageNumber")
         references = []
-        fallback = self._fallback_recommendations(
-            payload, recommendation_type, references
+        stage_context = self._flatten_stage_context(
+            next(
+                (
+                    stage.contentJson
+                    for stage in payload.previousStages
+                    if stage.stageNumber == 1
+                ),
+                {},
+            )
+        )
+        subjects = self._subjects(payload, stage_context)
+        environment_context = self._environment_context(
+            payload,
+            stage_context,
+            subjects,
         )
         required_response_shape = self._required_response_shape(recommendation_type)
+        project_input = payload.project.model_dump()
+        if subjects and self._is_generic_subject(project_input.get("subject")):
+            project_input["resolvedSubject"] = ", ".join(subjects)
         llm_input = {
-            "project": payload.project.model_dump(),
+            "project": project_input,
+            "subjectContext": {
+                "mainSubjects": subjects,
+                "subjectLens": " & ".join(subjects[:2]) if subjects else "",
+                "instruction": (
+                    "Tema dan opsi wajib selaras dengan mainSubjects. Abaikan kategori "
+                    "tempat mentah yang hanya cocok untuk mata pelajaran lain."
+                ),
+            },
             "teacherProfile": (
                 payload.teacherProfile.model_dump() if payload.teacherProfile else {}
             ),
@@ -53,19 +74,7 @@ class PjblRecommendationService:
             ),
             "previousStages": [stage.model_dump() for stage in payload.previousStages],
             "targetStage": target_stage,
-            "environmentContext": self._environment_context(
-                payload,
-                self._flatten_stage_context(
-                    next(
-                        (
-                            stage.contentJson
-                            for stage in payload.previousStages
-                            if stage.stageNumber == 1
-                        ),
-                        {},
-                    )
-                ),
-            ),
+            "environmentContext": environment_context,
             "ragReferences": [reference.model_dump() for reference in references],
             "requiredResponseShape": required_response_shape,
         }
@@ -84,17 +93,35 @@ class PjblRecommendationService:
             recommendation_type,
             json.dumps(llm_input, ensure_ascii=False, indent=2, default=str),
         )
-        generated = await self.llm_client.generate_json(
-            messages,
-            fallback,
-            temperature=0.7,
-        )
+        try:
+            generated = await self.llm_client.generate_json_strict(
+                messages,
+                temperature=0.7,
+            )
+        except Exception as exc:
+            logger.warning(
+                "[PjBL Recommend] LLM error (%s): %s",
+                recommendation_type,
+                exc,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Ada error saat memanggil LLM. Rekomendasi belum dapat dibuat.",
+            ) from exc
         logger.info(
             "[PjBL Recommend] LLM raw output (%s):\n%s",
             recommendation_type,
             json.dumps(generated, ensure_ascii=False, indent=2, default=str),
         )
-        recommendations = self._normalize_recommendations(generated, fallback)
+        self._assert_llm_output_valid(generated, recommendation_type)
+        recommendations = self._normalize_recommendations(
+            generated,
+            self._normalization_context(
+                recommendation_type,
+                environment_context,
+                subjects,
+            ),
+        )
         logger.info(
             "[PjBL Recommend] API normalized output (%s):\n%s",
             recommendation_type,
@@ -110,9 +137,61 @@ class PjblRecommendationService:
             recommendations=recommendations,
         )
 
+    def _recommendation_type(
+        self,
+        payload: RecommendStageRequest,
+        selected_theme: Any,
+    ) -> str:
+        requested_type = self._first_text(
+            (
+                payload.targetStage.get("recommendationType")
+                if isinstance(payload.targetStage, dict)
+                else None
+            ),
+            (
+                payload.options.get("recommendationType")
+                if isinstance(payload.options, dict)
+                else None
+            ),
+            "",
+        )
+        allowed_types = {
+            "project_theme_recommendation",
+            "project_recommendation",
+        }
+        if requested_type:
+            if requested_type not in allowed_types:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=(
+                        "recommendationType PjBL tidak didukung: " f"{requested_type}"
+                    ),
+                )
+            if requested_type == "project_recommendation" and not selected_theme:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=(
+                        "selectedTheme wajib dikirim untuk recommendationType "
+                        "project_recommendation."
+                    ),
+                )
+            return requested_type
+
+        return (
+            "project_recommendation"
+            if selected_theme
+            else "project_theme_recommendation"
+        )
+
     def _required_response_shape(self, recommendation_type: str) -> dict[str, Any]:
         if recommendation_type == "project_theme_recommendation":
-            return {"projectThemes": [{"label": "..."}]}
+            return {
+                "projectThemes": [
+                    {"label": ""},
+                    {"label": ""},
+                    {"label": ""},
+                ]
+            }
         return {
             "projectOptions": [
                 {
@@ -140,25 +219,139 @@ class PjblRecommendationService:
             "reasoningSummary": "...",
         }
 
+    def _normalization_context(
+        self,
+        recommendation_type: str,
+        environment_context: dict[str, Any],
+        subjects: list[str],
+    ) -> dict[str, Any]:
+        if recommendation_type == "project_theme_recommendation":
+            return {
+                "projectThemes": [],
+                "_meta": {
+                    "blockedThemeKeywords": (
+                        self._blocked_theme_keywords(subjects)
+                        + self._omitted_theme_keywords(environment_context)
+                    ),
+                    "subjectAlignedThemeLabels": [],
+                },
+            }
+        return {
+            "projectOptions": [],
+            "selectionGuidance": "",
+            "reasoningSummary": "",
+        }
+
+    def _assert_llm_output_valid(
+        self,
+        generated: dict[str, Any],
+        recommendation_type: str,
+    ) -> None:
+        if recommendation_type == "project_theme_recommendation":
+            themes = generated.get("projectThemes")
+            if not isinstance(themes, list) or len(themes) != 3:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=(
+                        "Ada error pada output LLM. projectThemes harus berisi "
+                        "tepat 3 tema."
+                    ),
+                )
+            for theme in themes:
+                label = (
+                    theme.get("label")
+                    if isinstance(theme, dict)
+                    else theme if isinstance(theme, str) else ""
+                )
+                if not self._first_text(label, ""):
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail=(
+                            "Ada error pada output LLM. Setiap tema wajib memiliki label."
+                        ),
+                    )
+            return
+
+        options = generated.get("projectOptions")
+        if not isinstance(options, list) or len(options) != 3:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=(
+                    "Ada error pada output LLM. projectOptions harus berisi "
+                    "tepat 3 opsi proyek."
+                ),
+            )
+
+        required_text_fields = (
+            "title",
+            "description",
+            "lens",
+            "overview",
+            "reasoningSummary",
+        )
+        for option in options:
+            if not isinstance(option, dict):
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Ada error pada output LLM. Setiap opsi proyek harus object.",
+                )
+            missing_text = [
+                field
+                for field in required_text_fields
+                if not self._first_text(option.get(field), "")
+            ]
+            if missing_text:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=(
+                        "Ada error pada output LLM. Field opsi proyek belum lengkap: "
+                        + ", ".join(missing_text)
+                    ),
+                )
+            if not isinstance(option.get("confirmationTags"), list):
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=(
+                        "Ada error pada output LLM. confirmationTags harus berupa list."
+                    ),
+                )
+            if not isinstance(option.get("clarificationQuestions"), list):
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=(
+                        "Ada error pada output LLM. clarificationQuestions harus berupa list."
+                    ),
+                )
+
     def _fallback_recommendations(
         self,
         payload: RecommendStageRequest,
         recommendation_type: str,
         references: list[Any],
+        *,
+        stage_context: dict[str, Any] | None = None,
+        environment_context: dict[str, Any] | None = None,
+        subjects: list[str] | None = None,
     ) -> dict[str, Any]:
+        stage_context = stage_context or self._flatten_stage_context(
+            next(
+                (
+                    stage.contentJson
+                    for stage in payload.previousStages
+                    if stage.stageNumber == 1
+                ),
+                {},
+            )
+        )
+        subjects = subjects or self._subjects(payload, stage_context)
+        environment_context = environment_context or self._environment_context(
+            payload,
+            stage_context,
+            subjects,
+        )
         subject_context = (
-            payload.project.subject or payload.project.title or "mata pelajaran terkait"
+            ", ".join(subjects) or payload.project.title or "mata pelajaran terkait"
         )
-        stage_one = next(
-            (
-                stage.contentJson
-                for stage in payload.previousStages
-                if stage.stageNumber == 1
-            ),
-            {},
-        )
-        stage_context = self._flatten_stage_context(stage_one)
-        environment_context = self._environment_context(payload, stage_context)
         school_name = self._first_text(
             getattr(payload.school, "name", None) if payload.school else None,
             "lingkungan sekolah",
@@ -167,11 +360,6 @@ class PjblRecommendationService:
             getattr(payload.school, "city", None) if payload.school else None,
             getattr(payload.school, "district", None) if payload.school else None,
             "",
-        )
-        subjects = self._string_list(
-            stage_context.get("mainSubjects")
-            or stage_context.get("collabSubjects")
-            or payload.project.subject
         )
         subject_lens = " & ".join(subjects[:2]) if subjects else "Lintas Disiplin"
         local_issue = self._first_text(
@@ -199,11 +387,24 @@ class PjblRecommendationService:
             themes = self._fallback_project_themes(
                 stage_context=stage_context,
                 environment_context=environment_context,
+                subjects=subjects,
                 subject_lens=subject_lens,
                 local_issue=local_issue,
             )
             return {
-                "projectThemes": themes,
+                "projectThemes": themes[:3],
+                "_meta": {
+                    "subjectLens": subject_lens,
+                    "subjectAlignedThemeLabels": [
+                        theme["label"]
+                        for theme in themes[:3]
+                        if isinstance(theme, dict)
+                    ],
+                    "blockedThemeKeywords": (
+                        self._blocked_theme_keywords(subjects)
+                        + self._omitted_theme_keywords(environment_context)
+                    ),
+                },
                 "selectionGuidance": (
                     "Pilih satu tema yang paling dekat dengan konteks sekolah, "
                     "aman dijalankan, dan sesuai dengan mata pelajaran serta durasi."
@@ -254,8 +455,7 @@ class PjblRecommendationService:
     ) -> list[dict[str, Any]]:
         theme_id = self._slug(selected_theme_label, "tema-terpilih")
         place_labels = [
-            self._place_label(places, index, "")
-            for index in range(min(len(places), 6))
+            self._place_label(places, index, "") for index in range(min(len(places), 6))
         ]
         place_labels = [label for label in place_labels if label]
         if not place_labels:
@@ -301,7 +501,14 @@ class PjblRecommendationService:
             {
                 "key": "arsip",
                 "score": 0,
-                "keywords": ("sejarah", "budaya", "tradisi", "museum", "tokoh", "perubahan"),
+                "keywords": (
+                    "sejarah",
+                    "budaya",
+                    "tradisi",
+                    "museum",
+                    "tokoh",
+                    "perubahan",
+                ),
                 "title": "Cerita Perubahan {theme} di {place}",
                 "product": "linimasa sederhana dan cerita singkat yang dapat dibaca teman sekelas",
                 "activity": "siswa mencari perubahan, tokoh, benda, atau cerita yang berkaitan dengan {place}",
@@ -311,7 +518,14 @@ class PjblRecommendationService:
             {
                 "key": "prototipe",
                 "score": 0,
-                "keywords": ("teknologi", "informatika", "fasilitas", "lingkungan", "layanan", "solusi"),
+                "keywords": (
+                    "teknologi",
+                    "informatika",
+                    "fasilitas",
+                    "lingkungan",
+                    "layanan",
+                    "solusi",
+                ),
                 "title": "Ide Perbaikan Kecil untuk {place}",
                 "product": "usulan perbaikan kecil berisi alasan, langkah, dan perkiraan kebutuhan",
                 "activity": "siswa menemukan satu kebutuhan nyata di {place}, membuat beberapa ide perbaikan, lalu memilih yang paling mungkin dilakukan",
@@ -321,7 +535,14 @@ class PjblRecommendationService:
             {
                 "key": "dokumenter",
                 "score": 0,
-                "keywords": ("bahasa", "cerita", "komunikasi", "sosial", "budaya", "sejarah"),
+                "keywords": (
+                    "bahasa",
+                    "cerita",
+                    "komunikasi",
+                    "sosial",
+                    "budaya",
+                    "sejarah",
+                ),
                 "title": "Suara Warga Sekolah tentang {theme}",
                 "product": "kutipan pilihan, ringkasan temuan, dan bahan presentasi singkat",
                 "activity": "siswa menyusun pertanyaan sederhana, mendengar cerita warga sekolah, lalu memilih kutipan yang paling membantu memahami tema",
@@ -331,7 +552,14 @@ class PjblRecommendationService:
             {
                 "key": "simulasi",
                 "score": 0,
-                "keywords": ("risiko", "ekonomi", "keputusan", "pasar", "usaha", "mitigasi"),
+                "keywords": (
+                    "risiko",
+                    "ekonomi",
+                    "keputusan",
+                    "pasar",
+                    "usaha",
+                    "mitigasi",
+                ),
                 "title": "Pilihan Keputusan dari Kasus di {place}",
                 "product": "tabel pilihan tindakan, alasan pro-kontra, dan keputusan kelompok",
                 "activity": "siswa mengambil satu kasus dari {place}, membuat beberapa pilihan tindakan, lalu membandingkan dampak tiap pilihan",
@@ -341,7 +569,14 @@ class PjblRecommendationService:
             {
                 "key": "panduan",
                 "score": 0,
-                "keywords": ("aman", "etika", "layanan", "fasilitas", "kesehatan", "sosial"),
+                "keywords": (
+                    "aman",
+                    "etika",
+                    "layanan",
+                    "fasilitas",
+                    "kesehatan",
+                    "sosial",
+                ),
                 "title": "Kebiasaan Baik yang Bisa Dicoba di {place}",
                 "product": "daftar langkah sederhana dan contoh penerapannya di sekolah",
                 "activity": "siswa mengamati kebiasaan atau kebutuhan di {place}, lalu merumuskan langkah baik yang mudah diikuti",
@@ -351,7 +586,14 @@ class PjblRecommendationService:
             {
                 "key": "tur",
                 "score": 0,
-                "keywords": ("sejarah", "budaya", "geografi", "tempat", "ruang", "lingkungan"),
+                "keywords": (
+                    "sejarah",
+                    "budaya",
+                    "geografi",
+                    "tempat",
+                    "ruang",
+                    "lingkungan",
+                ),
                 "title": "Rute Belajar {theme} di Sekitar {school}",
                 "product": "rute belajar singkat, kartu informasi lokasi, dan catatan keamanan",
                 "activity": "siswa menyusun rute aman yang menghubungkan beberapa titik sekitar sekolah dan menjelaskan alasan memilih tiap titik",
@@ -371,7 +613,13 @@ class PjblRecommendationService:
             {
                 "key": "festival",
                 "score": 0,
-                "keywords": ("kolaborasi", "komunitas", "pameran", "apresiasi", "pengunjung"),
+                "keywords": (
+                    "kolaborasi",
+                    "komunitas",
+                    "pameran",
+                    "apresiasi",
+                    "pengunjung",
+                ),
                 "title": "Berbagi Karya {theme} dengan Warga Sekolah",
                 "product": "sesi berbagi karya, catatan tanggapan pengunjung, dan refleksi kelompok",
                 "activity": "siswa menyiapkan cara sederhana untuk membagikan temuan, karya, atau cerita dari lingkungan sekolah kepada warga sekolah",
@@ -423,7 +671,9 @@ class PjblRecommendationService:
             data = str(pattern["data"])
             product = str(pattern["product"])
             lens = f"{subject_lens}{pattern['lens_suffix']}"
-            option_id = self._slug(f"{pattern['key']}-{selected_theme_label}-{place}", f"opsi-{index + 1}")
+            option_id = self._slug(
+                f"{pattern['key']}-{selected_theme_label}-{place}", f"opsi-{index + 1}"
+            )
             options.append(
                 {
                     "id": option_id,
@@ -552,7 +802,9 @@ class PjblRecommendationService:
         return text or "lingkungan sekolah"
 
     def _natural_subject_lens(self, subject_lens: str) -> str:
-        text = re.sub(r"\s*&\s*", " dan ", self._first_text(subject_lens, "lintas disiplin"))
+        text = re.sub(
+            r"\s*&\s*", " dan ", self._first_text(subject_lens, "lintas disiplin")
+        )
         return text.strip() or "lintas disiplin"
 
     def _project_pattern_tags(self, pattern_key: Any) -> list[dict[str, str]]:
@@ -640,25 +892,36 @@ class PjblRecommendationService:
         *,
         stage_context: dict[str, Any],
         environment_context: dict[str, Any],
+        subjects: list[str],
         subject_lens: str,
         local_issue: str,
     ) -> list[dict[str, str]]:
-        context_text = " ".join(
-            [
-                local_issue,
-                self._summarize_context_value(environment_context),
-                self._summarize_context_value(environment_context.get("categoryGroups")),
-                self._summarize_context_value(environment_context.get("places")),
-                self._summarize_context_value(environment_context.get("risks")),
-                self._summarize_context_value(stage_context.get("environmentScanner")),
-                self._summarize_context_value(stage_context.get("localContext")),
-                self._summarize_context_value(stage_context.get("kondisiKelas")),
-            ]
+        subject_labels = self._subject_aligned_theme_labels(
+            subjects,
+            environment_context,
         )
-        labels = self._theme_labels_from_context(context_text, with_default=False)
+        labels = subject_labels
         if not labels:
-            labels = self._theme_labels_from_context(subject_lens)
-        return [{"label": label} for label in labels[:7]]
+            context_text = " ".join(
+                [
+                    local_issue,
+                    self._summarize_context_value(environment_context),
+                    self._summarize_context_value(
+                        environment_context.get("categoryGroups")
+                    ),
+                    self._summarize_context_value(environment_context.get("places")),
+                    self._summarize_context_value(environment_context.get("risks")),
+                    self._summarize_context_value(
+                        stage_context.get("environmentScanner")
+                    ),
+                    self._summarize_context_value(stage_context.get("localContext")),
+                    self._summarize_context_value(stage_context.get("kondisiKelas")),
+                    subject_lens,
+                ]
+            )
+            labels = self._theme_labels_from_context(context_text, with_default=False)
+        labels = self._ensure_three_theme_labels(labels, subject_lens, local_issue)
+        return [{"label": label} for label in labels[:3]]
 
     def _normalize_recommendations(
         self,
@@ -726,9 +989,7 @@ class PjblRecommendationService:
         }
         return result
 
-    def _has_rigid_project_option_pattern(
-        self, options: list[dict[str, Any]]
-    ) -> bool:
+    def _has_rigid_project_option_pattern(self, options: list[dict[str, Any]]) -> bool:
         if len(options) < 3:
             return False
         title_prefixes = [
@@ -787,14 +1048,15 @@ class PjblRecommendationService:
 
         themes = [
             self._normalize_theme(item, index, fallback_themes)
-            for index, item in enumerate(raw_themes[:7])
+            for index, item in enumerate(raw_themes[:3])
             if isinstance(item, (dict, str))
         ]
+        themes = self._filter_theme_recommendations(themes, fallback)
 
         if not themes:
             seen_labels: set[str] = set()
             for index, item in enumerate(fallback_themes):
-                if len(themes) >= 7 or not isinstance(item, dict):
+                if len(themes) >= 3 or not isinstance(item, dict):
                     break
                 normalized = self._normalize_theme(item, index, fallback_themes)
                 label_key = self._slug(normalized["label"], "")
@@ -803,11 +1065,55 @@ class PjblRecommendationService:
                 seen_labels.add(label_key)
                 themes.append(normalized)
 
-        result = dict(generated)
-        result["projectThemes"] = themes[:7]
+        seen_labels = {self._slug(theme["label"], "") for theme in themes}
+        for index, item in enumerate(fallback_themes):
+            if len(themes) >= 3 or not isinstance(item, dict):
+                break
+            normalized = self._normalize_theme(item, index, fallback_themes)
+            label_key = self._slug(normalized["label"], "")
+            if label_key in seen_labels:
+                continue
+            seen_labels.add(label_key)
+            themes.append(normalized)
+
+        result = {
+            key: value
+            for key, value in generated.items()
+            if not str(key).startswith("_")
+        }
+        result["projectThemes"] = themes[:3]
         result.setdefault("selectionGuidance", fallback.get("selectionGuidance", ""))
         result.setdefault("reasoningSummary", fallback.get("reasoningSummary", ""))
         return result
+
+    def _filter_theme_recommendations(
+        self,
+        themes: list[dict[str, str]],
+        fallback: dict[str, Any],
+    ) -> list[dict[str, str]]:
+        meta = fallback.get("_meta")
+        if not isinstance(meta, dict):
+            return themes
+
+        blocked_keywords = self._string_list(meta.get("blockedThemeKeywords"))
+        fallback_labels = self._string_list(meta.get("subjectAlignedThemeLabels"))
+        if not blocked_keywords:
+            return themes
+
+        fallback_text = " ".join(fallback_labels).casefold()
+        filtered: list[dict[str, str]] = []
+        for theme in themes:
+            label = self._first_text(theme.get("label"), "")
+            label_text = label.casefold()
+            blocked = [
+                keyword
+                for keyword in blocked_keywords
+                if keyword in label_text and keyword not in fallback_text
+            ]
+            if blocked:
+                continue
+            filtered.append(theme)
+        return filtered
 
     def _normalize_theme(
         self,
@@ -1153,6 +1459,7 @@ class PjblRecommendationService:
         self,
         payload: RecommendStageRequest,
         stage_context: dict[str, Any],
+        subjects: list[str] | None = None,
     ) -> dict[str, Any]:
         sources: list[Any] = []
         if isinstance(payload.placesContext, dict):
@@ -1183,22 +1490,31 @@ class PjblRecommendationService:
             if isinstance(raw_places, list) and not places:
                 places = [
                     {
-                        "name": self._first_text(place.get("name"), "")
-                        if isinstance(place, dict)
-                        else "",
-                        "category": self._first_text(place.get("category"), "")
-                        if isinstance(place, dict)
-                        else "",
-                        "distanceLabel": self._first_text(
-                            place.get("distanceLabel"), ""
-                        )
-                        if isinstance(place, dict)
-                        else "",
-                        "relevanceNote": self._first_text(
-                            place.get("relevanceNote"), ""
-                        )
-                        if isinstance(place, dict)
-                        else "",
+                        "name": (
+                            self._first_text(place.get("name"), "")
+                            if isinstance(place, dict)
+                            else ""
+                        ),
+                        "categoryId": (
+                            self._first_text(place.get("categoryId"), "")
+                            if isinstance(place, dict)
+                            else ""
+                        ),
+                        "category": (
+                            self._first_text(place.get("category"), "")
+                            if isinstance(place, dict)
+                            else ""
+                        ),
+                        "distanceLabel": (
+                            self._first_text(place.get("distanceLabel"), "")
+                            if isinstance(place, dict)
+                            else ""
+                        ),
+                        "relevanceNote": (
+                            self._first_text(place.get("relevanceNote"), "")
+                            if isinstance(place, dict)
+                            else ""
+                        ),
                     }
                     for place in raw_places[:6]
                     if isinstance(place, dict)
@@ -1208,35 +1524,57 @@ class PjblRecommendationService:
             if isinstance(raw_category_groups, list) and not category_groups:
                 category_groups = [
                     {
-                        "label": self._first_text(group.get("label"), "")
-                        if isinstance(group, dict)
-                        else "",
-                        "description": self._first_text(
-                            group.get("description"), ""
-                        )
-                        if isinstance(group, dict)
-                        else "",
-                        "learningUses": group.get("learningUses", [])
-                        if isinstance(group, dict)
-                        and isinstance(group.get("learningUses"), list)
-                        else [],
-                        "places": [
-                            {
-                                "name": self._first_text(place.get("name"), ""),
-                                "distanceLabel": self._first_text(
-                                    place.get("distanceLabel"), ""
-                                ),
-                                "relevanceNote": self._first_text(
-                                    place.get("relevanceNote"), ""
-                                ),
-                            }
-                            for place in group.get("places", [])[:4]
-                            if isinstance(place, dict)
-                            and self._first_text(place.get("name"), "")
-                        ]
-                        if isinstance(group, dict)
-                        and isinstance(group.get("places"), list)
-                        else [],
+                        "id": (
+                            self._first_text(group.get("id"), "")
+                            if isinstance(group, dict)
+                            else ""
+                        ),
+                        "label": (
+                            self._first_text(group.get("label"), "")
+                            if isinstance(group, dict)
+                            else ""
+                        ),
+                        "description": (
+                            self._first_text(group.get("description"), "")
+                            if isinstance(group, dict)
+                            else ""
+                        ),
+                        "learningUses": (
+                            group.get("learningUses", [])
+                            if isinstance(group, dict)
+                            and isinstance(group.get("learningUses"), list)
+                            else []
+                        ),
+                        "places": (
+                            [
+                                {
+                                    "name": self._first_text(place.get("name"), ""),
+                                    "categoryId": self._first_text(
+                                        place.get("categoryId"), ""
+                                    ),
+                                    "category": self._first_text(
+                                        place.get("category"), ""
+                                    ),
+                                    "distanceLabel": self._first_text(
+                                        place.get("distanceLabel"), ""
+                                    ),
+                                    "relevanceNote": self._first_text(
+                                        place.get("relevanceNote"), ""
+                                    ),
+                                }
+                                for place in group.get("places", [])[:4]
+                                if isinstance(place, dict)
+                                and self._first_text(place.get("name"), "")
+                            ]
+                            if isinstance(group, dict)
+                            and isinstance(group.get("places"), list)
+                            else []
+                        ),
+                        "subjectFitScore": (
+                            self._subject_fit_score(group, subjects or [])
+                            if isinstance(group, dict)
+                            else 0
+                        ),
                     }
                     for group in raw_category_groups[:6]
                     if isinstance(group, dict)
@@ -1246,23 +1584,32 @@ class PjblRecommendationService:
             if isinstance(raw_risks, list) and not risks:
                 risks = [
                     {
-                        "title": self._first_text(risk.get("title"), "")
-                        if isinstance(risk, dict)
-                        else "",
-                        "level": self._first_text(risk.get("level"), "")
-                        if isinstance(risk, dict)
-                        else "",
-                        "description": self._first_text(
-                            risk.get("description"), ""
-                        )
-                        if isinstance(risk, dict)
-                        else "",
+                        "title": (
+                            self._first_text(risk.get("title"), "")
+                            if isinstance(risk, dict)
+                            else ""
+                        ),
+                        "level": (
+                            self._first_text(risk.get("level"), "")
+                            if isinstance(risk, dict)
+                            else ""
+                        ),
+                        "description": (
+                            self._first_text(risk.get("description"), "")
+                            if isinstance(risk, dict)
+                            else ""
+                        ),
                     }
                     for risk in raw_risks[:3]
                     if isinstance(risk, dict)
                     and self._first_text(risk.get("title"), "")
                 ]
 
+        category_groups, places, omitted_labels = self._filter_environment_context(
+            category_groups,
+            places,
+            subjects or [],
+        )
         return {
             "summary": summary,
             "categoryGroups": category_groups,
@@ -1271,7 +1618,226 @@ class PjblRecommendationService:
             "radiusMeters": radius_meters,
             "source": source_name,
             "fetchedAt": fetched_at,
+            "subjectAlignment": {
+                "mainSubjects": subjects or [],
+                "includedCategoryLabels": [
+                    self._first_text(group.get("label"), "")
+                    for group in category_groups
+                    if isinstance(group, dict)
+                    and self._first_text(group.get("label"), "")
+                ],
+                "omittedCategoryLabels": omitted_labels,
+            },
         }
+
+    def _filter_environment_context(
+        self,
+        category_groups: list[dict[str, Any]],
+        places: list[dict[str, Any]],
+        subjects: list[str],
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
+        if not subjects:
+            return category_groups, places, []
+
+        scored_groups: list[tuple[int, dict[str, Any]]] = [
+            (self._subject_fit_score(group, subjects), group)
+            for group in category_groups
+        ]
+        has_aligned_group = any(score > 0 for score, _group in scored_groups)
+        omitted_labels: list[str] = []
+        if has_aligned_group:
+            filtered_groups = [
+                dict(group, subjectFitScore=score)
+                for score, group in sorted(
+                    scored_groups,
+                    key=lambda item: (
+                        -item[0],
+                        self._first_text(item[1].get("label"), ""),
+                    ),
+                )
+                if score > 0
+            ]
+            omitted_labels = [
+                self._first_text(group.get("label"), "")
+                for score, group in scored_groups
+                if score <= 0 and self._first_text(group.get("label"), "")
+            ]
+        else:
+            filtered_groups = category_groups
+
+        scored_places = [
+            (self._subject_fit_score(place, subjects), place) for place in places
+        ]
+        has_aligned_place = any(score > 0 for score, _place in scored_places)
+        if has_aligned_place:
+            filtered_places = [
+                dict(place, subjectFitScore=score)
+                for score, place in sorted(
+                    scored_places,
+                    key=lambda item: (
+                        -item[0],
+                        self._first_text(item[1].get("distanceLabel"), ""),
+                    ),
+                )
+                if score > 0
+            ]
+        else:
+            filtered_places = places
+
+        return filtered_groups[:6], filtered_places[:6], omitted_labels[:6]
+
+    def _subject_fit_score(self, value: Any, subjects: list[str]) -> int:
+        if not subjects:
+            return 0
+        text = self._searchable_context_text(value).casefold()
+        if isinstance(value, dict):
+            text = " ".join(
+                [
+                    text,
+                    self._first_text(value.get("id"), ""),
+                    self._first_text(value.get("categoryId"), ""),
+                    self._first_text(value.get("category"), ""),
+                    self._first_text(value.get("label"), ""),
+                    self._summarize_context_value(value.get("learningUses")),
+                    self._summarize_context_value(value.get("places")),
+                ]
+            ).casefold()
+        focus_terms = self._subject_focus_terms(subjects)
+        score = sum(3 for term in focus_terms if term in text)
+        score += sum(1 for subject in subjects if subject.casefold() in text)
+        return score
+
+    def _subject_focus_terms(self, subjects: list[str]) -> list[str]:
+        subject_text = " ".join(subjects).casefold()
+        terms: list[str] = []
+        if any(keyword in subject_text for keyword in ("matematika", "statistika")):
+            terms.extend(
+                [
+                    "data",
+                    "harga",
+                    "jarak",
+                    "ukur",
+                    "survei",
+                    "statistik",
+                    "grafik",
+                    "diagram",
+                    "tabel",
+                    "perbandingan",
+                    "persentase",
+                    "biaya",
+                    "keputusan",
+                ]
+            )
+        if any(
+            keyword in subject_text for keyword in ("ekonomi", "bisnis", "wirausaha")
+        ):
+            terms.extend(
+                [
+                    "ekonomi",
+                    "umkm",
+                    "usaha",
+                    "jual",
+                    "beli",
+                    "pasar",
+                    "harga",
+                    "biaya",
+                    "transaksi",
+                    "kebutuhan",
+                    "pembeli",
+                    "pengunjung",
+                    "keputusan",
+                ]
+            )
+        if any(
+            keyword in subject_text for keyword in ("ipa", "biologi", "kimia", "fisika")
+        ):
+            terms.extend(["sains", "ipa", "kesehatan", "air", "tanaman", "cuaca"])
+        if any(keyword in subject_text for keyword in ("sejarah", "seni", "budaya")):
+            terms.extend(["budaya", "sejarah", "tradisi", "karya", "visual"])
+        if any(keyword in subject_text for keyword in ("ppkn", "pkn", "sosiologi")):
+            terms.extend(["warga", "sosial", "layanan", "kesehatan", "publik"])
+        return list(dict.fromkeys(term for term in terms if term))
+
+    def _blocked_theme_keywords(self, subjects: list[str]) -> list[str]:
+        subject_text = " ".join(subjects).casefold()
+        blocked: list[str] = []
+        if not any(
+            keyword in subject_text
+            for keyword in ("ipa", "biologi", "ppkn", "pkn", "sosiologi")
+        ):
+            blocked.extend(["kesehatan", "sehat", "vaksin"])
+        if not any(
+            keyword in subject_text
+            for keyword in ("sejarah", "seni", "budaya", "bahasa")
+        ):
+            blocked.extend(["budaya", "sejarah", "tradisi"])
+        return list(dict.fromkeys(blocked))
+
+    def _omitted_theme_keywords(self, environment_context: dict[str, Any]) -> list[str]:
+        subject_alignment = environment_context.get("subjectAlignment")
+        if not isinstance(subject_alignment, dict):
+            return []
+        omitted_labels = self._string_list(
+            subject_alignment.get("omittedCategoryLabels")
+        )
+        stopwords = {"dan", "atau", "lokal", "sekitar"}
+        keywords: list[str] = []
+        for label in omitted_labels:
+            for word in re.findall(r"[A-Za-z0-9]+", label.casefold()):
+                if len(word) >= 4 and word not in stopwords:
+                    keywords.append(word)
+        return list(dict.fromkeys(keywords))
+
+    def _subject_aligned_theme_labels(
+        self,
+        subjects: list[str],
+        environment_context: dict[str, Any],
+    ) -> list[str]:
+        subject_text = " ".join(subjects).casefold()
+        context_text = self._searchable_context_text(environment_context).casefold()
+        labels: list[str] = []
+
+        def add(label: str) -> None:
+            if label not in labels:
+                labels.append(label)
+
+        if "ekonomi" in subject_text:
+            if any(
+                term in context_text
+                for term in ("umkm", "usaha", "jual", "beli", "harga", "pasar")
+            ):
+                add("Ekonomi Lokal")
+                add("Data Harga")
+                add("Jual Beli")
+                add("Kebutuhan Warga")
+            else:
+                add("Keputusan Ekonomi")
+        if any(term in subject_text for term in ("matematika", "statistika")):
+            if any(
+                term in context_text
+                for term in (
+                    "harga",
+                    "data",
+                    "survei",
+                    "jarak",
+                    "pengunjung",
+                    "kebutuhan",
+                )
+            ):
+                add("Survei Data")
+                add("Perbandingan Biaya")
+                add("Statistik Sekolah")
+            else:
+                add("Data Kontekstual")
+
+        if not labels:
+            for group in environment_context.get("categoryGroups", []):
+                if not isinstance(group, dict):
+                    continue
+                label = self._first_text(group.get("label"), "")
+                if label:
+                    add(self._short_theme_label(label))
+        return labels[:3]
 
     def _place_label(self, places: list[Any], index: int, fallback: str) -> str:
         if index < len(places) and isinstance(places[index], dict):
@@ -1340,6 +1906,17 @@ class PjblRecommendationService:
                     value = konteks.get(key)
                     if isinstance(value, dict):
                         merged.update(value)
+                environment_scanner = konteks.get("environmentScanner")
+                if isinstance(environment_scanner, dict):
+                    merged.setdefault("environmentScanner", environment_scanner)
+                    merged.setdefault(
+                        "localContext",
+                        self._summarize_context_value(environment_scanner),
+                    )
+                    merged.setdefault(
+                        "localIssue",
+                        self._summarize_context_value(environment_scanner),
+                    )
         merged.update(
             {
                 key: value
@@ -1448,6 +2025,25 @@ class PjblRecommendationService:
                 return value
         return {}
 
+    def _searchable_context_text(self, value: Any, depth: int = 0) -> str:
+        if depth > 4:
+            return ""
+        if isinstance(value, str):
+            return value.strip()
+        if isinstance(value, list):
+            return " ".join(
+                self._searchable_context_text(item, depth + 1) for item in value[:10]
+            )
+        if isinstance(value, dict):
+            parts: list[str] = []
+            for key, item in list(value.items())[:20]:
+                parts.append(str(key))
+                parts.append(self._searchable_context_text(item, depth + 1))
+            return " ".join(part for part in parts if part)
+        if value is not None:
+            return str(value).strip()
+        return ""
+
     def _summarize_context_value(self, value: Any) -> str:
         if isinstance(value, str) and value.strip():
             return value.strip()
@@ -1528,7 +2124,7 @@ class PjblRecommendationService:
                 continue
             seen.add(key)
             labels.append(clean if clean.isupper() else clean.title())
-            if len(labels) >= 7:
+            if len(labels) >= 3:
                 break
 
         if not labels and with_default:
@@ -1539,6 +2135,55 @@ class PjblRecommendationService:
         text = re.sub(r"\s+", " ", self._first_text(label, "Tema")).strip()
         text = re.sub(r"\s+([&/|-])\s*$", "", text)
         return text[:64].strip(" .;:")
+
+    def _ensure_three_theme_labels(
+        self,
+        labels: list[str],
+        subject_lens: str,
+        local_issue: str,
+    ) -> list[str]:
+        filled: list[str] = []
+        seen: set[str] = set()
+        candidates = (
+            labels
+            + self._theme_labels_from_context(
+                f"{subject_lens} {local_issue}",
+                with_default=True,
+            )
+            + ["Lingkungan Sekolah", "Kebiasaan Warga", "Data Sekolah"]
+        )
+        for candidate in candidates:
+            label = self._short_theme_label(candidate)
+            key = self._slug(label, "")
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            filled.append(label)
+            if len(filled) >= 3:
+                break
+        return filled
+
+    def _subjects(
+        self,
+        payload: RecommendStageRequest,
+        stage_context: dict[str, Any],
+    ) -> list[str]:
+        subjects = self._string_list(stage_context.get("mainSubjects"))
+        if not subjects:
+            subjects = self._string_list(stage_context.get("collabSubjects"))
+        project_subject = self._first_text(payload.project.subject, "")
+        if not subjects and not self._is_generic_subject(project_subject):
+            subjects = self._string_list(project_subject)
+        return subjects
+
+    def _is_generic_subject(self, value: Any) -> bool:
+        text = self._first_text(value, "").casefold()
+        return not text or text in {
+            "umum",
+            "general",
+            "lintas disiplin",
+            "mata pelajaran terkait",
+        }
 
     def _string_list(self, value: Any) -> list[str]:
         if isinstance(value, list):

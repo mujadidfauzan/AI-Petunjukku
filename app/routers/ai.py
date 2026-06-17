@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.schemas.environment_schema import (
+    SchoolEnvironmentCurationRequest,
+    SchoolEnvironmentCurationResponse,
+)
 from app.schemas.generate_rpp_schema import GenerateRppRequest, GenerateRppResponse
 from app.schemas.kina_schema import (
     KinaChatRequest,
@@ -25,6 +29,16 @@ from app.services.ai_orchestrator_service import AIOrchestratorService
 
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+
+
+@router.post(
+    "/curate-school-environment",
+    response_model=SchoolEnvironmentCurationResponse,
+)
+async def curate_school_environment(
+    payload: SchoolEnvironmentCurationRequest,
+) -> SchoolEnvironmentCurationResponse:
+    return await AIOrchestratorService().curate_school_environment(payload)
 
 
 @router.post("/recommend-stage", response_model=RecommendStageResponse)

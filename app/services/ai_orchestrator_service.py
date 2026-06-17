@@ -3,6 +3,10 @@ from __future__ import annotations
 from fastapi import HTTPException, status
 
 from app.schemas.generate_rpp_schema import GenerateRppRequest, GenerateRppResponse
+from app.schemas.environment_schema import (
+    SchoolEnvironmentCurationRequest,
+    SchoolEnvironmentCurationResponse,
+)
 from app.schemas.kina_schema import (
     KinaChatRequest,
     KinaChatResponse,
@@ -35,6 +39,7 @@ from app.services.intrakurikuler.intra_summary_service import IntraSummaryServic
 from app.services.intrakurikuler.intra_stage3_diagram_service import (
     IntraStage3DiagramService,
 )
+from app.services.environment_curation_service import EnvironmentCurationService
 from app.services.pjbl.pjbl_generation_service import PjblGenerationService
 from app.services.pjbl.pjbl_kina_service import PjblKinaService
 from app.services.pjbl.pjbl_recommendation_service import PjblRecommendationService
@@ -42,6 +47,11 @@ from app.services.pjbl.pjbl_summary_service import PjblSummaryService
 
 
 class AIOrchestratorService:
+    async def curate_school_environment(
+        self, payload: SchoolEnvironmentCurationRequest
+    ) -> SchoolEnvironmentCurationResponse:
+        return await EnvironmentCurationService().curate(payload)
+
     async def recommend_lintas_disiplin(
         self, payload: RecommendLintasDisiplinRequest
     ) -> RecommendLintasDisiplinResponse:

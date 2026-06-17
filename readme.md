@@ -127,7 +127,7 @@ Alur Tujuan Pembelajaran = output rekomendasi LLM.
 
 #### 3.2.2 Recommendation Stage 2 PjBL Kokurikuler
 
-Pada PjBL Kokurikuler, Stage 2 berfokus pada dua langkah rekomendasi: pertama rekomendasi **tema proyek** maksimal 7 pilihan, lalu rekomendasi **opsi proyek** setelah guru memilih salah satu tema.
+Pada PjBL Kokurikuler, Stage 2 berfokus pada dua langkah rekomendasi: pertama rekomendasi **tema proyek** sebanyak 3 pilihan, lalu rekomendasi **opsi proyek** setelah guru memilih salah satu tema.
 
 Flow:
 
@@ -136,7 +136,7 @@ Input semua konteks dari Stage 1
 ↓
 LLM membaca konteks sekolah, siswa, lingkungan, mata pelajaran, fase, dan masalah sekitar
 ↓
-LLM menyusun rekomendasi tema proyek maksimal 7 pilihan
+LLM menyusun rekomendasi tema proyek sebanyak 3 pilihan
 ↓
 Guru memilih satu tema proyek
 ↓
@@ -346,7 +346,7 @@ Stage 2 PjBL Kokurikuler
 ↓
 Mengambil semua konteks dari Stage 1
 ↓
-LLM menyusun tema proyek maksimal 7 pilihan
+LLM menyusun tema proyek sebanyak 3 pilihan
 ↓
 Guru memilih satu tema proyek
 ↓
@@ -1234,7 +1234,7 @@ curl -X POST "http://localhost:8000/internal/ai/recommend-stage" \
 
 Cara membaca response:
 
-- `recommendations.projectThemes` adalah daftar maksimal 7 tema untuk ditampilkan sebagai pilihan fokus proyek.
+- `recommendations.projectThemes` adalah daftar 3 tema untuk ditampilkan sebagai pilihan fokus proyek.
 - Setelah guru memilih satu tema, kirim request kedua dengan `targetStage.selectedTheme`.
 - `recommendations.projectOptions` adalah daftar 3 opsi proyek yang bisa ditampilkan ke guru setelah tema dipilih.
 - `confirmationTags` adalah hal yang perlu dipastikan sebelum proyek dipilih.
@@ -1622,7 +1622,7 @@ semua konteks dari Stage 1
 ↓
 LLM
 ↓
-rekomendasi tema proyek maksimal 7 pilihan
+rekomendasi tema proyek sebanyak 3 pilihan
 ↓
 guru memilih satu tema proyek
 ↓
