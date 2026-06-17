@@ -1,0 +1,20 @@
+﻿{
+    "discussionSummary":  "Ibu Vica memilih gaya pembelajaran berbasis diskusi kelompok dengan pendekatan pembelajaran kooperatif. Siswa akan menjelaskan polinomial dan memberikan contoh cara mengerjakan soal polinomial, serta berdiskusi hingga menghasilkan presentasi di depan kelas. Tidak ada kriteria tertentu untuk presentasi, memberikan kebebasan kreativitas kepada masing-masing kelompok. Fasilitas yang digunakan adalah papan tulis dan proyektor, dengan proyektor untuk menampilkan video pengenalan polinomial. Platform digital yang digunakan adalah YouTube untuk video dan Google Slides untuk presentasi. Ibu Vica juga berencana bekerja sama dengan guru Bahasa Indonesia untuk membantu siswa menyusun kalimat presentasi. Produk akhir adalah presentasi digital menggunakan Google Slides.",
+    "learningStrategy":  "Diskusi kelompok",
+    "pedagogicalApproach":  "Pembelajaran kooperatif",
+    "facilityAndTechnologyUse":  "Menggunakan papan tulis dan proyektor untuk mendukung pembelajaran.",
+    "digitalPlatform":  "YouTube dan Google Slides",
+    "partnership":  "Bekerja sama dengan guru Bahasa Indonesia",
+    "finalStudentProduct":  "Presentasi digital menggunakan Google Slides",
+    "activityFlowDecision":  {
+                                 "opening":  "Menampilkan video pengenalan polinomial menggunakan proyektor.",
+                                 "mainActivity":  "Diskusi kelompok untuk menjelaskan polinomial dan memberikan contoh cara mengerjakan soal.",
+                                 "closing":  "Presentasi hasil diskusi di depan kelas."
+                             },
+    "differentiationPlan":  {
+                                "support":  "Murid yang membutuhkan bantuan diberi arahan bertahap dan contoh tambahan.",
+                                "enrichment":  "Murid yang lebih cepat diberi tantangan lanjutan sesuai materi."
+                            },
+    "teacherNotes":  "Memberikan kebebasan kreativitas kepada siswa dalam presentasi.",
+    "stage3CompletionStatus":  "complete"
+}

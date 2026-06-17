@@ -1,0 +1,22 @@
+﻿{
+    "summary":  {
+                    "discussionSummary":  "Ibu Vica memilih gaya mengajar diskusi kelompok dengan tema presentasi pengenalan polinomial. Setiap kelompok akan mencari contoh bilangan polinomial dari kehidupan sehari-hari. Setiap kelompok mendapatkan waktu 15 menit untuk menyusun presentasi di Google Slides. Proyektor akan digunakan untuk menayangkan video pengenalan polinomial di awal kelas dan untuk presentasi siswa. Penilaian akan dilakukan berdasarkan kejelasan informasi dan kreativitas penyusunan presentasi.",
+                    "learningStrategy":  "Diskusi kelompok",
+                    "pedagogicalApproach":  "Pembelajaran berbasis proyek dengan presentasi",
+                    "facilityAndTechnologyUse":  "Menggunakan papan tulis dan proyektor",
+                    "digitalPlatform":  "Google Slides dan YouTube",
+                    "partnership":  "Melibatkan guru Bahasa Indonesia untuk memberikan umpan balik setelah presentasi",
+                    "finalStudentProduct":  "Presentasi di Google Slides mengenai bilangan polinomial dan contoh dari kehidupan sehari-hari",
+                    "activityFlowDecision":  {
+                                                 "opening":  "Menayangkan video pengenalan polinomial menggunakan proyektor.",
+                                                 "mainActivity":  "Diskusi kelompok untuk mencari contoh bilangan polinomial dan menyusun presentasi.",
+                                                 "closing":  "Sesi umpan balik dari guru Bahasa Indonesia setelah presentasi."
+                                             },
+                    "differentiationPlan":  {
+                                                "support":  "Murid yang membutuhkan bantuan diberi arahan bertahap dan contoh tambahan.",
+                                                "enrichment":  "Murid yang lebih cepat diberi tantangan lanjutan sesuai materi."
+                                            },
+                    "teacherNotes":  "Penilaian berdasarkan kejelasan informasi dan kreativitas penyusunan presentasi.",
+                    "stage3CompletionStatus":  "complete"
+                }
+}

@@ -1,71 +1,3 @@
-# from __future__ import annotations
-
-# import json
-# from typing import Any
-
-# from app.schemas.kina_schema import KinaSummaryRequest, KinaSummaryResponse
-# from app.services.llm_client import LLMClient
-# from app.utils.text_cleaner import compact_text
-
-
-# class IntraSummaryService:
-#     def __init__(self, llm_client: LLMClient | None = None) -> None:
-#         self.llm_client = llm_client or LLMClient()
-
-#     async def summarize(self, payload: KinaSummaryRequest) -> KinaSummaryResponse:
-#         fallback = self._fallback_summary(payload)
-#         messages = [
-#             {
-#                 "role": "system",
-#                 "content": (
-#                     "Ringkas chat Kina menjadi JSON terstruktur untuk disimpan oleh NestJS "
-#                     "ke stage RPP. Jangan menyimpan data di FastAPI."
-#                 ),
-#             },
-#             {
-#                 "role": "user",
-#                 "content": json.dumps(
-#                     {
-#                         "project": payload.project.model_dump(),
-#                         "summaryType": payload.summaryType,
-#                         "chatHistory": [
-#                             chat.model_dump() for chat in payload.chatHistory
-#                         ],
-#                         "requiredResponseShape": fallback,
-#                     },
-#                     ensure_ascii=False,
-#                 ),
-#             },
-#         ]
-#         summary = await self.llm_client.generate_json(messages, fallback)
-#         return KinaSummaryResponse(summary=summary)
-
-#     def _fallback_summary(self, payload: KinaSummaryRequest) -> dict[str, Any]:
-#         user_messages = [
-#             chat.message for chat in payload.chatHistory if chat.role == "user"
-#         ]
-#         assistant_messages = [
-#             chat.message for chat in payload.chatHistory if chat.role == "assistant"
-#         ]
-#         discussion = compact_text(" ".join(user_messages + assistant_messages), 360)
-#         if not discussion:
-#             discussion = "Belum ada percakapan yang cukup untuk diringkas."
-
-#         return {
-#             "discussionSummary": discussion,
-#             "learningStrategy": "Strategi pembelajaran disusun dari keputusan chat Kina.",
-#             "activityFlowDecision": {
-#                 "opening": "Guru membuka pembelajaran dengan pertanyaan pemantik.",
-#                 "mainActivity": "Siswa melakukan aktivitas utama sesuai topik dan konteks kelas.",
-#                 "closing": "Guru memberi penguatan dan refleksi singkat.",
-#             },
-#             "differentiationPlan": {
-#                 "support": "Siswa yang membutuhkan bantuan diberi contoh atau panduan bertahap.",
-#                 "enrichment": "Siswa cepat diberi tantangan lanjutan yang relevan.",
-#             },
-#             "assessmentFocus": "Pemahaman konsep, partisipasi, dan kemampuan menerapkan materi.",
-#         }
-
 
 from __future__ import annotations
 
@@ -108,14 +40,14 @@ class IntraSummaryService:
         summary = await self.llm_client.generate_json(
             messages,
             fallback,
-            temperature=0.25,
+            temperature=0.15,
         )
 
         return KinaSummaryResponse(summary=summary)
 
     def _build_system_prompt(self) -> str:
         return """
-Anda adalah AI Petunjukku yang bertugas merangkum diskusi Kina Chat menjadi contentJson Stage 3 RPP Intrakurikuler.
+Anda adalah AI Petunjukku yang bertugas merangkum diskusi Kina Chat menjadi contentJson Stage 3 RPM Intrakurikuler.
 
 Tugas Anda:
 - Baca seluruh chatHistory antara guru dan Kina.
@@ -124,6 +56,16 @@ Tugas Anda:
 - Jangan membuat dokumen final.
 - Jangan membuat PDF/DOCX.
 - Jangan menambahkan penjelasan di luar JSON.
+
+Prinsip pengambilan keputusan:
+- Keputusan utama harus berasal dari pesan guru.
+- Saran dari Kina hanya boleh dimasukkan jika guru menyetujui, memilih, menguatkan, atau mengulang saran tersebut.
+- Jika Kina memberi beberapa opsi, ambil hanya opsi yang dipilih guru.
+- Jika guru menolak suatu opsi, jangan masukkan opsi tersebut ke summary.
+- Jika guru mengganti keputusan lama, gunakan keputusan terbaru dari guru.
+- Jika guru berkata "tidak digunakan", "tidak perlu", atau "tidak memakai", catat sebagai "Tidak digunakan".
+- Jangan memasukkan fasilitas, platform digital, mitra, atau produk akhir hanya karena pernah disarankan Kina.
+- Gunakan istilah "murid", bukan "siswa".
 
 Stage 3 berisi rancangan strategi dan alur pembelajaran.
 
@@ -160,15 +102,15 @@ Aturan isi:
 - activityFlowDecision.opening: kegiatan pembuka pembelajaran.
 - activityFlowDecision.mainActivity: kegiatan inti pembelajaran.
 - activityFlowDecision.closing: kegiatan penutup pembelajaran.
-- differentiationPlan.support: dukungan untuk siswa yang membutuhkan bantuan.
-- differentiationPlan.enrichment: pengayaan untuk siswa yang lebih cepat.
+- differentiationPlan.support: dukungan untuk murid yang membutuhkan bantuan.
+- differentiationPlan.enrichment: pengayaan untuk murid yang lebih cepat.
 - teacherNotes: catatan penting dari preferensi guru.
-- stage3CompletionStatus: isi "complete" jika informasi utama sudah cukup.
+- stage3CompletionStatus: isi "complete" hanya jika informasi utama Stage 3 sudah cukup; isi "partial" jika masih ada keputusan utama yang belum jelas.
 
 Jika ada informasi yang tidak disebut eksplisit oleh guru:
-- Jangan kosongkan.
-- Isi dengan inferensi yang paling aman berdasarkan chatHistory dan konteks project.
-- Tetap tulis secara realistis dan tidak berlebihan.
+- Jangan mengarang detail spesifik seperti nama platform, fasilitas, mitra, atau produk.
+- Boleh membuat inferensi ringan untuk activityFlowDecision dan differentiationPlan agar tetap dapat dipakai generate RPM.
+- Inferensi harus realistis, umum, dan mengikuti keputusan yang sudah benar-benar muncul dalam chatHistory.
 """.strip()
 
     def _fallback_summary(self, payload: KinaSummaryRequest) -> dict[str, Any]:
@@ -185,41 +127,21 @@ Jika ada informasi yang tidak disebut eksplisit oleh guru:
 
         return {
             "discussionSummary": discussion,
-            "learningStrategy": "Studi kasus dan diskusi kelompok kecil",
-            "pedagogicalApproach": "Mini-PjBL ringan dengan arahan guru",
-            "facilityAndTechnologyUse": (
-                "HP siswa, internet terbatas, papan tulis, dan proyektor dimanfaatkan "
-                "untuk mencari contoh pola sederhana, membahas bentuk aljabar, dan "
-                "menyajikan hasil diskusi kelompok."
-            ),
-            "digitalPlatform": "Google Slides",
+            "learningStrategy": "Belum dapat disimpulkan secara spesifik dari chat history.",
+            "pedagogicalApproach": "Belum dapat disimpulkan secara spesifik dari chat history.",
+            "facilityAndTechnologyUse": "Belum dapat disimpulkan secara spesifik dari chat history.",
+            "digitalPlatform": "Tidak digunakan",
             "partnership": "Tidak digunakan",
-            "finalStudentProduct": (
-                "Presentasi kelompok singkat tentang contoh penerapan polinomial sederhana."
-            ),
+            "finalStudentProduct": "Belum dapat disimpulkan secara spesifik dari chat history.",
             "activityFlowDecision": {
-                "opening": (
-                    "Guru membuka pembelajaran dengan pertanyaan pemantik tentang pola bilangan "
-                    "dalam kehidupan sehari-hari."
-                ),
-                "mainActivity": (
-                    "Siswa berdiskusi dalam kelompok kecil untuk mengamati pola, menyusun bentuk "
-                    "aljabar sederhana, dan menjelaskan unsur polinomial."
-                ),
-                "closing": (
-                    "Setiap kelompok menyampaikan hasil diskusi, lalu guru memberi penguatan "
-                    "dan refleksi singkat."
-                ),
+                "opening": "Guru membuka pembelajaran sesuai konteks materi dan pertanyaan pemantik yang tersedia.",
+                "mainActivity": "Murid mengikuti aktivitas pembelajaran sesuai strategi yang telah dibahas dalam chat.",
+                "closing": "Guru menutup pembelajaran dengan penguatan dan refleksi singkat.",
             },
             "differentiationPlan": {
-                "support": (
-                    "Siswa yang membutuhkan bantuan diberi contoh bertahap dan panduan pertanyaan."
-                ),
-                "enrichment": (
-                    "Siswa yang lebih cepat diminta membuat contoh pola tambahan dan menjelaskan "
-                    "bentuk polinomialnya."
-                ),
+                "support": "Murid yang membutuhkan bantuan diberi arahan bertahap dan contoh tambahan.",
+                "enrichment": "Murid yang lebih cepat diberi tantangan lanjutan sesuai materi.",
             },
-            "teacherNotes": "Guru menginginkan aktivitas yang tidak terlalu berat, tetap terarah, dan sesuai dengan kondisi kelas.",
-            "stage3CompletionStatus": "complete",
+            "teacherNotes": "Ringkasan fallback dibuat karena hasil summary LLM tidak tersedia atau belum lengkap.",
+            "stage3CompletionStatus": "partial",
         }

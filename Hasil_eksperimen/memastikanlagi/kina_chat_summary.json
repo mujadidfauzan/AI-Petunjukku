@@ -1,0 +1,20 @@
+﻿{
+    "discussionSummary":  "Diskusi mengenai pembelajaran polinomial sederhana berfokus pada diskusi kelompok, di mana siswa memilih kelompoknya sendiri. Setiap kelompok akan mendiskusikan soal matematika yang diberikan, berkaitan dengan operasi polinomial. Siswa akan melakukan presentasi menggunakan Google Slides yang berisi soal dan solusi, dengan tema bebas untuk hiasan. Di awal kelas, akan ditampilkan video pengenalan dari YouTube menggunakan proyektor.",
+    "learningStrategy":  "Diskusi kelompok dengan siswa memilih kelompoknya sendiri.",
+    "pedagogicalApproach":  "Pembelajaran berbasis diskusi kelompok.",
+    "facilityAndTechnologyUse":  "Menggunakan proyektor untuk menampilkan video pengenalan dan soal, serta papan tulis untuk penjelasan.",
+    "digitalPlatform":  "Google Slides untuk presentasi dan YouTube untuk video pengenalan.",
+    "partnership":  "Melibatkan guru Informatika untuk memberikan dukungan teknis.",
+    "finalStudentProduct":  "Siswa melakukan presentasi menggunakan Google Slides yang berisi soal dan solusi, dengan tema bebas untuk hiasan.",
+    "activityFlowDecision":  {
+                                 "opening":  "Menampilkan video pengenalan dari YouTube menggunakan proyektor.",
+                                 "mainActivity":  "Murid mendiskusikan soal matematika yang diberikan dalam kelompok dan menyusun presentasi.",
+                                 "closing":  "Murid mempresentasikan hasil diskusi mereka di depan kelas."
+                             },
+    "differentiationPlan":  {
+                                "support":  "Murid yang membutuhkan bantuan diberi arahan bertahap dan contoh tambahan.",
+                                "enrichment":  "Murid yang lebih cepat diberi tantangan lanjutan sesuai materi."
+                            },
+    "teacherNotes":  "Siswa dihimbau untuk menghias presentasi agar lebih menarik dan mudah dipahami.",
+    "stage3CompletionStatus":  "complete"
+}

@@ -1,0 +1,398 @@
+﻿{
+    "status":  "success",
+    "model":  "openai/gpt-4o-mini",
+    "rppType":  "intrakurikuler",
+    "usedReferences":  [
+                           {
+                               "cpReferenceId":  "475b6d760e34a3b7c8f919c5",
+                               "sourceTitle":  "Kepka_BSKAP_No_01k17e8396ajn15j3hcw0k773b.pdf",
+                               "similarityScore":  0.08087164163589478
+                           }
+                       ],
+    "contentJson":  {
+                        "title":  "RPM Polinomial Sederhana",
+                        "identity":  {
+                                         "schoolName":  "SMPN 15 SURABAYA",
+                                         "teacherName":  "Vica Mawaddatus Syifa",
+                                         "educationLevel":  "SMP / MTs",
+                                         "phase":  "Fase D",
+                                         "gradeLevel":  "Kelas 7",
+                                         "subject":  "Matematika",
+                                         "topic":  "Polinomial sederhana dalam konteks pola bilangan",
+                                         "element":  "Aljabar",
+                                         "timeAllocation":  "3 pertemuan x 35 menit",
+                                         "meetingCount":  "3",
+                                         "academicYear":  "",
+                                         "rppType":  "intrakurikuler"
+                                     },
+                        "materialContext":  "Pembelajaran ini berfokus pada polinomial sederhana dalam konteks pola bilangan. Murid akan diajak untuk mengenali bentuk aljabar dan unsur-unsurnya melalui diskusi kelompok dan presentasi. Dengan menggunakan media visual, diharapkan murid dapat lebih memahami konsep yang diajarkan.",
+                        "profileAndLearningDirection":  {
+                                                            "graduateProfiles":  [
+                                                                                     {
+                                                                                         "dimension":  "Penalaran Kritis",
+                                                                                         "description":  "Murid mampu menganalisis dan menyelesaikan masalah dengan pendekatan logis."
+                                                                                     },
+                                                                                     {
+                                                                                         "dimension":  "Kolaborasi",
+                                                                                         "description":  "Murid mampu bekerja sama dalam kelompok untuk mencapai tujuan bersama."
+                                                                                     },
+                                                                                     {
+                                                                                         "dimension":  "Kreativitas",
+                                                                                         "description":  "Murid mampu menghasilkan ide-ide baru dalam menyelesaikan masalah."
+                                                                                     },
+                                                                                     {
+                                                                                         "dimension":  "Komunikasi",
+                                                                                         "description":  "Murid mampu menyampaikan ide dan hasil kerja dengan jelas."
+                                                                                     }
+                                                                                 ],
+                                                            "interdisciplinaryIntegration":  {
+                                                                                                 "relatedDiscipline":  "Bahasa Indonesia, Informatika",
+                                                                                                 "rationale":  "Integrasi dengan Bahasa Indonesia membantu murid dalam mengkomunikasikan ide-ide mereka secara lisan dan tulisan, sedangkan Informatika mendukung penggunaan teknologi dalam presentasi.",
+                                                                                                 "integrationForm":  "Murid akan menggunakan Google Slides untuk presentasi dan berlatih komunikasi efektif dalam kelompok.",
+                                                                                                 "notes":  "Integrasi ini bersifat pendukung, dengan fokus utama tetap pada pembelajaran Matematika."
+                                                                                             },
+                                                            "learningObjectives":  [
+                                                                                       "Murid mampu mengenali bentuk aljabar dan unsur-unsurnya.",
+                                                                                       "Murid mampu menyusun bentuk polinomial sederhana dari konteks atau pola bilangan.",
+                                                                                       "Murid mampu melakukan operasi penjumlahan dan pengurangan polinomial sederhana."
+                                                                                   ],
+                                                            "essentialQuestion":  "Bagaimana pola bilangan dapat dituliskan dalam bentuk aljabar atau polinomial sederhana?"
+                                                        },
+                        "learningDesign":  {
+                                               "pedagogicalPractice":  {
+                                                                           "description":  "Pembelajaran dilakukan melalui diskusi kelompok dan presentasi, di mana murid bekerja sama untuk menemukan contoh polinomial dari kehidupan sehari-hari. Pendekatan ini mendorong murid untuk aktif berpartisipasi dan berkolaborasi dalam memahami konsep yang diajarkan.",
+                                                                           "forms":  [
+                                                                                         {
+                                                                                             "name":  "Diskusi Kelompok",
+                                                                                             "description":  "Murid berdiskusi dalam kelompok untuk mencari contoh polinomial."
+                                                                                         },
+                                                                                         {
+                                                                                             "name":  "Presentasi",
+                                                                                             "description":  "Setiap kelompok menyajikan hasil diskusi mereka menggunakan Google Slides."
+                                                                                         }
+                                                                                     ]
+                                                                       },
+                                               "partnership":  {
+                                                                   "items":  [
+                                                                                 {
+                                                                                     "partner":  "Guru Bahasa Indonesia",
+                                                                                     "partnerRole":  "Memberikan umpan balik setelah presentasi murid."
+                                                                                 }
+                                                                             ],
+                                                                   "notes":  "Kerja sama dengan guru Bahasa Indonesia bertujuan untuk meningkatkan kemampuan komunikasi murid."
+                                                               },
+                                               "digitalUse":  {
+                                                                  "items":  [
+                                                                                {
+                                                                                    "sourceOrPlatform":  "Google Slides",
+                                                                                    "function":  "Digunakan untuk menyusun dan menampilkan presentasi."
+                                                                                },
+                                                                                {
+                                                                                    "sourceOrPlatform":  "YouTube",
+                                                                                    "function":  "Digunakan untuk menayangkan video pengenalan polinomial."
+                                                                                }
+                                                                            ],
+                                                                  "notes":  "Penggunaan platform digital ini mendukung pembelajaran yang lebih interaktif dan menarik."
+                                                              },
+                                               "resources":  [
+                                                                 {
+                                                                     "name":  "Papan tulis",
+                                                                     "function":  "Digunakan untuk menjelaskan konsep dan mencatat ide-ide penting."
+                                                                 },
+                                                                 {
+                                                                     "name":  "Proyektor",
+                                                                     "function":  "Digunakan untuk menayangkan video dan presentasi murid."
+                                                                 }
+                                                             ],
+                                               "meetingActivities":  {
+                                                                         "overview":  "Pembelajaran akan dilakukan dalam tiga pertemuan yang berfokus pada pengenalan polinomial, diskusi kelompok, dan presentasi. Setiap pertemuan akan melibatkan aktivitas yang mendorong kolaborasi dan kreativitas murid. Di akhir pembelajaran, murid diharapkan dapat memahami dan menerapkan konsep polinomial dalam konteks nyata.",
+                                                                         "meetings":  [
+                                                                                          {
+                                                                                              "meetingOrder":  1,
+                                                                                              "meetingTitle":  "Pertemuan 1 - Pembukaan Pembelajaran",
+                                                                                              "duration":  "35 menit",
+                                                                                              "introParagraph":  "Pertemuan ini dimulai dengan menayangkan video pengenalan polinomial untuk menarik perhatian murid. Setelah itu, murid akan diajak berdiskusi mengenai konsep dasar polinomial.",
+                                                                                              "focus":  "Murid mampu mengenali bentuk aljabar dan unsur-unsurnya.",
+                                                                                              "target":  "Murid mampu menjelaskan variabel, koefisien, dan konstanta dalam polinomial.",
+                                                                                              "diagnostic":  {
+                                                                                                                 "step1Description":  "Guru melakukan cek kesiapan awal dengan mengajukan pertanyaan tentang pengetahuan dasar aljabar. Murid menjawab secara lisan.",
+                                                                                                                 "sampleQuestion":  "Apa yang dimaksud dengan variabel dalam aljabar?",
+                                                                                                                 "answerOptions":  [
+                                                                                                                                       "A. Angka tetap",
+                                                                                                                                       "B. Simbol yang mewakili angka"
+                                                                                                                                   ],
+                                                                                                                 "correctAnswer":  "B. Simbol yang mewakili angka",
+                                                                                                                 "step2Description":  "Guru membaca hasil jawaban murid dan membentuk kelompok berdasarkan pemahaman mereka.",
+                                                                                                                 "teacherNotes":  "Kelompok A/B bersifat sementara, bukan label pintar/kurang pintar."
+                                                                                                             },
+                                                                                              "understanding":  {
+                                                                                                                    "teacherNotes":  "Semua murid mendapat dasar konsep yang sama melalui video dan diskusi.",
+                                                                                                                    "step4Description":  "Guru membahas jawaban murid dan meluruskan miskonsepsi tentang polinomial.",
+                                                                                                                    "step5Description":  "Guru menguatkan konsep dengan media video dan papan tulis.",
+                                                                                                                    "triggerQuestions":  [
+                                                                                                                                             "Apa contoh polinomial yang kalian ketahui?",
+                                                                                                                                             "Bagaimana cara menyusun polinomial dari pola bilangan?",
+                                                                                                                                             "Mengapa penting memahami polinomial?"
+                                                                                                                                         ]
+                                                                                                                },
+                                                                                              "applying":  {
+                                                                                                               "step6Description":  "Murid mulai mengerjakan tugas kelompok untuk mencari contoh polinomial dari kehidupan sehari-hari.",
+                                                                                                               "differentiation":  {
+                                                                                                                                       "supportGroup":  "Murid yang membutuhkan bantuan diberi arahan bertahap dan contoh tambahan.",
+                                                                                                                                       "advancedGroup":  "Murid yang lebih cepat diberi tantangan lanjutan sesuai materi."
+                                                                                                                                   },
+                                                                                                               "step7Description":  "Setelah menemukan contoh, murid menyusun presentasi di Google Slides.",
+                                                                                                               "flowSummary":  [
+                                                                                                                                   "Menayangkan video pengenalan polinomial.",
+                                                                                                                                   "Diskusi kelompok untuk mencari contoh polinomial.",
+                                                                                                                                   "Menyusun presentasi di Google Slides."
+                                                                                                                               ],
+                                                                                                               "product":  "Presentasi di Google Slides mengenai bilangan polinomial dan contoh dari kehidupan sehari-hari."
+                                                                                                           },
+                                                                                              "reflecting":  {
+                                                                                                                 "description":  "Murid merefleksikan pemahaman mereka tentang polinomial setelah diskusi.",
+                                                                                                                 "step8Description":  "Guru meminta murid untuk menuliskan satu hal baru yang mereka pelajari hari ini.",
+                                                                                                                 "reflectionQuestions":  [
+                                                                                                                                             "Apa yang kalian pelajari tentang polinomial?",
+                                                                                                                                             "Bagaimana kalian akan menggunakan pengetahuan ini?",
+                                                                                                                                             "Apa yang masih kalian bingungkan tentang polinomial?"
+                                                                                                                                         ]
+                                                                                                             },
+                                                                                              "formativeAssessment":  {
+                                                                                                                          "technique":  "Tes Tertulis",
+                                                                                                                          "step9Description":  "Guru mengamati keaktifan murid saat diskusi awal dan eksplorasi konsep.",
+                                                                                                                          "observedIndicators":  [
+                                                                                                                                                     "Murid aktif bertanya dan menjawab.",
+                                                                                                                                                     "Murid berpartisipasi dalam diskusi kelompok.",
+                                                                                                                                                     "Murid menunjukkan pemahaman dasar tentang polinomial."
+                                                                                                                                                 ],
+                                                                                                                          "teacherRecordFormat":  "Catatan keaktifan murid selama diskusi."
+                                                                                                                      }
+                                                                                          },
+                                                                                          {
+                                                                                              "meetingOrder":  2,
+                                                                                              "meetingTitle":  "Pertemuan 2 - Diskusi dan Latihan Kelompok",
+                                                                                              "duration":  "35 menit",
+                                                                                              "introParagraph":  "Pertemuan ini berfokus pada diskusi kelompok dan latihan menyusun polinomial sederhana.",
+                                                                                              "focus":  "Murid mampu menyusun bentuk polinomial sederhana dari konteks atau pola bilangan.",
+                                                                                              "target":  "Murid mampu membuat polinomial dari contoh yang diberikan.",
+                                                                                              "diagnostic":  {
+                                                                                                                 "step1Description":  "Guru memberikan soal untuk menguji pemahaman awal murid tentang polinomial.",
+                                                                                                                 "sampleQuestion":  "Buatlah polinomial dari pola bilangan berikut: 2, 4, 6, 8.",
+                                                                                                                 "answerOptions":  [
+                                                                                                                                       "A. 2n",
+                                                                                                                                       "B. n^2 + 2"
+                                                                                                                                   ],
+                                                                                                                 "correctAnswer":  "A. 2n",
+                                                                                                                 "step2Description":  "Guru membentuk kelompok berdasarkan hasil jawaban murid.",
+                                                                                                                 "teacherNotes":  "Kelompok A/B bersifat sementara, bukan label pintar/kurang pintar."
+                                                                                                             },
+                                                                                              "understanding":  {
+                                                                                                                    "teacherNotes":  "Semua murid mendapat dasar konsep yang sama melalui latihan kelompok.",
+                                                                                                                    "step4Description":  "Guru membahas hasil kerja kelompok dan meluruskan miskonsepsi.",
+                                                                                                                    "step5Description":  "Guru menguatkan konsep dengan memberikan contoh tambahan.",
+                                                                                                                    "triggerQuestions":  [
+                                                                                                                                             "Apa yang kalian temukan saat menyusun polinomial?",
+                                                                                                                                             "Bagaimana cara kalian menentukan koefisien?",
+                                                                                                                                             "Apa tantangan yang kalian hadapi saat menyusun polinomial?"
+                                                                                                                                         ]
+                                                                                                                },
+                                                                                              "applying":  {
+                                                                                                               "step6Description":  "Murid menyelesaikan tugas kelompok untuk menyusun polinomial dari pola bilangan yang diberikan.",
+                                                                                                               "differentiation":  {
+                                                                                                                                       "supportGroup":  "Murid yang membutuhkan bantuan diberi arahan bertahap dan contoh tambahan.",
+                                                                                                                                       "advancedGroup":  "Murid yang lebih cepat diberi tantangan lanjutan sesuai materi."
+                                                                                                                                   },
+                                                                                                               "step7Description":  "Setelah menyusun polinomial, murid mempersiapkan presentasi untuk pertemuan berikutnya.",
+                                                                                                               "flowSummary":  [
+                                                                                                                                   "Diskusi kelompok untuk menyusun polinomial.",
+                                                                                                                                   "Menyusun presentasi di Google Slides.",
+                                                                                                                                   "Persiapan untuk presentasi di pertemuan berikutnya."
+                                                                                                                               ],
+                                                                                                               "product":  "Presentasi di Google Slides mengenai bilangan polinomial dan contoh dari kehidupan sehari-hari."
+                                                                                                           },
+                                                                                              "reflecting":  {
+                                                                                                                 "description":  "Murid merefleksikan proses penyusunan polinomial dalam kelompok.",
+                                                                                                                 "step8Description":  "Guru meminta murid untuk menuliskan satu hal yang mereka pelajari dari diskusi kelompok.",
+                                                                                                                 "reflectionQuestions":  [
+                                                                                                                                             "Apa yang kalian pelajari tentang menyusun polinomial?",
+                                                                                                                                             "Bagaimana kalian bekerja sama dalam kelompok?",
+                                                                                                                                             "Apa yang masih kalian bingungkan tentang polinomial?"
+                                                                                                                                         ]
+                                                                                                             },
+                                                                                              "formativeAssessment":  {
+                                                                                                                          "technique":  "Portofolio",
+                                                                                                                          "step9Description":  "Guru menilai kumpulan hasil kerja kelompok dan catatan penyelesaian murid.",
+                                                                                                                          "observedIndicators":  [
+                                                                                                                                                     "Murid menyusun polinomial dengan benar.",
+                                                                                                                                                     "Murid berkolaborasi dengan baik dalam kelompok.",
+                                                                                                                                                     "Murid menunjukkan kreativitas dalam presentasi."
+                                                                                                                                                 ],
+                                                                                                                          "teacherRecordFormat":  "Catatan hasil kerja kelompok dan catatan penyelesaian murid."
+                                                                                                                      }
+                                                                                          },
+                                                                                          {
+                                                                                              "meetingOrder":  3,
+                                                                                              "meetingTitle":  "Pertemuan 3 - Presentasi dan Refleksi",
+                                                                                              "duration":  "35 menit",
+                                                                                              "introParagraph":  "Pertemuan ini diakhiri dengan presentasi kelompok dan refleksi pembelajaran.",
+                                                                                              "focus":  "Murid mampu melakukan operasi penjumlahan dan pengurangan polinomial sederhana.",
+                                                                                              "target":  "Murid mampu menjelaskan hasil kerja mereka dan menjawab pertanyaan dari teman-teman.",
+                                                                                              "diagnostic":  {
+                                                                                                                 "step1Description":  "Guru memberikan soal untuk menguji pemahaman akhir murid tentang polinomial.",
+                                                                                                                 "sampleQuestion":  "Jelaskan bagaimana cara menjumlahkan dua polinomial.",
+                                                                                                                 "answerOptions":  [
+                                                                                                                                       "A. Tambahkan koefisien yang sama",
+                                                                                                                                       "B. Kalikan koefisien"
+                                                                                                                                   ],
+                                                                                                                 "correctAnswer":  "A. Tambahkan koefisien yang sama",
+                                                                                                                 "step2Description":  "Guru membentuk kelompok berdasarkan hasil jawaban murid.",
+                                                                                                                 "teacherNotes":  "Kelompok A/B bersifat sementara, bukan label pintar/kurang pintar."
+                                                                                                             },
+                                                                                              "understanding":  {
+                                                                                                                    "teacherNotes":  "Semua murid mendapat dasar konsep yang sama melalui presentasi.",
+                                                                                                                    "step4Description":  "Guru membahas hasil presentasi dan meluruskan miskonsepsi.",
+                                                                                                                    "step5Description":  "Guru menguatkan konsep dengan memberikan umpan balik setelah presentasi.",
+                                                                                                                    "triggerQuestions":  [
+                                                                                                                                             "Apa yang kalian pelajari dari presentasi teman-teman?",
+                                                                                                                                             "Bagaimana cara kalian menjelaskan polinomial kepada orang lain?",
+                                                                                                                                             "Apa yang masih kalian bingungkan tentang polinomial?"
+                                                                                                                                         ]
+                                                                                                                },
+                                                                                              "applying":  {
+                                                                                                               "step6Description":  "Murid menuliskan jawaban singkat dan refleksi pemahaman di akhir pembelajaran.",
+                                                                                                               "differentiation":  {
+                                                                                                                                       "supportGroup":  "Murid yang membutuhkan bantuan diberi arahan bertahap dan contoh tambahan.",
+                                                                                                                                       "advancedGroup":  "Murid yang lebih cepat diberi tantangan lanjutan sesuai materi."
+                                                                                                                                   },
+                                                                                                               "step7Description":  "Murid menyelesaikan refleksi dan menyiapkan diri untuk penilaian akhir.",
+                                                                                                               "flowSummary":  [
+                                                                                                                                   "Presentasi kelompok tentang polinomial.",
+                                                                                                                                   "Refleksi pembelajaran di akhir.",
+                                                                                                                                   "Diskusi tentang pemahaman polinomial."
+                                                                                                                               ],
+                                                                                                               "product":  "Presentasi di Google Slides mengenai bilangan polinomial dan contoh dari kehidupan sehari-hari."
+                                                                                                           },
+                                                                                              "reflecting":  {
+                                                                                                                 "description":  "Murid merefleksikan keseluruhan pembelajaran tentang polinomial.",
+                                                                                                                 "step8Description":  "Guru meminta murid untuk menuliskan satu hal yang mereka pelajari dari seluruh pembelajaran.",
+                                                                                                                 "reflectionQuestions":  [
+                                                                                                                                             "Apa yang kalian pelajari tentang polinomial?",
+                                                                                                                                             "Bagaimana kalian akan menggunakan pengetahuan ini?",
+                                                                                                                                             "Apa yang masih kalian bingungkan tentang polinomial?"
+                                                                                                                                         ]
+                                                                                                             },
+                                                                                              "formativeAssessment":  {
+                                                                                                                          "technique":  "Tes Tertulis",
+                                                                                                                          "step9Description":  "Murid menuliskan jawaban singkat dan refleksi pemahaman di akhir pembelajaran.",
+                                                                                                                          "observedIndicators":  [
+                                                                                                                                                     "Murid menjawab soal dengan benar.",
+                                                                                                                                                     "Murid menunjukkan pemahaman tentang polinomial.",
+                                                                                                                                                     "Murid berpartisipasi aktif dalam diskusi."
+                                                                                                                                                 ],
+                                                                                                                          "teacherRecordFormat":  "Catatan hasil tes tertulis murid."
+                                                                                                                      }
+                                                                                          }
+                                                                                      ]
+                                                                     },
+                                               "assessment":  {
+                                                                  "summative":  {
+                                                                                    "provision":  "Penilaian akhir dilakukan untuk mengukur pemahaman murid tentang polinomial.",
+                                                                                    "description":  "Murid akan dinilai berdasarkan presentasi dan pemahaman mereka tentang polinomial.",
+                                                                                    "sampleTasks":  [
+                                                                                                        "Menyusun presentasi di Google Slides tentang polinomial.",
+                                                                                                        "Menjawab pertanyaan tentang polinomial secara lisan.",
+                                                                                                        "Menuliskan refleksi tentang pembelajaran polinomial."
+                                                                                                    ],
+                                                                                    "criteria":  [
+                                                                                                     "Kejelasan informasi dalam presentasi.",
+                                                                                                     "Kemampuan menjawab pertanyaan.",
+                                                                                                     "Kreativitas dalam menyusun presentasi."
+                                                                                                 ],
+                                                                                    "achievementLevels":  [
+                                                                                                              {
+                                                                                                                  "level":  "Perlu Bimbingan",
+                                                                                                                  "description":  "Murid belum memahami konsep polinomial dengan baik.",
+                                                                                                                  "followUp":  "Memberikan bimbingan tambahan."
+                                                                                                              },
+                                                                                                              {
+                                                                                                                  "level":  "Cukup",
+                                                                                                                  "description":  "Murid memahami dasar-dasar polinomial tetapi masih perlu perbaikan.",
+                                                                                                                  "followUp":  "Memberikan latihan tambahan."
+                                                                                                              },
+                                                                                                              {
+                                                                                                                  "level":  "Baik",
+                                                                                                                  "description":  "Murid memahami polinomial dengan baik dan dapat menjelaskan kepada orang lain.",
+                                                                                                                  "followUp":  "Memberikan tantangan lanjutan."
+                                                                                                              },
+                                                                                                              {
+                                                                                                                  "level":  "Sangat Baik",
+                                                                                                                  "description":  "Murid menunjukkan pemahaman yang mendalam dan kreatif dalam presentasi.",
+                                                                                                                  "followUp":  "Memberikan proyek tambahan."
+                                                                                                              }
+                                                                                                          ]
+                                                                                },
+                                                                  "followUp":  {
+                                                                                   "description":  "Tindak lanjut dilakukan berdasarkan hasil penilaian akhir.",
+                                                                                   "notYetAchieved":  "Murid yang belum mencapai target akan diberikan bimbingan tambahan.",
+                                                                                   "almostAchieved":  "Murid yang hampir mencapai target akan diberikan latihan tambahan.",
+                                                                                   "achieved":  "Murid yang mencapai target akan diberikan tantangan lanjutan.",
+                                                                                   "exceeding":  "Murid yang melebihi target akan diberikan proyek tambahan.",
+                                                                                   "enrichmentExample":  "Murid yang cepat dapat membuat proyek tentang penerapan polinomial dalam kehidupan sehari-hari."
+                                                                               },
+                                                                  "teacherReflection":  {
+                                                                                            "description":  "Refleksi guru tentang proses pembelajaran dan hasil yang dicapai murid.",
+                                                                                            "questions":  [
+                                                                                                              "Apa yang berjalan baik dalam pembelajaran ini?",
+                                                                                                              "Apa yang perlu diperbaiki untuk pembelajaran selanjutnya?",
+                                                                                                              "Bagaimana murid berinteraksi selama pembelajaran?",
+                                                                                                              "Apa tantangan yang dihadapi murid dalam memahami polinomial?"
+                                                                                                          ]
+                                                                                        },
+                                                                  "completionChecklist":  [
+                                                                                              {
+                                                                                                  "item":  "Semua murid berpartisipasi dalam diskusi.",
+                                                                                                  "status":  "Selesai"
+                                                                                              },
+                                                                                              {
+                                                                                                  "item":  "Presentasi kelompok disusun dengan baik.",
+                                                                                                  "status":  "Selesai"
+                                                                                              },
+                                                                                              {
+                                                                                                  "item":  "Refleksi murid ditulis dengan jelas.",
+                                                                                                  "status":  "Selesai"
+                                                                                              },
+                                                                                              {
+                                                                                                  "item":  "Penilaian akhir dilakukan dengan baik.",
+                                                                                                  "status":  "Selesai"
+                                                                                              }
+                                                                                          ],
+                                                                  "finalFlowSummary":  "Pembelajaran tentang polinomial dilakukan melalui diskusi kelompok dan presentasi. Murid diharapkan dapat memahami dan menerapkan konsep polinomial dalam konteks nyata."
+                                                              }
+                                           },
+                        "rubric":  {
+                                       "criteria":  [
+
+                                                    ]
+                                   },
+                        "followUp":  {
+                                         "description":  "",
+                                         "notYetAchieved":  "",
+                                         "almostAchieved":  "",
+                                         "achieved":  "",
+                                         "exceeding":  "",
+                                         "enrichmentExample":  ""
+                                     },
+                        "teacherReflection":  {
+                                                  "description":  "",
+                                                  "questions":  [
+
+                                                                ]
+                                              },
+                        "completionChecklist":  [
+
+                                                ],
+                        "finalFlowSummary":  ""
+                    },
+    "contentMarkdown":  "# RPM Polinomial Sederhana\n\n## A. Identitas Pembelajaran\n- schoolName: SMPN 15 SURABAYA\n- teacherName: Vica Mawaddatus Syifa\n- educationLevel: SMP / MTs\n- phase: Fase D\n- gradeLevel: Kelas 7\n- subject: Matematika\n- topic: Polinomial sederhana dalam konteks pola bilangan\n- element: Aljabar\n- timeAllocation: 3 pertemuan x 35 menit\n- meetingCount: 3\n- academicYear: \n- rppType: intrakurikuler\n\n### Konteks Materi\nPembelajaran ini berfokus pada polinomial sederhana dalam konteks pola bilangan. Murid akan diajak untuk mengenali bentuk aljabar dan unsur-unsurnya melalui diskusi kelompok dan presentasi. Dengan menggunakan media visual, diharapkan murid dapat lebih memahami konsep yang diajarkan.\n\n## B. Profil dan Arah Pembelajaran\n### 1. Profil Lulusan yang Dikembangkan\n- **Penalaran Kritis**: Murid mampu menganalisis dan menyelesaikan masalah dengan pendekatan logis.\n- **Kolaborasi**: Murid mampu bekerja sama dalam kelompok untuk mencapai tujuan bersama.\n- **Kreativitas**: Murid mampu menghasilkan ide-ide baru dalam menyelesaikan masalah.\n- **Komunikasi**: Murid mampu menyampaikan ide dan hasil kerja dengan jelas.\n\n### 2. Lintas Disiplin Ilmu\n- Disiplin ilmu terkait: Bahasa Indonesia, Informatika\n- Alasan keterkaitan: Integrasi dengan Bahasa Indonesia membantu murid dalam mengkomunikasikan ide-ide mereka secara lisan dan tulisan, sedangkan Informatika mendukung penggunaan teknologi dalam presentasi.\n- Bentuk integrasi: Murid akan menggunakan Google Slides untuk presentasi dan berlatih komunikasi efektif dalam kelompok.\n- Catatan: Integrasi ini bersifat pendukung, dengan fokus utama tetap pada pembelajaran Matematika.\n\n### 3. Tujuan Pembelajaran\n- Murid mampu mengenali bentuk aljabar dan unsur-unsurnya.\n- Murid mampu menyusun bentuk polinomial sederhana dari konteks atau pola bilangan.\n- Murid mampu melakukan operasi penjumlahan dan pengurangan polinomial sederhana.\n\nPertanyaan pemantik: Bagaimana pola bilangan dapat dituliskan dalam bentuk aljabar atau polinomial sederhana?\n\n## C. Desain Pembelajaran\n### 1. Praktik Pedagogis\nPembelajaran dilakukan melalui diskusi kelompok dan presentasi, di mana murid bekerja sama untuk menemukan contoh polinomial dari kehidupan sehari-hari. Pendekatan ini mendorong murid untuk aktif berpartisipasi dan berkolaborasi dalam memahami konsep yang diajarkan.\n- **Diskusi Kelompok**: Murid berdiskusi dalam kelompok untuk mencari contoh polinomial.\n- **Presentasi**: Setiap kelompok menyajikan hasil diskusi mereka menggunakan Google Slides.\n\n### 2. Kemitraan Pembelajaran\n- **Guru Bahasa Indonesia**: Memberikan umpan balik setelah presentasi murid.\nKerja sama dengan guru Bahasa Indonesia bertujuan untuk meningkatkan kemampuan komunikasi murid.\n\n### 3. Pemanfaatan Digital\n- **Google Slides**: Digunakan untuk menyusun dan menampilkan presentasi.\n- **YouTube**: Digunakan untuk menayangkan video pengenalan polinomial.\nPenggunaan platform digital ini mendukung pembelajaran yang lebih interaktif dan menarik.\n\n### 4. Sumber Daya\n- **Papan tulis**: Digunakan untuk menjelaskan konsep dan mencatat ide-ide penting.\n- **Proyektor**: Digunakan untuk menayangkan video dan presentasi murid.\n\n## D. Rangkaian Kegiatan Pembelajaran per Pertemuan\n\n\n## E. Asesmen Pembelajaran\n### Asesmen Sumatif UH/UTS/UAS\n\n\n## F. Rubrik Penilaian\n\n## G. Tindak Lanjut Pembelajaran\n\n## H. Refleksi Guru\n\n## I. Checklist Kelengkapan RPM"
+}

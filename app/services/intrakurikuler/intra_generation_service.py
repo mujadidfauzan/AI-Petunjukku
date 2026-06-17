@@ -27,7 +27,7 @@ class IntraGenerationService:
 
     async def generate(self, payload: GenerateRppRequest) -> GenerateRppResponse:
         references = await self.rag_service.search_for_context(
-            query=payload.project.title or payload.project.subject or "RPP",
+            query=payload.project.title or payload.project.subject or "RPM",
             subject=payload.project.subject,
             phase=payload.project.phase,
             top_k=5,
@@ -46,8 +46,8 @@ class IntraGenerationService:
                 "content": json.dumps(
                     {
                         "instruction": (
-                            "Isi requiredResponseShape menjadi contentJson RPP final berdasarkan sourceData. "
-                            "Gunakan seluruh data Stage 1, Stage 2, Stage 3, dan Stage 4 sebagai satu-satunya dasar penyusunan RPP. "
+                            "Isi requiredResponseShape menjadi contentJson RPM final berdasarkan sourceData. "
+                            "Gunakan seluruh data Stage 1, Stage 2, Stage 3, dan Stage 4 sebagai satu-satunya dasar penyusunan RPM. "
                             "Semua isi naratif harus ditulis oleh LLM API berdasarkan sourceData, bukan oleh kode backend. "
                             "Jangan memilih sebagian data jika sourceData menyediakan beberapa item. "
                             "Object kosong pada requiredResponseShape hanya contoh struktur; jumlah item boleh ditambah atau dikurangi sesuai isi sourceData. "
@@ -57,7 +57,7 @@ class IntraGenerationService:
                             "learningDesign.digitalUse hanya boleh berasal dari Stage 3 field digitalPlatform. "
                             "learningDesign.resources hanya boleh berasal dari Stage 3 field facilityAndTechnologyUse. "
                             "Jangan menurunkan resources dari digitalPlatform. Jika digitalPlatform menyebut media atau platform digital, jangan otomatis menambahkan perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi ke resources kecuali perangkat itu disebut eksplisit pada facilityAndTechnologyUse. "
-                            "Produk akhir, tugas utama, rubrik, dan asesmen harus konsisten dengan finalStudentProduct Stage 3. Jangan menambahkan produk besar lain seperti laporan tertulis, LKPD, poster, video, atau artefak tambahan jika tidak disebut pada Stage 1-4. "
+                            "Produk akhir, tugas utama, dan asesmen harus konsisten dengan finalStudentProduct Stage 3. Jangan menambahkan produk besar lain seperti laporan tertulis, LKPD, poster, video, atau artefak tambahan jika tidak disebut pada Stage 1-4. "
                             "Gunakan Stage 4 untuk mengisi formativeAssessment pada setiap pertemuan. "
                             "Untuk setiap formativeAssessment, isi observedIndicators dengan 3-5 indikator konkret dan teacherRecordFormat dengan format catatan guru yang sesuai teknik asesmen. "
                             "Jangan membiarkan observedIndicators kosong. Jangan membiarkan teacherRecordFormat kosong. "
@@ -114,7 +114,7 @@ class IntraGenerationService:
 
     def _build_system_prompt(self) -> str:
         return """
-Anda adalah AI Service Petunjukku untuk menyusun RPP Intrakurikuler final.
+Anda adalah AI Service Petunjukku untuk menyusun RPM Intrakurikuler final.
 
 Output wajib hanya JSON valid:
 {"contentJson": {...}}
@@ -138,7 +138,7 @@ B. Prinsip Utama
 7. Jangan memilih hanya satu item jika sourceData berisi beberapa item.
 8. Gunakan istilah "murid", bukan "siswa" atau "peserta didik".
 9. learningObjectives dan target pertemuan harus diawali "Murid mampu ...".
-10. Gaya bahasa harus naratif, siap ditempel ke dokumen RPP, dan tidak berupa frasa pendek.
+10. Gaya bahasa harus naratif, siap ditempel ke dokumen RPM, dan tidak berupa frasa pendek.
 
 C. Prioritas Keputusan
 Jika ada konflik antar data, gunakan urutan prioritas berikut:
@@ -177,10 +177,10 @@ D. Aturan Learning Design
 - Jika Stage 3 menyebut lebih dari satu mitra, media digital, atau sumber daya, pisahkan menjadi beberapa item.
 - Jangan menambahkan mitra, media digital, atau sumber daya baru hanya karena dianggap umum dipakai di pembelajaran.
 
-E. Aturan Produk, Tugas, Rubrik, dan Asesmen
+E. Aturan Produk, Tugas,dan Asesmen
 - finalStudentProduct Stage 3 adalah acuan utama produk/kinerja murid.
 - applying.product harus mengikuti finalStudentProduct Stage 3.
-- Produk akhir, tugas utama, asesmen, rubrik, dan tindak lanjut harus konsisten dengan finalStudentProduct Stage 3 dan tujuan pembelajaran Stage 2.
+- Produk akhir, tugas utama, asesmen, dan tindak lanjut harus konsisten dengan finalStudentProduct Stage 3 dan tujuan pembelajaran Stage 2.
 - Jangan menambahkan produk besar lain seperti laporan tertulis, LKPD, poster, video, infografis, makalah, atau artefak lain jika tidak disebut pada Stage 1-4.
 - Asesmen boleh mengukur pemahaman murid, tetapi tidak boleh mengganti produk akhir yang sudah diputuskan di Stage 3.
 
@@ -216,7 +216,6 @@ Field berikut wajib diisi:
 - assessment.summative.sampleTasks
 - assessment.summative.criteria
 - assessment.summative.achievementLevels
-- rubric.criteria
 - followUp
 - teacherReflection
 - completionChecklist
@@ -252,7 +251,6 @@ G. Kedalaman Narasi Minimal
 - assessment.summative.description: 2-3 kalimat.
 - assessment.summative.sampleTasks: 3-5 butir.
 - assessment.summative.criteria: 4-5 butir.
-- rubric.criteria: 3-5 kriteria.
 - followUp.description: 2-3 kalimat.
 - completionChecklist: 4-6 item.
 - finalFlowSummary: 2-3 kalimat.
@@ -332,9 +330,10 @@ N. Struktur Asesmen
 - observedIndicators wajib berisi 3-5 indikator konkret yang diamati guru.
 - teacherRecordFormat wajib berisi format catatan guru yang praktis sesuai teknik asesmen.
 - assessment.summative harus berisi provision, description, sampleTasks, criteria, dan achievementLevels.
-- rubric, followUp, teacherReflection, completionChecklist, dan finalFlowSummary harus berada di root-level contentJson, sejajar dengan assessment.
-- Jangan memasukkan rubric, followUp, teacherReflection, completionChecklist, atau finalFlowSummary ke dalam assessment.
-- Rubrik, tindak lanjut, refleksi guru, checklist, dan ringkasan akhir harus nyambung dengan tujuan pembelajaran, produk akhir, dan asesmen.
+- followUp, teacherReflection, completionChecklist, dan finalFlowSummary harus berada di root-level contentJson, sejajar dengan assessment.
+- Jangan memasukkan followUp, teacherReflection, completionChecklist, atau finalFlowSummary ke dalam assessment.
+- Tindak lanjut, refleksi guru, checklist, dan ringkasan akhir harus nyambung dengan tujuan pembelajaran, produk akhir, dan asesmen.
+- Jangan membuat root-level rubric.
 """.strip()
 
     def _build_source_data(
@@ -407,7 +406,7 @@ N. Struktur Asesmen
                     "partnership hanya boleh berasal dari partnershipSourceText.",
                     "digitalUse hanya boleh berasal dari digitalUseSourceText.",
                     "resources hanya boleh berasal dari resourcesSourceText.",
-                    "produk akhir, tugas utama, rubrik, dan asesmen harus konsisten dengan finalStudentProductSourceText.",
+                    "produk akhir, tugas utama, dan asesmen harus konsisten dengan finalStudentProductSourceText.",
                     "jangan menambahkan perangkat, media, aplikasi, fasilitas, atau produk yang tidak disebut pada Stage 1-4.",
                     "jangan menurunkan resources dari digitalUseSourceText.",
                 ],
@@ -497,13 +496,6 @@ N. Struktur Asesmen
                         {"level": "Sangat Baik", "description": "", "followUp": ""},
                     ],
                 },
-            },
-            "rubric": {
-                "criteria": [
-                    {"criterion": "", "excellent": "", "good": "", "needsSupport": ""},
-                    {"criterion": "", "excellent": "", "good": "", "needsSupport": ""},
-                    {"criterion": "", "excellent": "", "good": "", "needsSupport": ""},
-                ],
             },
             "followUp": {
                 "description": "",
@@ -642,7 +634,7 @@ N. Struktur Asesmen
             {
                 "role": "system",
                 "content": """
-Anda adalah pemeriksa grounding RPP Petunjukku.
+Anda adalah pemeriksa grounding RPM Petunjukku.
 
 Tugas:
 1. Periksa contentJson yang sudah dibuat.
@@ -660,11 +652,13 @@ Aturan keras:
 - Jika media/platform digital disebut, media/platform tersebut masuk ke digitalUse, bukan otomatis menjadi alasan menambah perangkat akses ke resources.
 - Perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi hanya boleh masuk resources jika disebut eksplisit pada resourcesSourceText atau Stage 1-4.
 - Jika resourcesSourceText hanya menyebut satu sumber daya, resources cukup memuat sumber daya tersebut.
-- Produk akhir, tugas utama, rubrik, dan asesmen harus konsisten dengan strictGroundingContract.finalStudentProductSourceText dan tujuan pembelajaran Stage 2.
+- Produk akhir, tugas utama, dan asesmen harus konsisten dengan strictGroundingContract.finalStudentProductSourceText dan tujuan pembelajaran Stage 2.
 - Jangan menambahkan produk besar lain seperti laporan tertulis, LKPD, poster, video, infografis, makalah, atau artefak lain jika tidak disebut pada Stage 1-4.
 - Asesmen formatif tetap mengikuti Stage 4.
 - Indikator formatif boleh dikembangkan oleh LLM, tetapi harus sesuai teknik Stage 4, fokus pertemuan, target, aktivitas, dan produk yang tersedia dalam sourceData.
 - Jika ada item tidak didukung sourceData, hapus item tersebut atau tulis ulang agar sesuai sourceData.
+- Jangan membuat atau mempertahankan root-level rubric.
+- Jika contentJsonToRepair memiliki root-level rubric, hapus field tersebut.
 
 Output wajib hanya JSON valid:
 {"contentJson": {...}}
@@ -824,7 +818,6 @@ Output wajib hanya JSON valid:
 
         if isinstance(assessment, dict):
             misplaced_root_keys = [
-                "rubric",
                 "followUp",
                 "teacherReflection",
                 "completionChecklist",
@@ -913,7 +906,7 @@ Output wajib hanya JSON valid:
                     lines.append(f"{prefix} {text}")
 
     def _to_markdown(self, content: dict[str, Any]) -> str:
-        title = content.get("title") or "RPP Pembelajaran"
+        title = content.get("title") or "RPM Pembelajaran"
         lines = [f"# {title}", ""]
 
         identity = content.get("identity") or {}
@@ -1167,7 +1160,7 @@ Output wajib hanya JSON valid:
             if question_text:
                 lines.append(f"- {question_text}")
 
-        lines.extend(["", "## I. Checklist Kelengkapan RPP"])
+        lines.extend(["", "## I. Checklist Kelengkapan RPM"])
         for item in content.get("completionChecklist") or []:
             item_text = str(item.get("item", "")).strip()
             status_text = str(item.get("status", "")).strip()
