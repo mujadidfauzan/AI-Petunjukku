@@ -15,10 +15,28 @@ class KinaChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
 
 
+class KinaInformationPoint(BaseModel):
+    key: str
+    label: str
+    completed: bool
+
+
+class KinaInformationProgress(BaseModel):
+    completedCount: int
+    totalCount: int
+    percent: int
+    activeStage: str | None = None
+    activeLabel: str | None = None
+    completed: list[str] = Field(default_factory=list)
+    missing: list[str] = Field(default_factory=list)
+    points: list[KinaInformationPoint] = Field(default_factory=list)
+
+
 class KinaChatResponse(BaseModel):
     reply: str
     usedReferences: list[UsedReferenceSchema] = Field(default_factory=list)
     suggestedFollowUpQuestions: list[str] = Field(default_factory=list)
+    informationProgress: KinaInformationProgress | None = None
 
 
 class KinaSummaryRequest(BaseModel):

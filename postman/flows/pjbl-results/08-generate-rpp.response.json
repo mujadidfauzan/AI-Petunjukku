@@ -4,125 +4,365 @@
   "rppType": "pjbl_kokurikuler",
   "usedReferences": [],
   "contentJson": {
-    "title": "Pemetaan Limbah di Sekitar Sekolah",
-    "identity": {
-      "schoolName": "MTsN 1 Banyuwangi",
-      "city": "Banyuwangi",
-      "subject": "Projek Penguatan Profil Pelajar Pancasila",
-      "phase": "Fase D",
+    "documentMeta": {
+      "documentType": "RPM Kokurikuler",
+      "templateName": "RPM Kokurikuler",
+      "title": "Pemetaan Limbah di Sekitar Sekolah",
+      "subtitle": "Sampah plastik di lingkungan MTsN 1 Banyuwangi",
       "educationLevel": "SMP/MTs",
-      "educationPhase": "Fase D (Kelas 7-9)",
-      "relatedSubjects": [
+      "grade": "VII B",
+      "phase": "Fase D (Kelas 7-9)",
+      "generatedFrom": "kinaChatAnalysis",
+      "version": "1.0"
+    },
+    "sectionOrder": [
+      "cover",
+      "daftarIsi",
+      "identitasPembelajaran",
+      "profilDanArahPembelajaran",
+      "desainPembelajaran",
+      "rangkaianKegiatan",
+      "asesmenFormatif",
+      "asesmenSumatif"
+    ],
+    "cover": {
+      "judulUtama": "RPM Kokurikuler",
+      "judulProyek": "Pemetaan Limbah di Sekitar Sekolah",
+      "subjudul": "Apa pola masalah Limbah yang terlihat dari data sekitar sekolah?",
+      "alokasiWaktuTotal": {
+        "jumlahJP": 2,
+        "label": "2 JP"
+      },
+      "jenjang": "SMP/MTs",
+      "kelas": "VII B"
+    },
+    "daftarIsi": [
+      {
+        "kode": "A",
+        "judul": "Identitas Pembelajaran",
+        "subbagian": []
+      },
+      {
+        "kode": "B",
+        "judul": "Profil dan Arah Pembelajaran",
+        "subbagian": [
+          "Gambaran Proyek",
+          "Profil Lulusan yang Dikembangkan",
+          "Mata Pelajaran/Muatan Terkait"
+        ]
+      },
+      {
+        "kode": "C",
+        "judul": "Desain Pembelajaran",
+        "subbagian": [
+          "Praktik Pedagogis",
+          "Lingkungan Belajar",
+          "Kemitraan Pembelajaran",
+          "Pemanfaatan Digital",
+          "Sumber Daya"
+        ]
+      },
+      {
+        "kode": "D",
+        "judul": "Rangkaian Kegiatan Pembelajaran per Pertemuan",
+        "subbagian": [
+          "Asesmen Formatif",
+          "Asesmen Sumatif - Penilaian Kinerja"
+        ]
+      }
+    ],
+    "identitasPembelajaran": {
+      "namaSekolah": "MTsN 1 Banyuwangi",
+      "namaGuru": "Guru PJBL",
+      "jenjang": "SMP/MTs",
+      "fase": "Fase D (Kelas 7-9)",
+      "kelasSemester": "VII B",
+      "bentukKokurikuler": "Projek Penguatan Profil Pelajar Pancasila",
+      "alokasiWaktuTotal": {
+        "jumlahJP": 2,
+        "label": "2 JP"
+      },
+      "produkAkhir": [
+        "Produk akhir dipilih berupa poster infografis berbentuk peta temuan pada kertas plano, dilengkapi stiker warna untuk menunjukkan jenis dan lokasi sampah plastik dominan.",
+        "Tabel data",
+        "Peta temuan",
+        "Presentasi hasil"
+      ],
+      "mataPelajaranMuatanTerkait": [
         "Projek Penguatan Profil Pelajar Pancasila",
         "IPA",
         "Bahasa Indonesia",
         "Matematika"
       ],
-      "gradeLevel": "VII B",
-      "rppType": "pjbl_kokurikuler",
-      "timeAllocation": "2 x 35 menit (Jam Pelajaran)"
+      "konteksProyek": "Sampah plastik di lingkungan MTsN 1 Banyuwangi Sampah plastik dari kantin dan bekal siswa masih sering tercampur dengan sampah lain. Lingkungan sekitar madrasah cukup ramai pada jam masuk, istirahat, dan pulang sekolah sehingga pengelolaan sampah perlu dibuat sederhana dan terpantau."
     },
-    "projectOverview": {
-      "theme": "Limbah",
-      "localIssue": "Sampah plastik di lingkungan MTsN 1 Banyuwangi",
-      "background": "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan MTsN 1 Banyuwangi",
-      "drivingQuestion": "Apa pola masalah Limbah yang terlihat dari data sekitar sekolah?",
-      "focusAndScope": "Fokus proyek ditetapkan pada pemetaan jenis dan lokasi sampah plastik di area kantin, kelas, halaman madrasah, dan ruang kelas agar siswa mengetahui sumber sampah yang paling dominan.",
-      "studentNeeds": "Butuh kegiatan nyata, sederhana, terarah, dan dekat dengan kebiasaan siswa di madrasah.",
-      "areaContext": {
-        "locationStatus": "Terverifikasi",
-        "address": "Banyuwangi, Jawa Timur",
-        "surroundingArea": [
-          "kantin madrasah sebagai sumber utama sampah plastik saat jam istirahat",
-          "halaman madrasah yang sering menjadi area berkumpul siswa",
-          "ruang kelas dengan sampah plastik dari bekal dan alat tulis",
-          "permukiman warga di sekitar madrasah"
+    "profilDanArahPembelajaran": {
+      "gambaranProyek": {
+        "deskripsi": "Fokus proyek ditetapkan pada pemetaan jenis dan lokasi sampah plastik di area kantin, kelas, halaman madrasah, dan ruang kelas agar siswa mengetahui sumber sampah yang paling dominan.",
+        "hasilYangDiharapkan": [
+          "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+          "Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.",
+          "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
         ],
-        "regionalContext": "Lingkungan sekitar madrasah cukup ramai pada jam masuk, istirahat, dan pulang sekolah sehingga pengelolaan sampah perlu dibuat sederhana dan terpantau."
+        "buktiBelajar": [
+          "Produk akhir dipilih berupa poster infografis berbentuk peta temuan pada kertas plano, dilengkapi stiker warna untuk menunjukkan jenis dan lokasi sampah plastik dominan.",
+          "Tabel data",
+          "Peta temuan",
+          "Presentasi hasil"
+        ],
+        "batasAmanKegiatan": "Risiko utama adalah waktu observasi terbatas, data antarkelompok tidak konsisten, dan siswa keluar dari area pengamatan. Mitigasinya memakai lembar observasi seragam, batas area tiap kelompok, timer, dan cek kemajuan guru."
       },
-      "initialRiskMonitoring": [
-        "Data observasi antarkelompok tidak konsisten. - level: sedang - Gunakan lembar observasi seragam dan contoh pengisian sebelum observasi.",
-        "Siswa keluar dari area pengamatan. - level: sedang - Tetapkan batas area tiap kelompok dan lakukan cek kemajuan oleh guru.",
-        "Waktu observasi terbatas. - level: sedang - Gunakan timer dan batasi jumlah titik observasi."
-      ]
-    },
-    "learningObjectives": [
-      "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
-      "Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.",
-      "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
-    ],
-    "studentContext": {
-      "className": "VII B",
-      "studentCount": 34,
-      "characteristics": "Siswa aktif berdiskusi, suka kegiatan visual, dan lebih mudah terlibat jika proyek dekat dengan kehidupan sehari-hari.",
-      "classCondition": "Siswa aktif berdiskusi, suka kegiatan visual, dan lebih mudah terlibat jika proyek dekat dengan kehidupan sehari-hari. Koordinasi kelompok tetap perlu diarahkan agar observasi berjalan rapi.",
-      "learningChallenges": [
-        "sebagian siswa kurang teliti mencatat data",
-        "koordinasi kelompok perlu diarahkan",
-        "waktu proyek terbatas"
-      ],
-      "dominantLearningStyle": "visual dan kinestetik"
-    },
-    "learningDesign": {
-      "finalProduct": "Produk akhir dipilih berupa poster infografis berbentuk peta temuan pada kertas plano, dilengkapi stiker warna untuk menunjukkan jenis dan lokasi sampah plastik dominan.",
-      "activitiesAndSchedule": "Alur kegiatan ditetapkan dalam 2 x 35 menit: 10 menit pembukaan dan pembagian kelompok, 25 menit observasi area madrasah, 20 menit menyusun peta temuan, 10 menit presentasi singkat, dan 5 menit refleksi.",
-      "rolesAndSupport": "Siswa bekerja dalam kelompok berisi empat orang dengan peran ketua, pencatat data, penanda peta, dan penyaji. Pak Robby memantau kemajuan memakai lembar cek singkat.",
-      "facilitiesTechnologyPartnership": "Fasilitas yang digunakan adalah halaman madrasah, kantin, ruang kelas, kertas plano, stiker warna, spidol, papan tulis, tempat sampah, dan proyektor. Proyek dilakukan tanpa mitra luar.",
-      "riskMitigation": "Risiko utama adalah waktu observasi terbatas, data antarkelompok tidak konsisten, dan siswa keluar dari area pengamatan. Mitigasinya memakai lembar observasi seragam, batas area tiap kelompok, timer, dan cek kemajuan guru.",
-      "assessmentReflection": "Asesmen menggunakan rubrik sederhana dengan kriteria kelengkapan data, ketepatan peta temuan, kerja sama kelompok, kontribusi individu, dan kejelasan presentasi. Presentasi dilakukan satu menit per kelompok lalu ditutup refleksi satu kalimat."
-    },
-    "meetingPlan": [
-      {
-        "meeting": 1,
-        "duration": "2 x 35 menit (Jam Pelajaran)",
-        "opening": "Guru membuka dengan pertanyaan pemantik dan mengaitkan proyek dengan isu lokal.",
-        "mainActivities": [
-          "Observasi konteks Stage 1",
-          "Pengumpulan data",
-          "Penyajian temuan",
-          "Presentasi"
-        ],
-        "closing": "Siswa mempresentasikan temuan atau produk awal, lalu menulis refleksi singkat.",
-        "formativeAssessment": "Observasi proses kelompok, cek produk, dan tanya jawab singkat."
-      }
-    ],
-    "assessment": {
-      "process": [
-        "Ketepatan observasi atau pengumpulan data",
-        "Kerja sama dan pembagian peran",
-        "Keterlibatan siswa selama kegiatan"
-      ],
-      "product": [
-        "Kesesuaian produk dengan masalah yang dipilih",
-        "Kejelasan data atau pesan yang disajikan",
-        "Kerapian dan keterbacaan produk akhir"
-      ],
-      "presentation": [
-        "Kejelasan penyampaian hasil",
-        "Kemampuan menjawab pertanyaan sederhana"
-      ],
-      "reflection": "Siswa menuliskan satu hal yang dipelajari dan satu aksi kecil yang dapat dilakukan setelah proyek.",
-      "rubric": [
+      "profilLulusan": [
         {
-          "criterion": "Pemahaman masalah",
-          "description": "Siswa mampu menjelaskan masalah proyek sesuai konteks sekolah."
+          "id": "profil-1",
+          "nama": "Bernalar Kritis",
+          "deskripsi": "Peserta didik mengamati masalah, membaca data sederhana, dan menyimpulkan temuan secara logis."
         },
         {
-          "criterion": "Kualitas produk",
-          "description": "Produk akhir jelas, relevan, dan dapat dipahami warga kelas/sekolah."
+          "id": "profil-2",
+          "nama": "Gotong Royong",
+          "deskripsi": "Peserta didik bekerja dalam kelompok dengan pembagian peran dan tanggung jawab yang jelas."
         },
         {
-          "criterion": "Kolaborasi",
-          "description": "Siswa menjalankan peran dan bekerja sama secara bertanggung jawab."
+          "id": "profil-3",
+          "nama": "Kreatif",
+          "deskripsi": "Peserta didik menyajikan temuan proyek dalam produk yang jelas, menarik, dan mudah dipahami."
+        }
+      ],
+      "mataPelajaranMuatan": [
+        {
+          "nama": "Projek Penguatan Profil Pelajar Pancasila",
+          "kontribusiPembelajaran": "Muatan Projek Penguatan Profil Pelajar Pancasila mendukung proses memahami masalah, mengolah informasi, dan menyajikan hasil proyek."
         },
         {
-          "criterion": "Refleksi",
-          "description": "Siswa mampu menyampaikan pembelajaran dan rencana tindak lanjut sederhana."
+          "nama": "IPA",
+          "kontribusiPembelajaran": "Muatan IPA mendukung proses memahami masalah, mengolah informasi, dan menyajikan hasil proyek."
+        },
+        {
+          "nama": "Bahasa Indonesia",
+          "kontribusiPembelajaran": "Muatan Bahasa Indonesia mendukung proses memahami masalah, mengolah informasi, dan menyajikan hasil proyek."
+        },
+        {
+          "nama": "Matematika",
+          "kontribusiPembelajaran": "Muatan Matematika mendukung proses memahami masalah, mengolah informasi, dan menyajikan hasil proyek."
         }
       ]
     },
-    "teacherNotes": "Guru menginginkan proyek yang realistis, sederhana, dan sesuai konteks siswa.",
-    "completionStatus": "complete"
+    "desainPembelajaran": {
+      "praktikPedagogis": {
+        "deskripsi": "Pembelajaran menggunakan pendekatan proyek kontekstual berbasis masalah nyata di lingkungan sekolah.",
+        "bentukPraktikPedagogis": [
+          {
+            "nama": "Project Based Learning",
+            "deskripsi": "Murid menyelesaikan masalah nyata melalui tahapan eksplorasi, produksi, presentasi, dan refleksi."
+          },
+          {
+            "nama": "Observasi Kontekstual",
+            "deskripsi": "Murid mengumpulkan data sederhana dari lingkungan belajar yang dekat dengan keseharian mereka."
+          },
+          {
+            "nama": "Diskusi Kelompok",
+            "deskripsi": "Murid membagi peran, menyepakati temuan, dan menyiapkan produk secara kolaboratif."
+          },
+          {
+            "nama": "Refleksi Terarah",
+            "deskripsi": "Murid menuliskan pembelajaran dan tindak lanjut sederhana dari pengalaman proyek."
+          }
+        ]
+      },
+      "lingkunganBelajar": {
+        "lingkunganFisik": "Madrasah dengan kantin aktif, halaman cukup luas, dan area kelas yang ramai saat istirahat.",
+        "lingkunganSosial": "Siswa aktif berdiskusi, suka kegiatan visual, dan lebih mudah terlibat jika proyek dekat dengan kehidupan sehari-hari. Koordinasi kelompok tetap perlu diarahkan agar observasi berjalan rapi.",
+        "lingkunganAman": "Risiko utama adalah waktu observasi terbatas, data antarkelompok tidak konsisten, dan siswa keluar dari area pengamatan. Mitigasinya memakai lembar observasi seragam, batas area tiap kelompok, timer, dan cek kemajuan guru.",
+        "lingkunganReflektif": "Asesmen menggunakan rubrik sederhana dengan kriteria kelengkapan data, ketepatan peta temuan, kerja sama kelompok, kontribusi individu, dan kejelasan presentasi. Presentasi dilakukan satu menit per kelompok lalu ditutup refleksi satu kalimat."
+      },
+      "kemitraanPembelajaran": [
+        {
+          "mitra": "Tidak menggunakan mitra luar",
+          "peranMitra": "Kegiatan difokuskan pada sumber daya internal sekolah."
+        }
+      ],
+      "pemanfaatanDigital": [
+        {
+          "sumberDigital": "Proyektor",
+          "tautan": "",
+          "fungsiDalamPembelajaran": "Menampilkan pertanyaan pemantik, contoh format kerja, atau hasil presentasi kelompok.",
+          "disarankanMunculPadaTahap": [
+            1
+          ]
+        }
+      ],
+      "sumberDaya": [
+        {
+          "nama": "kelas",
+          "kategori": "alat atau fasilitas",
+          "fungsi": "Mendukung pelaksanaan, dokumentasi, atau penyajian hasil proyek."
+        },
+        {
+          "nama": "halaman madrasah",
+          "kategori": "alat atau fasilitas",
+          "fungsi": "Mendukung pelaksanaan, dokumentasi, atau penyajian hasil proyek."
+        },
+        {
+          "nama": "kantin",
+          "kategori": "alat atau fasilitas",
+          "fungsi": "Mendukung pelaksanaan, dokumentasi, atau penyajian hasil proyek."
+        },
+        {
+          "nama": "proyektor",
+          "kategori": "alat atau fasilitas",
+          "fungsi": "Mendukung pelaksanaan, dokumentasi, atau penyajian hasil proyek."
+        },
+        {
+          "nama": "papan tulis",
+          "kategori": "alat atau fasilitas",
+          "fungsi": "Mendukung pelaksanaan, dokumentasi, atau penyajian hasil proyek."
+        },
+        {
+          "nama": "tempat sampah",
+          "kategori": "alat atau fasilitas",
+          "fungsi": "Mendukung pelaksanaan, dokumentasi, atau penyajian hasil proyek."
+        },
+        {
+          "nama": "kertas plano",
+          "kategori": "alat atau fasilitas",
+          "fungsi": "Mendukung pelaksanaan, dokumentasi, atau penyajian hasil proyek."
+        },
+        {
+          "nama": "spidol",
+          "kategori": "alat atau fasilitas",
+          "fungsi": "Mendukung pelaksanaan, dokumentasi, atau penyajian hasil proyek."
+        },
+        {
+          "nama": "Produk akhir dipilih berupa poster infografis berbentuk peta temuan pada kertas plano, dilengkapi stiker warna untuk menunjukkan jenis dan lokasi sampah plastik dominan.",
+          "kategori": "produk atau bukti belajar",
+          "fungsi": "Menjadi bukti hasil belajar dan bahan penilaian kinerja."
+        },
+        {
+          "nama": "Tabel data",
+          "kategori": "produk atau bukti belajar",
+          "fungsi": "Menjadi bukti hasil belajar dan bahan penilaian kinerja."
+        },
+        {
+          "nama": "Peta temuan",
+          "kategori": "produk atau bukti belajar",
+          "fungsi": "Menjadi bukti hasil belajar dan bahan penilaian kinerja."
+        },
+        {
+          "nama": "Presentasi hasil",
+          "kategori": "produk atau bukti belajar",
+          "fungsi": "Menjadi bukti hasil belajar dan bahan penilaian kinerja."
+        }
+      ]
+    },
+    "rangkaianKegiatan": {
+      "deskripsiAlur": "Alur kegiatan ditetapkan dalam 2 x 35 menit: 10 menit pembukaan dan pembagian kelompok, 25 menit observasi area madrasah, 20 menit menyusun peta temuan, 10 menit presentasi singkat, dan 5 menit refleksi.",
+      "totalTahap": 1,
+      "totalJP": 2,
+      "tahapKegiatan": [
+        {
+          "nomorTahap": 1,
+          "judulTahap": "Pemetaan Limbah di Sekitar Sekolah",
+          "alokasiJP": 2,
+          "langkahGuru": "Guru membuka dengan pertanyaan pemantik, menjelaskan tujuan proyek, membagi kelompok, memberi format observasi, memantau proses, dan memandu refleksi. Siswa bekerja dalam kelompok berisi empat orang dengan peran ketua, pencatat data, penanda peta, dan penyaji. Pak Robby memantau kemajuan memakai lembar cek singkat.",
+          "kegiatanMurid": "Alur kegiatan ditetapkan dalam 2 x 35 menit: 10 menit pembukaan dan pembagian kelompok, 25 menit observasi area madrasah, 20 menit menyusun peta temuan, 10 menit presentasi singkat, dan 5 menit refleksi.",
+          "hasilYangDikumpulkan": [
+            "Produk akhir dipilih berupa poster infografis berbentuk peta temuan pada kertas plano, dilengkapi stiker warna untuk menunjukkan jenis dan lokasi sampah plastik dominan.",
+            "Tabel data",
+            "Peta temuan",
+            "Presentasi hasil"
+          ],
+          "pemanfaatanDigitalTerkait": [
+            "Proyektor"
+          ]
+        }
+      ]
+    },
+    "asesmenFormatif": {
+      "deskripsi": "Asesmen formatif digunakan sebagai contoh template observasi proses, bukan data murid final.",
+      "instrumenObservasi": {
+        "tipe": "template",
+        "kolom": [
+          "namaMurid",
+          "kolaborasi",
+          "kemandirian",
+          "komunikasi",
+          "catatanGuru"
+        ],
+        "contohBaris": [
+          {
+            "namaMurid": "",
+            "kolaborasi": "",
+            "kemandirian": "",
+            "komunikasi": "",
+            "catatanGuru": ""
+          }
+        ]
+      }
+    },
+    "asesmenSumatif": {
+      "deskripsi": "Penilaian kinerja dilakukan terhadap proses, produk, presentasi, dan refleksi proyek.",
+      "sumberDimensi": "profilDanArahPembelajaran.profilLulusan",
+      "rubrik": [
+        {
+          "dimensi": "Bernalar Kritis",
+          "aspek": "Kinerja proyek yang menunjukkan Bernalar Kritis",
+          "sangatBaik": "Menunjukkan Bernalar Kritis secara konsisten, mandiri, dan berdampak pada kualitas proses maupun produk proyek.",
+          "baik": "Menunjukkan Bernalar Kritis dengan baik pada sebagian besar proses dan produk proyek.",
+          "cukup": "Mulai menunjukkan Bernalar Kritis, tetapi masih perlu arahan pada beberapa bagian kegiatan.",
+          "perluBimbingan": "Belum menunjukkan Bernalar Kritis secara memadai dan membutuhkan pendampingan intensif dari guru."
+        },
+        {
+          "dimensi": "Gotong Royong",
+          "aspek": "Kinerja proyek yang menunjukkan Gotong Royong",
+          "sangatBaik": "Menunjukkan Gotong Royong secara konsisten, mandiri, dan berdampak pada kualitas proses maupun produk proyek.",
+          "baik": "Menunjukkan Gotong Royong dengan baik pada sebagian besar proses dan produk proyek.",
+          "cukup": "Mulai menunjukkan Gotong Royong, tetapi masih perlu arahan pada beberapa bagian kegiatan.",
+          "perluBimbingan": "Belum menunjukkan Gotong Royong secara memadai dan membutuhkan pendampingan intensif dari guru."
+        },
+        {
+          "dimensi": "Kreatif",
+          "aspek": "Kinerja proyek yang menunjukkan Kreatif",
+          "sangatBaik": "Menunjukkan Kreatif secara konsisten, mandiri, dan berdampak pada kualitas proses maupun produk proyek.",
+          "baik": "Menunjukkan Kreatif dengan baik pada sebagian besar proses dan produk proyek.",
+          "cukup": "Mulai menunjukkan Kreatif, tetapi masih perlu arahan pada beberapa bagian kegiatan.",
+          "perluBimbingan": "Belum menunjukkan Kreatif secara memadai dan membutuhkan pendampingan intensif dari guru."
+        }
+      ]
+    },
+    "validationRules": {
+      "requiredTopLevelKeys": [
+        "documentMeta",
+        "sectionOrder",
+        "cover",
+        "daftarIsi",
+        "identitasPembelajaran",
+        "profilDanArahPembelajaran",
+        "desainPembelajaran",
+        "rangkaianKegiatan",
+        "asesmenFormatif",
+        "asesmenSumatif"
+      ],
+      "computedFields": {
+        "rangkaianKegiatan.totalTahap": "count(rangkaianKegiatan.tahapKegiatan)",
+        "rangkaianKegiatan.totalJP": "sum(rangkaianKegiatan.tahapKegiatan[].alokasiJP)",
+        "identitasPembelajaran.alokasiWaktuTotal.jumlahJP": "rangkaianKegiatan.totalJP",
+        "cover.alokasiWaktuTotal.jumlahJP": "rangkaianKegiatan.totalJP",
+        "identitasPembelajaran.alokasiWaktuTotal.label": "`${totalJP} JP`",
+        "cover.alokasiWaktuTotal.label": "`${totalJP} JP`"
+      },
+      "consistencyRules": [
+        "sectionOrder harus menentukan urutan render DOCX.",
+        "produkAkhir harus berupa array.",
+        "jumlah tahapKegiatan fleksibel berdasarkan analisis chat Kina.",
+        "alokasiJP pada setiap tahap wajib berupa number.",
+        "totalJP wajib dihitung dari seluruh tahapKegiatan.",
+        "komentar DOCX tidak boleh masuk sebagai konten JSON.",
+        "rubrik asesmenSumatif harus dibuat untuk semua profilLulusan.",
+        "pemanfaatanDigital tidak wajib muncul pada tahap, tetapi jika relevan sebaiknya dihubungkan melalui pemanfaatanDigitalTerkait.",
+        "mataPelajaranMuatanTerkait pada identitas tidak wajib sama dengan mataPelajaranMuatan pada bagian profil."
+      ]
+    }
   },
-  "contentMarkdown": "# Pemetaan Limbah di Sekitar Sekolah\n\n## A. Identitas\n- schoolName: MTsN 1 Banyuwangi\n- city: Banyuwangi\n- subject: Projek Penguatan Profil Pelajar Pancasila\n- phase: Fase D\n- educationLevel: SMP/MTs\n- educationPhase: Fase D (Kelas 7-9)\n- relatedSubjects: Projek Penguatan Profil Pelajar Pancasila, IPA, Bahasa Indonesia, Matematika\n- gradeLevel: VII B\n- rppType: pjbl_kokurikuler\n- timeAllocation: 2 x 35 menit (Jam Pelajaran)\n\n## B. Gambaran Proyek\n- theme: Limbah\n- localIssue: Sampah plastik di lingkungan MTsN 1 Banyuwangi\n- background: Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan MTsN 1 Banyuwangi\n- drivingQuestion: Apa pola masalah Limbah yang terlihat dari data sekitar sekolah?\n- focusAndScope: Fokus proyek ditetapkan pada pemetaan jenis dan lokasi sampah plastik di area kantin, kelas, halaman madrasah, dan ruang kelas agar siswa mengetahui sumber sampah yang paling dominan.\n\n### Konteks Daerah Sekitar\n- locationStatus: Terverifikasi\n- address: Banyuwangi, Jawa Timur\n- surroundingArea: kantin madrasah sebagai sumber utama sampah plastik saat jam istirahat, halaman madrasah yang sering menjadi area berkumpul siswa, ruang kelas dengan sampah plastik dari bekal dan alat tulis, permukiman warga di sekitar madrasah\n- regionalContext: Lingkungan sekitar madrasah cukup ramai pada jam masuk, istirahat, dan pulang sekolah sehingga pengelolaan sampah perlu dibuat sederhana dan terpantau.\n\n### Pemantauan Risiko Awal\n- Data observasi antarkelompok tidak konsisten. - level: sedang - Gunakan lembar observasi seragam dan contoh pengisian sebelum observasi.\n- Siswa keluar dari area pengamatan. - level: sedang - Tetapkan batas area tiap kelompok dan lakukan cek kemajuan oleh guru.\n- Waktu observasi terbatas. - level: sedang - Gunakan timer dan batasi jumlah titik observasi.\n\n## C. Tujuan Pembelajaran\n- Peserta didik mampu mengidentifikasi masalah terkait Limbah.\n- Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.\n- Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif.\n\n## D. Desain Pembelajaran\n- finalProduct: Produk akhir dipilih berupa poster infografis berbentuk peta temuan pada kertas plano, dilengkapi stiker warna untuk menunjukkan jenis dan lokasi sampah plastik dominan.\n- activitiesAndSchedule: Alur kegiatan ditetapkan dalam 2 x 35 menit: 10 menit pembukaan dan pembagian kelompok, 25 menit observasi area madrasah, 20 menit menyusun peta temuan, 10 menit presentasi singkat, dan 5 menit refleksi.\n- rolesAndSupport: Siswa bekerja dalam kelompok berisi empat orang dengan peran ketua, pencatat data, penanda peta, dan penyaji. Pak Robby memantau kemajuan memakai lembar cek singkat.\n- facilitiesTechnologyPartnership: Fasilitas yang digunakan adalah halaman madrasah, kantin, ruang kelas, kertas plano, stiker warna, spidol, papan tulis, tempat sampah, dan proyektor. Proyek dilakukan tanpa mitra luar.\n- riskMitigation: Risiko utama adalah waktu observasi terbatas, data antarkelompok tidak konsisten, dan siswa keluar dari area pengamatan. Mitigasinya memakai lembar observasi seragam, batas area tiap kelompok, timer, dan cek kemajuan guru.\n- assessmentReflection: Asesmen menggunakan rubrik sederhana dengan kriteria kelengkapan data, ketepatan peta temuan, kerja sama kelompok, kontribusi individu, dan kejelasan presentasi. Presentasi dilakukan satu menit per kelompok lalu ditutup refleksi satu kalimat.\n\n## E. Alur Kegiatan\n### Pertemuan 1\n- Durasi: 2 x 35 menit (Jam Pelajaran)\n- Pembuka: Guru membuka dengan pertanyaan pemantik dan mengaitkan proyek dengan isu lokal.\n- Kegiatan inti:\n  - Observasi konteks Stage 1\n  - Pengumpulan data\n  - Penyajian temuan\n  - Presentasi\n- Penutup: Siswa mempresentasikan temuan atau produk awal, lalu menulis refleksi singkat.\n- Asesmen formatif: Observasi proses kelompok, cek produk, dan tanya jawab singkat.\n\n## F. Asesmen dan Refleksi\n### process\n- Ketepatan observasi atau pengumpulan data\n- Kerja sama dan pembagian peran\n- Keterlibatan siswa selama kegiatan\n### product\n- Kesesuaian produk dengan masalah yang dipilih\n- Kejelasan data atau pesan yang disajikan\n- Kerapian dan keterbacaan produk akhir\n### presentation\n- Kejelasan penyampaian hasil\n- Kemampuan menjawab pertanyaan sederhana\n- Refleksi: Siswa menuliskan satu hal yang dipelajari dan satu aksi kecil yang dapat dilakukan setelah proyek.\n\n## G. Rubrik Singkat\n- Pemahaman masalah: Siswa mampu menjelaskan masalah proyek sesuai konteks sekolah.\n- Kualitas produk: Produk akhir jelas, relevan, dan dapat dipahami warga kelas/sekolah.\n- Kolaborasi: Siswa menjalankan peran dan bekerja sama secara bertanggung jawab.\n- Refleksi: Siswa mampu menyampaikan pembelajaran dan rencana tindak lanjut sederhana.\n\n## H. Catatan Guru\nGuru menginginkan proyek yang realistis, sederhana, dan sesuai konteks siswa."
+  "contentMarkdown": "# RPM Kokurikuler\n\n## Pemetaan Limbah di Sekitar Sekolah\n\n## A. Identitas Pembelajaran\n- namaSekolah: MTsN 1 Banyuwangi\n- namaGuru: Guru PJBL\n- jenjang: SMP/MTs\n- fase: Fase D (Kelas 7-9)\n- kelasSemester: VII B\n- bentukKokurikuler: Projek Penguatan Profil Pelajar Pancasila\n- alokasiWaktuTotal: {\"jumlahJP\": 2, \"label\": \"2 JP\"}\n- produkAkhir: Produk akhir dipilih berupa poster infografis berbentuk peta temuan pada kertas plano, dilengkapi stiker warna untuk menunjukkan jenis dan lokasi sampah plastik dominan., Tabel data, Peta temuan, Presentasi hasil\n- mataPelajaranMuatanTerkait: Projek Penguatan Profil Pelajar Pancasila, IPA, Bahasa Indonesia, Matematika\n- konteksProyek: Sampah plastik di lingkungan MTsN 1 Banyuwangi Sampah plastik dari kantin dan bekal siswa masih sering tercampur dengan sampah lain. Lingkungan sekitar madrasah cukup ramai pada jam masuk, istirahat, dan pulang sekolah sehingga pengelolaan sampah perlu dibuat sederhana dan terpantau.\n\n## B. Profil dan Arah Pembelajaran\n- Gambaran Proyek: Fokus proyek ditetapkan pada pemetaan jenis dan lokasi sampah plastik di area kantin, kelas, halaman madrasah, dan ruang kelas agar siswa mengetahui sumber sampah yang paling dominan.\n- Hasil yang Diharapkan: Peserta didik mampu mengidentifikasi masalah terkait Limbah.\n- Hasil yang Diharapkan: Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.\n- Hasil yang Diharapkan: Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif.\n- Profil Lulusan: Bernalar Kritis - Peserta didik mengamati masalah, membaca data sederhana, dan menyimpulkan temuan secara logis.\n- Profil Lulusan: Gotong Royong - Peserta didik bekerja dalam kelompok dengan pembagian peran dan tanggung jawab yang jelas.\n- Profil Lulusan: Kreatif - Peserta didik menyajikan temuan proyek dalam produk yang jelas, menarik, dan mudah dipahami.\n\n## C. Desain Pembelajaran\n- Praktik Pedagogis: Project Based Learning - Murid menyelesaikan masalah nyata melalui tahapan eksplorasi, produksi, presentasi, dan refleksi.\n- Praktik Pedagogis: Observasi Kontekstual - Murid mengumpulkan data sederhana dari lingkungan belajar yang dekat dengan keseharian mereka.\n- Praktik Pedagogis: Diskusi Kelompok - Murid membagi peran, menyepakati temuan, dan menyiapkan produk secara kolaboratif.\n- Praktik Pedagogis: Refleksi Terarah - Murid menuliskan pembelajaran dan tindak lanjut sederhana dari pengalaman proyek.\n\n## D. Rangkaian Kegiatan Pembelajaran per Pertemuan\n- Total JP: 2 JP\n### Tahap 1: Pemetaan Limbah di Sekitar Sekolah\n- Alokasi: 2 JP\n- Langkah Guru: Guru membuka dengan pertanyaan pemantik, menjelaskan tujuan proyek, membagi kelompok, memberi format observasi, memantau proses, dan memandu refleksi. Siswa bekerja dalam kelompok berisi empat orang dengan peran ketua, pencatat data, penanda peta, dan penyaji. Pak Robby memantau kemajuan memakai lembar cek singkat.\n- Kegiatan Murid: Alur kegiatan ditetapkan dalam 2 x 35 menit: 10 menit pembukaan dan pembagian kelompok, 25 menit observasi area madrasah, 20 menit menyusun peta temuan, 10 menit presentasi singkat, dan 5 menit refleksi.\n- Hasil yang Dikumpulkan: Produk akhir dipilih berupa poster infografis berbentuk peta temuan pada kertas plano, dilengkapi stiker warna untuk menunjukkan jenis dan lokasi sampah plastik dominan., Tabel data, Peta temuan, Presentasi hasil\n\n## Asesmen Formatif\nAsesmen formatif digunakan sebagai contoh template observasi proses, bukan data murid final.\n\n## Asesmen Sumatif - Penilaian Kinerja\n- Bernalar Kritis: Kinerja proyek yang menunjukkan Bernalar Kritis\n- Gotong Royong: Kinerja proyek yang menunjukkan Gotong Royong\n- Kreatif: Kinerja proyek yang menunjukkan Kreatif"
 }

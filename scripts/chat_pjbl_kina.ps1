@@ -343,6 +343,33 @@ function Show-KinaProgress {
     Write-Host ""
 }
 
+function Convert-ApiProgress {
+    param($Progress)
+
+    if (-not $Progress) {
+        return $null
+    }
+
+    return [ordered]@{
+        completedCount = [int]$Progress.completedCount
+        totalCount = [int]$Progress.totalCount
+        percent = [int]$Progress.percent
+        activeStage = $Progress.activeStage
+        activeLabel = $Progress.activeLabel
+        completed = @($Progress.completed)
+        missing = @($Progress.missing)
+        points = @(
+            @($Progress.points) | ForEach-Object {
+                [ordered]@{
+                    key = $_.key
+                    label = $_.label
+                    completed = [bool]$_.completed
+                }
+            }
+        )
+    }
+}
+
 if (-not $ApiKey) {
     $ApiKey = Read-InternalApiKey
 }
@@ -471,7 +498,12 @@ while ($true) {
         message = $response.reply
     }
 
-    $progress = Get-KinaProgress -ChatHistory $chatHistory
+    $apiProgress = Convert-ApiProgress $response.informationProgress
+    if ($apiProgress) {
+        $progress = $apiProgress
+    } else {
+        $progress = Get-KinaProgress -ChatHistory $chatHistory
+    }
     Save-Json @($chatHistory) $historyPath
     Save-Json $progress $progressPath
     Save-Json ([ordered]@{

@@ -1,0 +1,64 @@
+﻿{
+    "reply":  "Keputusan fokus proyek pada pemetaan jenis dan lokasi sampah plastik di area kantin, kelas, halaman madrasah, dan ruang kelas sudah sesuai dengan konteks lokal dan kemampuan kelas VII. Fokus ini memungkinkan siswa mengamati masalah nyata dan mengumpulkan data sederhana. Untuk produk akhir, pertimbangkan menyajikan **peta temuan berupa gambar atau sketsa** yang menunjukkan lokasi dan jenis sampah plastik. Apakah produk ini sesuai dengan harapan Anda?",
+    "usedReferences":  [
+
+                       ],
+    "suggestedFollowUpQuestions":  [
+                                       "Produk atau aksi akhir apa yang paling sesuai?"
+                                   ],
+    "informationProgress":  {
+                                "completedCount":  1,
+                                "totalCount":  7,
+                                "percent":  14,
+                                "activeStage":  "final_product",
+                                "activeLabel":  "produk atau aksi akhir",
+                                "completed":  [
+                                                  "fokus dan ruang lingkup proyek"
+                                              ],
+                                "missing":  [
+                                                "produk atau aksi akhir",
+                                                "alur kegiatan dan jadwal",
+                                                "pembagian peran dan pendampingan",
+                                                "fasilitas, teknologi, dan kemitraan",
+                                                "risiko dan mitigasi",
+                                                "asesmen, presentasi, dan refleksi"
+                                            ],
+                                "points":  [
+                                               {
+                                                   "key":  "focus_scope",
+                                                   "label":  "fokus dan ruang lingkup proyek",
+                                                   "completed":  true
+                                               },
+                                               {
+                                                   "key":  "final_product",
+                                                   "label":  "produk atau aksi akhir",
+                                                   "completed":  false
+                                               },
+                                               {
+                                                   "key":  "activities_schedule",
+                                                   "label":  "alur kegiatan dan jadwal",
+                                                   "completed":  false
+                                               },
+                                               {
+                                                   "key":  "roles_support",
+                                                   "label":  "pembagian peran dan pendampingan",
+                                                   "completed":  false
+                                               },
+                                               {
+                                                   "key":  "facilities_partnership",
+                                                   "label":  "fasilitas, teknologi, dan kemitraan",
+                                                   "completed":  false
+                                               },
+                                               {
+                                                   "key":  "risk_mitigation",
+                                                   "label":  "risiko dan mitigasi",
+                                                   "completed":  false
+                                               },
+                                               {
+                                                   "key":  "assessment_reflection",
+                                                   "label":  "asesmen, presentasi, dan refleksi",
+                                                   "completed":  false
+                                               }
+                                           ]
+                            }
+}

@@ -2,7 +2,8 @@ param(
     [string]$ResultsDir = "postman/flows/pjbl-results",
     [switch]$UseLlm,
     [switch]$ViaHttp,
-    [string]$BaseUrl = "http://localhost:8000"
+    [string]$BaseUrl = "http://localhost:8000",
+    [string]$ApiKey = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,6 +22,17 @@ function Write-JsonFile {
         [object]$Value
     )
     $Value | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $Path -Encoding UTF8
+}
+
+function Read-InternalApiKey {
+    if (-not (Test-Path -LiteralPath ".env")) {
+        return ""
+    }
+    $line = Get-Content ".env" | Where-Object { $_ -match "^\s*INTERNAL_API_KEY\s*=" } | Select-Object -First 1
+    if (-not $line) {
+        return ""
+    }
+    return (($line -replace "^\s*INTERNAL_API_KEY\s*=", "").Trim().Trim('"').Trim("'"))
 }
 
 $stage1Path = Join-Path $ResultsDir "01-stage1.content.json"
@@ -108,10 +120,17 @@ Write-JsonFile $requestPath $payload
 Write-Host "Payload RPP PJBL disimpan: $requestPath"
 
 if ($ViaHttp) {
+    if (-not $ApiKey) {
+        $ApiKey = Read-InternalApiKey
+    }
+    if (-not $ApiKey) {
+        throw "INTERNAL_API_KEY tidak ditemukan. Isi .env atau jalankan script dengan -ApiKey."
+    }
     $body = Get-Content -LiteralPath $requestPath -Raw
     $response = Invoke-RestMethod `
         -Method Post `
-        -Uri "$BaseUrl/ai/generate-rpp" `
+        -Uri "$BaseUrl/internal/ai/generate-rpp" `
+        -Headers @{ "X-Internal-API-Key" = $ApiKey } `
         -ContentType "application/json" `
         -Body $body
     Write-JsonFile $responsePath $response

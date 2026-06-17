@@ -7,7 +7,12 @@ from time import perf_counter
 from typing import Any
 
 from app.schemas.common_schema import UsedReferenceSchema
-from app.schemas.kina_schema import KinaChatRequest, KinaChatResponse
+from app.schemas.kina_schema import (
+    KinaChatRequest,
+    KinaChatResponse,
+    KinaInformationPoint,
+    KinaInformationProgress,
+)
 from app.schemas.rag_schema import RagReference
 from app.services.llm_client import LLMClient
 from app.services.pjbl.pjbl_prompt_templates import (
@@ -457,6 +462,7 @@ class PjblKinaService:
                     for reference in references
                 ],
                 suggestedFollowUpQuestions=self._suggested_questions(analysis),
+                informationProgress=self._information_progress(analysis),
             )
         finally:
             timings["total"] = self._elapsed_ms(total_started)
@@ -1226,6 +1232,39 @@ class PjblKinaService:
                 continue
             return key, label, completed_count
         return "complete", "selesai", completed_count
+
+    def _information_progress(
+        self,
+        analysis: dict[str, Any],
+    ) -> KinaInformationProgress:
+        evidence = analysis.get("evidence") or {}
+        points = [
+            KinaInformationPoint(
+                key=key,
+                label=label,
+                completed=bool(evidence.get(key)),
+            )
+            for key, label in DISCUSSION_STAGES
+        ]
+        completed_labels = [point.label for point in points if point.completed]
+        missing_labels = [point.label for point in points if not point.completed]
+        total_count = len(points)
+        completed_count = len(completed_labels)
+        percent = (
+            round((completed_count / total_count) * 100)
+            if total_count
+            else 0
+        )
+        return KinaInformationProgress(
+            completedCount=completed_count,
+            totalCount=total_count,
+            percent=percent,
+            activeStage=analysis.get("active_stage"),
+            activeLabel=analysis.get("active_label"),
+            completed=completed_labels,
+            missing=missing_labels,
+            points=points,
+        )
 
     def _classify_input_relevance(
         self,
