@@ -1,0 +1,17 @@
+﻿{
+    "completed":  true,
+    "userTurns":  8,
+    "assistantTurns":  8,
+    "checks":  {
+                   "focusScope":  true,
+                   "finalProduct":  true,
+                   "activitiesSchedule":  true,
+                   "rolesSupport":  true,
+                   "facilitiesPartnership":  true,
+                   "riskMitigation":  true,
+                   "assessmentReflection":  true,
+                   "completionMessage":  true
+               },
+    "finalReply":  "Baik, Ibu/Bapak. Rancangan asesmen dengan rubrik sederhana dan refleksi satu kalimat sudah sangat pas untuk proyek ini. Semua bagian utama proyek Pengelolaan Sampah Plastik sudah kita bahas bersama.\n\nTerima kasih, rancangan proyek Anda sudah selesai dan siap digunakan untuk tahap berikutnya.",
+    "summaryResponsePath":  "postman/flows/pjbl-results/05-kina-summary.response.json"
+}

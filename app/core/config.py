@@ -28,9 +28,11 @@ class Settings(BaseSettings):
     )
     llm_model: str = Field(default="gemini-1.5-flash", alias="LLM_MODEL")
     kina_llm_model: str = Field(
-        default="deepseek/deepseek-v4-flash",
+        default="qwen/qwen3-coder-flash",
         alias="KINA_LLM_MODEL",
     )
+    kina_solver_model: str | None = Field(default=None, alias="KINA_SOLVER_MODEL")
+    kina_evaluator_model: str | None = Field(default=None, alias="KINA_EVALUATOR_MODEL")
     llm_temperature: float = Field(default=0.3, alias="LLM_TEMPERATURE")
     llm_max_tokens: int = Field(default=2048, alias="LLM_MAX_TOKENS")
 

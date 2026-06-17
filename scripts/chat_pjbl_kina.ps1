@@ -212,6 +212,137 @@ function Show-History {
     }
 }
 
+function Get-KinaInfoPoints {
+    return @(
+        [ordered]@{
+            key = "focusScope"
+            label = "Fokus dan ruang lingkup proyek"
+            patterns = @("fokus proyek", "pemetaan jenis", "lokasi sampah", "sumber sampah", "sumber masalah", "masalah.*dominan")
+            excludes = @("risiko", "mitigasi", "asesmen", "rubrik")
+        },
+        [ordered]@{
+            key = "finalProduct"
+            label = "Produk atau aksi akhir"
+            patterns = @("produk akhir", "aksi akhir", "poster infografis", "berbentuk peta temuan")
+            excludes = @("asesmen", "rubrik", "kriteria")
+        },
+        [ordered]@{
+            key = "activitiesSchedule"
+            label = "Alur kegiatan dan jadwal"
+            patterns = @("alur kegiatan", "jadwal", "durasi", "2 x 35", "pembukaan dan pembagian", "menyusun peta temuan")
+            excludes = @("asesmen menggunakan", "rubrik")
+        },
+        [ordered]@{
+            key = "rolesSupport"
+            label = "Pembagian peran dan pendampingan"
+            patterns = @("peran", "kelompok berisi", "ketua", "pencatat", "penanda", "penyaji", "lembar cek", "memantau")
+            excludes = @("risiko", "mitigasi")
+        },
+        [ordered]@{
+            key = "facilitiesPartnership"
+            label = "Fasilitas, teknologi, dan kemitraan"
+            patterns = @("fasilitas", "teknologi", "proyek dilakukan tanpa mitra", "tanpa mitra", "mitra luar", "alat yang digunakan", "fasilitas yang digunakan")
+            excludes = @()
+        },
+        [ordered]@{
+            key = "riskMitigation"
+            label = "Risiko dan mitigasi"
+            patterns = @("risiko", "mitigasi", "tidak konsisten", "keluar dari area", "timer", "batas area", "lembar observasi seragam", "cek kemajuan")
+            excludes = @()
+        },
+        [ordered]@{
+            key = "assessmentReflection"
+            label = "Asesmen, presentasi, dan refleksi"
+            patterns = @("asesmen", "penilaian", "rubrik", "kriteria", "kontribusi individu", "presentasi", "refleksi")
+            excludes = @("produk akhir", "alur kegiatan", "durasi", "pembukaan", "observasi area")
+        }
+    )
+}
+
+function Test-KinaInfoPoint {
+    param(
+        [Parameter(Mandatory = $true)]$Point,
+        [string[]]$Messages = @()
+    )
+
+    foreach ($message in $Messages) {
+        $text = $message.ToLowerInvariant()
+        $excluded = $false
+        foreach ($exclude in @($Point.excludes)) {
+            if ($exclude -and $text -match $exclude) {
+                $excluded = $true
+                break
+            }
+        }
+        if ($excluded) {
+            continue
+        }
+
+        foreach ($pattern in @($Point.patterns)) {
+            if ($pattern -and $text -match $pattern) {
+                return $true
+            }
+        }
+    }
+
+    return $false
+}
+
+function Get-KinaProgress {
+    param(
+        [Parameter(Mandatory = $true)]$ChatHistory,
+        [string]$PendingMessage = ""
+    )
+
+    $teacherMessages = @(
+        @($ChatHistory) |
+            Where-Object { $_.role -eq "user" } |
+            ForEach-Object { [string]$_.message }
+    )
+    if ($PendingMessage.Trim()) {
+        $teacherMessages += $PendingMessage.Trim()
+    }
+
+    $points = @()
+    foreach ($point in Get-KinaInfoPoints) {
+        $completed = Test-KinaInfoPoint -Point $point -Messages $teacherMessages
+        $points += [ordered]@{
+            key = $point.key
+            label = $point.label
+            completed = $completed
+        }
+    }
+
+    $completedCount = @($points | Where-Object { $_.completed }).Count
+    $totalCount = @($points).Count
+    $percent = if ($totalCount -gt 0) {
+        [math]::Round(($completedCount / $totalCount) * 100)
+    } else {
+        0
+    }
+
+    return [ordered]@{
+        completedCount = $completedCount
+        totalCount = $totalCount
+        percent = $percent
+        completed = @($points | Where-Object { $_.completed } | ForEach-Object { $_.label })
+        missing = @($points | Where-Object { -not $_.completed } | ForEach-Object { $_.label })
+        points = $points
+    }
+}
+
+function Show-KinaProgress {
+    param([Parameter(Mandatory = $true)]$Progress)
+
+    Write-Host ""
+    Write-Host "Progres informasi Kina: $($Progress.percent)% ($($Progress.completedCount)/$($Progress.totalCount))"
+    foreach ($point in @($Progress.points)) {
+        $mark = if ($point.completed) { "[x]" } else { "[ ]" }
+        Write-Host "$mark $($point.label)"
+    }
+    Write-Host ""
+}
+
 if (-not $ApiKey) {
     $ApiKey = Read-InternalApiKey
 }
@@ -225,6 +356,7 @@ $selectedProjectFullPath = Resolve-RepoPath $SelectedProjectPath
 $outputFullDir = Resolve-RepoPath $OutputDir
 $historyPath = Join-Path $outputFullDir "kina-chat-history.json"
 $transcriptPath = Join-Path $outputFullDir "kina-chat-transcript.json"
+$progressPath = Join-Path $outputFullDir "kina-chat-progress.json"
 New-Item -ItemType Directory -Force -Path $outputFullDir | Out-Null
 
 $headers = @{
@@ -252,14 +384,19 @@ $stageTwoContent = Ensure-SelectedProjectContent `
 
 if ($Reset) {
     Save-Json @() $historyPath
+    Save-Json (Get-KinaProgress -ChatHistory @()) $progressPath
 }
 
 $chatHistory = @(Read-ChatHistory $historyPath)
+$progress = Get-KinaProgress -ChatHistory $chatHistory
+Save-Json $progress $progressPath
 Write-Host "Project terpilih: $($stageTwoContent.selectedProjectTitle)"
 Write-Host "History tersimpan di: $historyPath"
+Write-Host "Progres tersimpan di: $progressPath"
+Show-KinaProgress $progress
 Write-Host ""
 Write-Host "Ketik pesan guru lalu Enter."
-Write-Host "Command: /exit, /reset, /history, /project"
+Write-Host "Command: /exit, /reset, /history, /project, /progress"
 Write-Host ""
 
 while ($true) {
@@ -285,7 +422,10 @@ while ($true) {
     if ($command -eq "/reset") {
         $chatHistory = @()
         Save-Json @() $historyPath
+        $progress = Get-KinaProgress -ChatHistory $chatHistory
+        Save-Json $progress $progressPath
         Write-Host "Riwayat chat direset."
+        Show-KinaProgress $progress
         continue
     }
     if ($command -eq "/history") {
@@ -297,6 +437,15 @@ while ($true) {
         Write-Host "Driving question: $($stageTwoContent.drivingQuestion)"
         continue
     }
+    if ($command -eq "/progress") {
+        $progress = Get-KinaProgress -ChatHistory $chatHistory
+        Save-Json $progress $progressPath
+        Show-KinaProgress $progress
+        continue
+    }
+
+    $previewProgress = Get-KinaProgress -ChatHistory $chatHistory -PendingMessage $message
+    Show-KinaProgress $previewProgress
 
     $response = Invoke-KinaTurn `
         -Project $stage2Request.project `
@@ -322,12 +471,16 @@ while ($true) {
         message = $response.reply
     }
 
+    $progress = Get-KinaProgress -ChatHistory $chatHistory
     Save-Json @($chatHistory) $historyPath
+    Save-Json $progress $progressPath
     Save-Json ([ordered]@{
         project = $stage2Request.project
         selectedProject = $stageTwoContent
+        progress = $progress
         chatHistory = @($chatHistory)
     }) $transcriptPath
+    Show-KinaProgress $progress
 
     if (-not $OnceMessage -and $PSBoundParameters.ContainsKey("OnceMessage")) {
         break

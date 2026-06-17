@@ -102,7 +102,10 @@ Write-Host "== Data guru, sekolah, dan kelas =="
 $teacherName = Ask-Text "Nama guru" "Guru Test"
 $schoolName = Ask-Text "Nama sekolah" "SMP Test"
 $city = Ask-Text "Kota" "Jakarta"
+$schoolAddress = Ask-Text "Alamat/lokasi sekolah" "Jl. Pendidikan No. 1"
+$locationVerified = Ask-Text "Status lokasi sekolah" "Terverifikasi"
 $schoolEnvironment = Ask-Text "Lingkungan sekolah" "Sekolah perkotaan dengan kantin dan halaman kecil"
+$surroundingAreaText = Ask-Text "Informasi daerah sekitar, pisahkan koma" "kantin sekolah dekat kelas, halaman madrasah, permukiman warga sekitar sekolah"
 $facilitiesText = Ask-Text "Fasilitas, pisahkan koma" "kelas, halaman sekolah, proyektor, tempat sampah terpilah"
 $localContext = Ask-Text "Konteks lokal sekolah" "Sampah plastik dari kantin masih banyak tercampur dengan sampah lain."
 $className = Ask-Text "Nama kelas" "VII A"
@@ -115,8 +118,16 @@ Write-Host ""
 Write-Host "== Stage 1 =="
 $theme = Ask-Text "Tema Stage 1" "Gaya Hidup Berkelanjutan"
 $localIssue = Ask-Text "Isu lokal" "Sampah plastik di lingkungan sekolah"
-$projectDuration = Ask-Text "Durasi proyek" "2 x 35 menit (Jam Pelajaran)"
+$educationLevel = Ask-Text "Jenjang pendidikan" "SMP/MTs"
+$educationPhase = Ask-Text "Fase pendidikan" "Fase D (Kelas 7-9)"
+$relatedSubjectsText = Ask-Text "Muatan/mapel terkait, pisahkan koma" "Projek Penguatan Profil Pelajar Pancasila, IPA, Bahasa Indonesia, Matematika"
+$meetingCount = Ask-Int "Jumlah pertemuan" 1
+$jpPerMeeting = Ask-Int "JP per pertemuan" 2
+$minutesPerJp = Ask-Int "Menit per JP" 35
+$projectDuration = Ask-Text "Durasi proyek" "$jpPerMeeting x $minutesPerJp menit (Jam Pelajaran)"
+$classCondition = Ask-Text "Kondisi kelas" $studentCharacteristics
 $studentNeeds = Ask-Text "Kebutuhan siswa" "Butuh kegiatan nyata, sederhana, dan dekat dengan keseharian siswa."
+$riskText = Ask-Text "Risiko yang mungkin muncul, pisahkan koma" "data observasi tidak konsisten, siswa keluar dari area pengamatan, waktu observasi terbatas"
 $constraintsText = Ask-Text "Batasan proyek, pisahkan koma" "biaya rendah, alat mudah ditemukan, dilakukan di area sekolah, produk akhir harus realistis untuk siswa kelas VII"
 $teacherExpectation = Ask-Text "Harapan guru" "Proyek menghasilkan aksi sederhana yang dapat dipresentasikan dan diterapkan di sekolah."
 
@@ -126,7 +137,10 @@ $topic = Ask-Text "Topik rekomendasi Stage 2" $localIssue
 $selectedTheme = Ask-Text "Tema terpilih untuk rekomendasi" $theme
 
 $facilities = Split-List $facilitiesText
+$surroundingAreas = Split-List $surroundingAreaText
 $learningChallenges = Split-List $learningChallengesText
+$relatedSubjects = Split-List $relatedSubjectsText
+$riskItems = Split-List $riskText
 $constraints = Split-List $constraintsText
 
 $stageOne = [ordered]@{
@@ -140,9 +154,41 @@ $stageOne = [ordered]@{
         schoolContext = [ordered]@{
             name = $schoolName
             city = $city
+            address = $schoolAddress
+            locationStatus = $locationVerified
             environment = $schoolEnvironment
             facilities = $facilities
             localContext = $localContext
+        }
+        areaContext = [ordered]@{
+            locationStatus = $locationVerified
+            address = $schoolAddress
+            surroundingArea = $surroundingAreas
+            regionalContext = $localContext
+        }
+        riskMonitoring = @(
+            foreach ($risk in $riskItems) {
+                [ordered]@{
+                    risk = $risk
+                    level = "sedang"
+                    signal = "Perlu diverifikasi guru sebelum pelaksanaan proyek."
+                    mitigationNeed = "Siapkan batas area, instruksi singkat, dan pemantauan guru."
+                }
+            }
+        )
+        missionSpec = [ordered]@{
+            educationLevel = $educationLevel
+            educationPhase = $educationPhase
+            gradeLevel = $gradeLevel
+            className = $className
+            relatedSubjects = $relatedSubjects
+            learningDuration = [ordered]@{
+                meetingCount = $meetingCount
+                jpPerMeeting = $jpPerMeeting
+                minutesPerJp = $minutesPerJp
+                durationText = $projectDuration
+            }
+            classCondition = $classCondition
         }
         classContext = [ordered]@{
             className = $className
@@ -161,7 +207,7 @@ $stage2Request = [ordered]@{
         id = $projectId
         title = $projectTitle
         rppType = "pjbl_kokurikuler"
-        subject = $subject
+        subject = $(if ($relatedSubjects.Count -gt 0) { $relatedSubjects -join ", " } else { $subject })
         phase = $phase
         gradeLevel = $gradeLevel
     }
@@ -172,8 +218,11 @@ $stage2Request = [ordered]@{
     school = [ordered]@{
         name = $schoolName
         city = $city
+        address = $schoolAddress
+        locationStatus = $locationVerified
         schoolEnvironment = $schoolEnvironment
         availableFacilities = $facilities
+        surroundingArea = $surroundingAreas
         localContext = $localContext
     }
     teacherClass = [ordered]@{
