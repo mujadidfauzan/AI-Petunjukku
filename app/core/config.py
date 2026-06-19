@@ -27,6 +27,10 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("OPENROUTER_BASE_URL", "OPENROUTER_API_BASE_URL"),
     )
     llm_model: str = Field(default="google/gemini-2.5-flash", alias="LLM_MODEL")
+    rpp_generation_model: str = Field(
+        default="deepseek/deepseek-v4-pro",
+        alias="RPP_GENERATION_MODEL",
+    )
     kina_llm_model: str = Field(
         default="deepseek/deepseek-v4-flash",
         alias="KINA_LLM_MODEL",

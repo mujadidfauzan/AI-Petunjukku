@@ -181,12 +181,14 @@ KONTEKS WAJIB:
 
 URUTAN DISKUSI:
 1. Fokus dan ruang lingkup proyek.
-2. Produk atau aksi akhir.
-3. Alur kegiatan dan jadwal.
-4. Pembagian peran dan pendampingan.
-5. Fasilitas, teknologi, dan kemitraan.
-6. Risiko dan mitigasi.
-7. Asesmen, presentasi, dan refleksi.
+2. Gaya pembelajaran.
+3. Produk atau aksi akhir.
+4. Alur kegiatan dan jadwal.
+5. Pembagian peran dan pendampingan.
+6. Fasilitas, teknologi, dan kemitraan.
+7. Pemanfaatan digital.
+8. Risiko dan mitigasi.
+9. Asesmen, presentasi, dan refleksi.
 
 ATURAN MENJAGA ALUR:
 - Tentukan posisi diskusi berdasarkan riwayat chat dan data yang tersedia,
@@ -232,10 +234,11 @@ Kembalikan hanya JSON object valid dengan field:
 Pahami maksud guru tanpa mengulang pertanyaan yang sudah terjawab. Jangan
 menyusun RPP lengkap jika data belum cukup. Pertahankan proyek Stage 2 kecuali
 guru meminta perubahan secara eksplisit. Fokuskan saran pada kondisi siswa,
-fasilitas, durasi, biaya, keamanan, dan batasan sekolah. Jangan menulis respons
-final Kina dan jangan menyertakan analisis panjang di luar field tersebut. Untuk
-tahap alur kegiatan dan jadwal, jika durasi belum jelas, question_to_ask harus
-menanyakan berapa minggu PjBL dilakukan.
+gaya pembelajaran, fasilitas, pemanfaatan digital, durasi, biaya, keamanan,
+dan batasan sekolah. Jangan menulis respons final Kina dan jangan menyertakan
+analisis panjang di luar field tersebut. Untuk tahap alur kegiatan dan jadwal,
+jika durasi belum jelas, question_to_ask harus menanyakan berapa minggu PjBL
+dilakukan.
 """.strip()
 
 PJBL_SUMMARY_SYSTEM_PROMPT = (

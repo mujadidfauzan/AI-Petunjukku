@@ -32,10 +32,12 @@ MAX_KINA_RESPONSE_WORDS = 120
 
 DISCUSSION_STAGES: tuple[tuple[str, str], ...] = (
     ("focus_scope", "fokus dan ruang lingkup proyek"),
+    ("learning_style", "gaya pembelajaran"),
     ("final_product", "produk atau aksi akhir"),
     ("activities_schedule", "alur kegiatan dan jadwal"),
     ("roles_support", "pembagian peran dan pendampingan"),
     ("facilities_partnership", "fasilitas, teknologi, dan kemitraan"),
+    ("digital_use", "pemanfaatan digital"),
     ("risk_mitigation", "risiko dan mitigasi"),
     ("assessment_reflection", "asesmen, presentasi, dan refleksi"),
 )
@@ -51,6 +53,21 @@ STAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "pertanyaan mendasar",
         "projectobjectives",
         "proyek ini",
+    ),
+    "learning_style": (
+        "gaya pembelajaran",
+        "gaya belajar",
+        "visual",
+        "auditori",
+        "kinestetik",
+        "praktik langsung",
+        "diskusi",
+        "kolaboratif",
+        "mandiri",
+        "diferensiasi",
+        "minat siswa",
+        "learningstyle",
+        "dominantlearningstyle",
     ),
     "final_product": (
         "produk akhir",
@@ -110,6 +127,24 @@ STAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "tanpa mitra",
         "facilityandtechnologyuse",
         "partnership",
+    ),
+    "digital_use": (
+        "pemanfaatan digital",
+        "digital",
+        "aplikasi",
+        "platform",
+        "canva",
+        "google form",
+        "google forms",
+        "google docs",
+        "google slides",
+        "padlet",
+        "spreadsheet",
+        "video",
+        "kamera",
+        "dokumentasi digital",
+        "media digital",
+        "digitalresources",
     ),
     "risk_mitigation": (
         "risiko",
@@ -184,6 +219,11 @@ STAGE_DECISION_PATTERNS: dict[str, re.Pattern[str]] = {
         r"\b(?:fokus proyek|ruang lingkup|masalah utama|fokusnya|masalahnya)\b",
         flags=re.IGNORECASE,
     ),
+    "learning_style": re.compile(
+        r"\b(?:gaya pembelajaran|gaya belajar|visual|auditori|kinestetik|"
+        r"praktik langsung|diskusi|kolaboratif|mandiri|diferensiasi|minat siswa)\b",
+        flags=re.IGNORECASE,
+    ),
     "final_product": re.compile(
         r"\b(?:produk akhir|aksi akhir|memilih|pilih|gunakan)\b.{0,60}"
         r"\b(?:infografis|poster|laporan|video|prototipe|kampanye|pameran)\b",
@@ -203,6 +243,12 @@ STAGE_DECISION_PATTERNS: dict[str, re.Pattern[str]] = {
         r"\b(?:fasilitas|proyektor|halaman sekolah|alat tulis|alat|peralatan|"
         r"internet|gawai|drone|kamera|"
         r"mitra|kemitraan|orang tua|komunitas)\b",
+        flags=re.IGNORECASE,
+    ),
+    "digital_use": re.compile(
+        r"\b(?:pemanfaatan digital|digital|aplikasi|platform|canva|google forms?|"
+        r"google docs|google slides|padlet|spreadsheet|video|kamera|"
+        r"dokumentasi digital|media digital)\b",
         flags=re.IGNORECASE,
     ),
     "risk_mitigation": re.compile(
@@ -235,6 +281,18 @@ STAGE_REQUIRED_SLOTS: dict[str, tuple[tuple[str, str, re.Pattern[str]], ...]] = 
                 r"\b(?:kantin|kelas|halaman|perpustakaan|sekolah|warga|"
                 r"siswa|murid|kelompok|area|lokasi|sekitar|sasaran|"
                 r"batasi|batas|ruang lingkup|lingkup)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+    "learning_style": (
+        (
+            "style",
+            "gaya pembelajaran",
+            re.compile(
+                r"\b(?:gaya pembelajaran|gaya belajar|visual|auditori|"
+                r"kinestetik|praktik langsung|diskusi|kolaboratif|mandiri|"
+                r"diferensiasi|minat siswa|eksplorasi|observasi langsung)\b",
                 flags=re.IGNORECASE,
             ),
         ),
@@ -316,6 +374,19 @@ STAGE_REQUIRED_SLOTS: dict[str, tuple[tuple[str, str, re.Pattern[str]], ...]] = 
             ),
         ),
     ),
+    "digital_use": (
+        (
+            "digital_plan",
+            "pemanfaatan digital",
+            re.compile(
+                r"\b(?:pemanfaatan digital|digital|aplikasi|platform|canva|"
+                r"google forms?|google docs|google slides|padlet|spreadsheet|"
+                r"video|kamera|foto|dokumentasi|media digital|gawai|hp|"
+                r"laptop|internet)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
     "risk_mitigation": (
         (
             "risk",
@@ -361,10 +432,12 @@ STAGE_REQUIRED_SLOTS: dict[str, tuple[tuple[str, str, re.Pattern[str]], ...]] = 
 }
 SAVED_STAGE_SUMMARY_FIELDS: dict[str, str] = {
     "focusAndScope": "focus_scope",
+    "learningStyle": "learning_style",
     "finalProduct": "final_product",
     "activitiesAndSchedule": "activities_schedule",
     "rolesAndSupport": "roles_support",
     "facilitiesTechnologyPartnership": "facilities_partnership",
+    "digitalUse": "digital_use",
     "riskMitigation": "risk_mitigation",
     "assessmentReflection": "assessment_reflection",
 }
@@ -775,6 +848,10 @@ class PjblKinaService:
                 "Arahkan pembahasan pada satu masalah utama yang realistis.",
                 "Apa batas masalah yang paling realistis untuk proyek ini?",
             ),
+            "learning_style": (
+                "Selaraskan proyek dengan gaya belajar dominan siswa.",
+                "Gaya pembelajaran apa yang paling cocok untuk kelas ini?",
+            ),
             "final_product": (
                 "Pastikan produk akhir menjawab masalah dan sesuai fasilitas.",
                 "Produk atau aksi akhir apa yang paling sesuai?",
@@ -790,6 +867,10 @@ class PjblKinaService:
             "facilities_partnership": (
                 "Utamakan fasilitas yang tersedia dan kemitraan yang realistis.",
                 "Fasilitas apa yang paling realistis digunakan?",
+            ),
+            "digital_use": (
+                "Gunakan digital hanya untuk membantu proses belajar yang perlu.",
+                "Pemanfaatan digital apa yang paling realistis digunakan?",
             ),
             "risk_mitigation": (
                 "Prioritaskan risiko yang paling mungkin menghambat pelaksanaan.",
@@ -1417,7 +1498,8 @@ class PjblKinaService:
         if re.search(
             r"\b(?:proyek|PjBL|siswa|guru|kelas|sekolah|pembelajaran|observasi|"
             r"presentasi|kelompok|produk|kegiatan|jadwal|fasilitas|asesmen|"
-            r"penilaian|refleksi)\b",
+            r"penilaian|refleksi|gaya belajar|gaya pembelajaran|digital|"
+            r"aplikasi|platform)\b",
             message,
             flags=re.IGNORECASE,
         ):
@@ -1749,10 +1831,11 @@ class PjblKinaService:
             )
         if analysis["is_complete"]:
             return (
-                f"Baik, rancangan {project_title} sudah mencakup fokus proyek, produk "
-                "akhir, alur kegiatan, pembagian peran, fasilitas, mitigasi risiko, "
-                "serta asesmen dan refleksi. Seluruh keputusan tersebut dapat menjadi "
-                "dasar pelaksanaan proyek yang terarah.\n\n"
+                f"Baik, rancangan {project_title} sudah mencakup fokus proyek, gaya "
+                "pembelajaran, produk akhir, alur kegiatan, pembagian peran, fasilitas, "
+                "pemanfaatan digital, mitigasi risiko, serta asesmen dan refleksi. "
+                "Seluruh keputusan tersebut dapat menjadi dasar pelaksanaan proyek "
+                "yang terarah.\n\n"
                 f"{COMPLETION_MESSAGE}"
             )
         if analysis["teacher_uncertain"]:
@@ -1767,11 +1850,19 @@ class PjblKinaService:
                 "tujuan, dan pertanyaan mendasar yang realistis bagi siswa.\n\n"
                 f"{next_question}"
             )
+        if active_stage == "learning_style":
+            return (
+                f"Baik, fokus {project_title} sudah mulai terarah. Sekarang kita perlu "
+                "menyesuaikan cara belajar yang paling cocok, misalnya lebih banyak "
+                "praktik langsung, diskusi, visual, atau kerja kolaboratif.\n\n"
+                f"{next_question}"
+            )
         if active_stage == "final_product":
             return (
-                f"Baik, fokus {project_title} sudah cukup jelas. Berikutnya, produk atau "
-                "aksi akhir perlu dipilih agar benar-benar menjawab masalah proyek dan "
-                "tetap sesuai waktu serta fasilitas sekolah.\n\n"
+                f"Baik, gaya pembelajaran sudah dapat menjadi dasar pelaksanaan "
+                f"{project_title}. Berikutnya, produk atau aksi akhir perlu dipilih agar "
+                "benar-benar menjawab masalah proyek dan tetap sesuai waktu serta "
+                "fasilitas sekolah.\n\n"
                 f"{next_question}"
             )
         if active_stage == "activities_schedule":
@@ -1795,11 +1886,18 @@ class PjblKinaService:
                 "tersedia, sedangkan kemitraan tetap bersifat opsional.\n\n"
                 f"{next_question}"
             )
+        if active_stage == "digital_use":
+            return (
+                "Baik, fasilitas dan kemitraan sudah cukup jelas. Sekarang kita perlu "
+                "menentukan pemanfaatan digital yang benar-benar membantu, misalnya "
+                "untuk dokumentasi, pengumpulan data, desain produk, atau presentasi.\n\n"
+                f"{next_question}"
+            )
         if active_stage == "risk_mitigation":
             return (
-                "Baik, kebutuhan fasilitas dan dukungan proyek sudah cukup jelas. "
-                "Sekarang kita perlu mengantisipasi risiko yang paling mungkin terjadi "
-                "agar proyek tetap aman, hemat biaya, dan selesai tepat waktu.\n\n"
+                "Baik, pemanfaatan digital sudah cukup terarah. Sekarang kita perlu "
+                "mengantisipasi risiko yang paling mungkin terjadi agar proyek tetap "
+                "aman, hemat biaya, dan selesai tepat waktu.\n\n"
                 f"{next_question}"
             )
         return (
@@ -1815,6 +1913,11 @@ class PjblKinaService:
                 "batasi proyek pada satu lokasi sekolah agar observasi mudah",
                 "batasi pada satu kelompok sasaran agar solusi lebih terarah",
                 "batasi pada satu kebiasaan utama agar dampaknya dapat diamati",
+            ),
+            "learning_style": (
+                "gunakan praktik langsung agar siswa belajar dari pengalaman nyata",
+                "gunakan diskusi kelompok kecil agar ide siswa saling melengkapi",
+                "gunakan pendekatan visual agar temuan mudah dipahami dan dipresentasikan",
             ),
             "final_product": (
                 "media kampanye sederhana karena murah dan mudah dipresentasikan",
@@ -1835,6 +1938,11 @@ class PjblKinaService:
                 "gunakan fasilitas kelas yang sudah tersedia",
                 "gunakan gawai secara terbatas hanya untuk dokumentasi atau riset",
                 "libatkan mitra internal sekolah tanpa pihak luar",
+            ),
+            "digital_use": (
+                "gunakan gawai hanya untuk dokumentasi foto atau video singkat",
+                "gunakan Canva atau Slides untuk menyusun produk presentasi",
+                "gunakan Google Form sederhana untuk mengumpulkan data observasi",
             ),
             "risk_mitigation": (
                 "sederhanakan produk untuk mencegah keterlambatan",
@@ -2045,6 +2153,12 @@ class PjblKinaService:
                 f"Sasarannya murid {grade} dan warga sekolah yang terlibat langsung.",
                 "Ruang lingkupnya cukup di area sekolah agar aman dan mudah dipantau.",
             ]
+        if active_stage == "learning_style":
+            return [
+                "Gunakan praktik langsung dan diskusi kelompok kecil.",
+                "Gaya belajarnya visual dan kolaboratif agar hasil mudah dipresentasikan.",
+                "Utamakan observasi langsung, kerja kelompok, lalu refleksi singkat.",
+            ]
         if active_stage == "final_product":
             product_text = ", ".join(products[:2])
             return [
@@ -2089,6 +2203,12 @@ class PjblKinaService:
                 "Fasilitas dipakai untuk observasi, dokumentasi, dan presentasi; tanpa mitra luar.",
                 "Teknologi hanya dipakai seperlunya untuk dokumentasi dan menyajikan hasil.",
                 "Kemitraan tidak digunakan dulu agar proyek tetap mudah dijalankan.",
+            ]
+        if active_stage == "digital_use":
+            return [
+                "Digital dipakai untuk dokumentasi foto, pengumpulan data, dan presentasi.",
+                "Gunakan Canva atau Slides untuk menyusun produk akhir kelompok.",
+                "Gunakan Google Form sederhana agar data observasi mudah dikumpulkan.",
             ]
         if active_stage == "risk_mitigation" and slot_key == "risk":
             risk_text = risks[0]
@@ -2256,6 +2376,9 @@ class PjblKinaService:
             ("focus_scope", "boundary"): (
                 "Batas lokasi atau sasaran proyeknya ingin difokuskan ke mana?"
             ),
+            ("learning_style", "style"): (
+                "Gaya pembelajaran apa yang paling cocok untuk kelas ini?"
+            ),
             ("final_product", "product"): (
                 "Produk atau aksi akhir apa yang paling realistis dibuat murid?"
             ),
@@ -2276,6 +2399,9 @@ class PjblKinaService:
             ),
             ("facilities_partnership", "use_or_partnership"): (
                 "Fasilitas itu akan dipakai untuk apa, dan perlu mitra atau tanpa mitra?"
+            ),
+            ("digital_use", "digital_plan"): (
+                "Pemanfaatan digital apa yang paling realistis digunakan dalam proyek ini?"
             ),
             ("risk_mitigation", "risk"): (
                 "Risiko utama apa yang paling mungkin menghambat proyek ini?"
