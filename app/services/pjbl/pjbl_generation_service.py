@@ -10,6 +10,8 @@ from app.services.prompt_builder_service import PromptBuilderService
 from app.services.rag_service import RAGService
 from app.utils.text_cleaner import compact_text
 
+MAX_PJBL_SUBJECTS = 5
+
 
 class PjblGenerationService:
     def __init__(
@@ -442,7 +444,26 @@ Aturan:
             or project.get("subject")
             or source_data.get("teacherSubject", {}).get("subjectName")
         )
-        return subjects or ["Prakarya", "IPS", "Matematika", "Bahasa Indonesia"]
+        return self._normalize_related_subjects(subjects)
+
+    def _normalize_related_subjects(self, subjects: list[str]) -> list[str]:
+        normalized: list[str] = []
+        seen: set[str] = set()
+
+        def add(subject: Any) -> None:
+            text = self._join(subject)
+            if not text:
+                return
+            key = text.casefold()
+            if key in seen:
+                return
+            seen.add(key)
+            normalized.append(text)
+
+        for subject in subjects:
+            add(subject)
+
+        return normalized[:MAX_PJBL_SUBJECTS]
 
     def _expected_outcomes(self, title: str, final_product: str) -> list[str]:
         return [

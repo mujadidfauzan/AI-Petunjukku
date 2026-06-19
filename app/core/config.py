@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     )
     kina_solver_model: str | None = Field(default=None, alias="KINA_SOLVER_MODEL")
     kina_evaluator_model: str | None = Field(default=None, alias="KINA_EVALUATOR_MODEL")
+    pjbl_recommendation_model: str | None = Field(
+        default=None,
+        alias="PJBL_RECOMMENDATION_MODEL",
+    )
     llm_temperature: float = Field(default=0.3, alias="LLM_TEMPERATURE")
     llm_max_tokens: int = Field(default=2048, alias="LLM_MAX_TOKENS")
 
@@ -46,7 +50,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("EMBEDDING_DIMENSION", "EMBEDDING_DIMENSIONS"),
     )
 
-    request_timeout_seconds: int = Field(default=60, alias="REQUEST_TIMEOUT_SECONDS")
+    request_timeout_seconds: int = Field(default=120, alias="REQUEST_TIMEOUT_SECONDS")
     cp_pdf_path: str = Field(
         default="../../rag/data/Kepka_BSKAP_No_01k17e8396ajn15j3hcw0k773b.pdf",
         alias="CP_PDF_PATH",

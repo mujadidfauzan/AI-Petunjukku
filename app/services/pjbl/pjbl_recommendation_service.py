@@ -17,6 +17,9 @@ from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
 
+MIN_PJBL_SUBJECTS = 3
+MAX_PJBL_SUBJECTS = 5
+
 
 class PjblRecommendationService:
     def __init__(
@@ -59,7 +62,7 @@ class PjblRecommendationService:
             "project": project_input,
             "subjectContext": {
                 "mainSubjects": subjects,
-                "subjectLens": " & ".join(subjects[:2]) if subjects else "",
+                "subjectLens": ", ".join(subjects) if subjects else "",
                 "instruction": (
                     "Tema dan opsi wajib selaras dengan mainSubjects. Abaikan kategori "
                     "tempat mentah yang hanya cocok untuk mata pelajaran lain."
@@ -88,7 +91,7 @@ class PjblRecommendationService:
                 "content": json.dumps(llm_input, ensure_ascii=False),
             },
         ]
-        logger.info(
+        logger.debug(
             "[PjBL Recommend] LLM input (%s):\n%s",
             recommendation_type,
             json.dumps(llm_input, ensure_ascii=False, indent=2, default=str),
@@ -96,7 +99,33 @@ class PjblRecommendationService:
         try:
             generated = await self.llm_client.generate_json_strict(
                 messages,
+                model=self._recommendation_model(),
                 temperature=0.7,
+            )
+        except ValueError as exc:
+            logger.warning(
+                "[PjBL Recommend] LLM JSON invalid (%s), using fallback: %s",
+                recommendation_type,
+                exc,
+            )
+            recommendations = self._fallback_recommendations(
+                payload,
+                recommendation_type,
+                references,
+                stage_context=stage_context,
+                environment_context=environment_context,
+                subjects=subjects,
+            )
+            return RecommendStageResponse(
+                rppType=payload.project.rppType,
+                recommendationType=recommendation_type,
+                targetStageNumber=(
+                    int(target_stage_number)
+                    if target_stage_number is not None
+                    else None
+                ),
+                ragReferences=references,
+                recommendations=recommendations,
             )
         except Exception as exc:
             logger.warning(
@@ -108,21 +137,25 @@ class PjblRecommendationService:
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="Ada error saat memanggil LLM. Rekomendasi belum dapat dibuat.",
             ) from exc
-        logger.info(
+        logger.debug(
             "[PjBL Recommend] LLM raw output (%s):\n%s",
             recommendation_type,
             json.dumps(generated, ensure_ascii=False, indent=2, default=str),
         )
-        self._assert_llm_output_valid(generated, recommendation_type)
+        fallback = self._fallback_recommendations(
+            payload,
+            recommendation_type,
+            references,
+            stage_context=stage_context,
+            environment_context=environment_context,
+            subjects=subjects,
+        )
         recommendations = self._normalize_recommendations(
             generated,
-            self._normalization_context(
-                recommendation_type,
-                environment_context,
-                subjects,
-            ),
+            fallback,
         )
-        logger.info(
+        self._assert_llm_output_valid(recommendations, recommendation_type)
+        logger.debug(
             "[PjBL Recommend] API normalized output (%s):\n%s",
             recommendation_type,
             json.dumps(recommendations, ensure_ascii=False, indent=2, default=str),
@@ -135,6 +168,15 @@ class PjblRecommendationService:
             ),
             ragReferences=references,
             recommendations=recommendations,
+        )
+
+    def _recommendation_model(self) -> str:
+        settings = self.llm_client.settings
+        return (
+            settings.pjbl_recommendation_model
+            or settings.kina_solver_model
+            or settings.kina_llm_model
+            or settings.llm_model
         )
 
     def _recommendation_type(
@@ -361,7 +403,7 @@ class PjblRecommendationService:
             getattr(payload.school, "district", None) if payload.school else None,
             "",
         )
-        subject_lens = " & ".join(subjects[:2]) if subjects else "Lintas Disiplin"
+        subject_lens = ", ".join(subjects) if subjects else "Lintas Disiplin"
         local_issue = self._first_text(
             stage_context.get("localIssue"),
             environment_context.get("summary"),
@@ -670,7 +712,7 @@ class PjblRecommendationService:
             activity = str(pattern["activity"]).format(place=place)
             data = str(pattern["data"])
             product = str(pattern["product"])
-            lens = f"{subject_lens}{pattern['lens_suffix']}"
+            lens = subject_lens
             option_id = self._slug(
                 f"{pattern['key']}-{selected_theme_label}-{place}", f"opsi-{index + 1}"
             )
@@ -2174,7 +2216,38 @@ class PjblRecommendationService:
         project_subject = self._first_text(payload.project.subject, "")
         if not subjects and not self._is_generic_subject(project_subject):
             subjects = self._string_list(project_subject)
-        return subjects
+        return self._normalize_subject_count(subjects)
+
+    def _normalize_subject_count(
+        self,
+        subjects: list[str],
+    ) -> list[str]:
+        normalized: list[str] = []
+        seen: set[str] = set()
+
+        def add(subject: Any) -> None:
+            text = self._first_text(subject, "")
+            if not text:
+                return
+            key = text.casefold()
+            if key in seen:
+                return
+            seen.add(key)
+            normalized.append(text)
+
+        for subject in subjects:
+            add(subject)
+
+        normalized = normalized[:MAX_PJBL_SUBJECTS]
+        if len(normalized) < MIN_PJBL_SUBJECTS:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"Stage 1 harus memuat {MIN_PJBL_SUBJECTS}-"
+                    f"{MAX_PJBL_SUBJECTS} mata pelajaran pilihan guru."
+                ),
+            )
+        return normalized
 
     def _is_generic_subject(self, value: Any) -> bool:
         text = self._first_text(value, "").casefold()
