@@ -64,7 +64,8 @@ Prinsip pengambilan keputusan:
 - Jika guru menolak suatu opsi, jangan masukkan opsi tersebut ke summary.
 - Jika guru mengganti keputusan lama, gunakan keputusan terbaru dari guru.
 - Jika guru berkata "tidak digunakan", "tidak perlu", atau "tidak memakai", catat sebagai "Tidak digunakan".
-- Jangan memasukkan fasilitas, platform digital, mitra, atau produk akhir hanya karena pernah disarankan Kina.
+- Jangan memasukkan fasilitas, tipe media, mitra, atau produk akhir hanya karena pernah disarankan Kina.
+- Guru hanya memilih tipe sumber belajar/media. Jangan meminta atau mengarang judul dan URL sumber.
 - Gunakan istilah "murid", bukan "siswa".
 
 Stage 3 berisi rancangan strategi dan alur pembelajaran.
@@ -75,6 +76,10 @@ Wajib kembalikan JSON valid dengan struktur:
   "learningStrategy": "",
   "pedagogicalApproach": "",
   "facilityAndTechnologyUse": "",
+  "mediaPreferences": [],
+  "mediaUsage": "",
+  "resourceDiscoveryMode": "automatic",
+  "selectedResources": [],
   "digitalPlatform": "",
   "partnership": "",
   "finalStudentProduct": "",
@@ -96,7 +101,11 @@ Aturan isi:
 - learningStrategy: gaya pembelajaran yang dipilih guru.
 - pedagogicalApproach: pendekatan pedagogis/model pembelajaran yang disepakati.
 - facilityAndTechnologyUse: bagaimana fasilitas dan teknologi dimanfaatkan.
-- digitalPlatform: platform digital yang dipakai. Jika tidak ada, isi "Tidak digunakan".
+- mediaPreferences: array pilihan tipe media. Gunakan hanya nilai: "auto", "official_textbook", "youtube_video", "interactive_media", atau "non_digital".
+- mediaUsage: fungsi media yang disepakati, misalnya pemantik, penguatan konsep, latihan, atau rujukan mandiri.
+- resourceDiscoveryMode: selalu isi "automatic" karena sistem memilih sumber konkret tanpa meminta URL dari guru.
+- selectedResources: selalu array kosong pada summary Stage 3; field ini diisi resource discovery service saat generate.
+- digitalPlatform: ringkasan legacy dari pilihan media untuk kompatibilitas sesi lama. Jangan isi URL.
 - partnership: bentuk kemitraan. Jika tidak ada, isi "Tidak digunakan".
 - finalStudentProduct: produk atau kinerja akhir murid.
 - activityFlowDecision.opening: kegiatan pembuka pembelajaran.
@@ -108,7 +117,7 @@ Aturan isi:
 - stage3CompletionStatus: isi "complete" hanya jika informasi utama Stage 3 sudah cukup; isi "partial" jika masih ada keputusan utama yang belum jelas.
 
 Jika ada informasi yang tidak disebut eksplisit oleh guru:
-- Jangan mengarang detail spesifik seperti nama platform, fasilitas, mitra, atau produk.
+- Jangan mengarang detail spesifik seperti judul sumber, URL, nama platform, fasilitas, mitra, atau produk.
 - Boleh membuat inferensi ringan untuk activityFlowDecision dan differentiationPlan agar tetap dapat dipakai generate RPM.
 - Inferensi harus realistis, umum, dan mengikuti keputusan yang sudah benar-benar muncul dalam chatHistory.
 """.strip()
@@ -130,7 +139,11 @@ Jika ada informasi yang tidak disebut eksplisit oleh guru:
             "learningStrategy": "Belum dapat disimpulkan secara spesifik dari chat history.",
             "pedagogicalApproach": "Belum dapat disimpulkan secara spesifik dari chat history.",
             "facilityAndTechnologyUse": "Belum dapat disimpulkan secara spesifik dari chat history.",
-            "digitalPlatform": "Tidak digunakan",
+            "mediaPreferences": ["auto"],
+            "mediaUsage": "Pemantik dan penguatan konsep oleh guru.",
+            "resourceDiscoveryMode": "automatic",
+            "selectedResources": [],
+            "digitalPlatform": "Sumber belajar dipilih otomatis oleh KINA.",
             "partnership": "Tidak digunakan",
             "finalStudentProduct": "Belum dapat disimpulkan secara spesifik dari chat history.",
             "activityFlowDecision": {

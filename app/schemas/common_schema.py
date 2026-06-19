@@ -20,6 +20,7 @@ class ProjectSchema(FlexibleModel):
 
 class TeacherProfileSchema(FlexibleModel):
     fullName: str | None = None
+    gender: str | None = None
     position: str | None = None
     educationLevel: str | None = None
 

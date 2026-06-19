@@ -26,9 +26,9 @@ class Settings(BaseSettings):
         default="https://openrouter.ai/api/v1",
         validation_alias=AliasChoices("OPENROUTER_BASE_URL", "OPENROUTER_API_BASE_URL"),
     )
-    llm_model: str = Field(default="gemini-1.5-flash", alias="LLM_MODEL")
+    llm_model: str = Field(default="qwen/qwen3.7-plus", alias="LLM_MODEL")
     llm_temperature: float = Field(default=0.3, alias="LLM_TEMPERATURE")
-    llm_max_tokens: int = Field(default=2048, alias="LLM_MAX_TOKENS")
+    llm_max_tokens: int = Field(default=12000, alias="LLM_MAX_TOKENS")
 
     embedding_provider: str = Field(default="local", alias="EMBEDDING_PROVIDER")
     embedding_model_name: str = Field(
@@ -37,7 +37,38 @@ class Settings(BaseSettings):
     )
     embedding_dimension: int = Field(default=384, alias="EMBEDDING_DIMENSION")
 
-    request_timeout_seconds: int = Field(default=60, alias="REQUEST_TIMEOUT_SECONDS")
+    request_timeout_seconds: int = Field(default=180, alias="REQUEST_TIMEOUT_SECONDS")
+    resource_discovery_enabled: bool = Field(
+        default=True,
+        alias="RESOURCE_DISCOVERY_ENABLED",
+    )
+    resource_discovery_timeout_seconds: int = Field(
+        default=15,
+        alias="RESOURCE_DISCOVERY_TIMEOUT_SECONDS",
+    )
+    resource_discovery_max_results: int = Field(
+        default=5,
+        alias="RESOURCE_DISCOVERY_MAX_RESULTS",
+    )
+    youtube_api_key: str | None = Field(default=None, alias="YOUTUBE_API_KEY")
+    youtube_api_base_url: str = Field(
+        default="https://www.googleapis.com/youtube/v3",
+        alias="YOUTUBE_API_BASE_URL",
+    )
+    book_catalog_api_url: str | None = Field(
+        default=(
+            "https://api.buku.cloudapp.web.id/api/catalogue/"
+            "getPenggerakTextBooks"
+        ),
+        alias="BOOK_CATALOG_API_URL",
+    )
+    book_catalog_allowed_domains: str = Field(
+        default=(
+            "buku.kemendikdasmen.go.id,static.sc.cloudapp.web.id,"
+            "static-sc.cloudapp.web.id,files.cloudapp.web.id"
+        ),
+        alias="BOOK_CATALOG_ALLOWED_DOMAINS",
+    )
     faiss_index_path: str = Field(
         default="app/data/vector_store/cp.index",
         alias="FAISS_INDEX_PATH",

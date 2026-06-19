@@ -28,9 +28,10 @@ STAGE3_FIELD_DETAIL_REQUIREMENTS = {
         "siapa yang menggunakan fasilitas",
     ],
     "platform_digital": [
-        "platform digital digunakan atau tidak",
-        "fungsi platform jika digunakan",
-        "hubungan platform dengan aktivitas pembelajaran",
+        "tipe sumber belajar atau media yang diizinkan: buku resmi, video YouTube, media interaktif, non-digital, atau dipilihkan otomatis",
+        "fungsi media: pemantik, penguatan konsep, latihan, atau rujukan mandiri",
+        "siapa yang menggunakan media: guru, murid, atau keduanya",
+        "sistem akan mencari judul dan tautan secara otomatis; guru tidak diminta memasukkan URL",
     ],
     "kemitraan": [
         "menggunakan mitra atau tidak",

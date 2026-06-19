@@ -9,6 +9,9 @@ from app.services.intrakurikuler.intra_dummy_stage_data import (
     get_intra_dummy_onboarding_content,
     get_intra_dummy_stage_content,
 )
+from app.services.intrakurikuler.resource_discovery_service import (
+    ResourceDiscoveryService,
+)
 from app.services.llm_client import LLMClient
 from app.services.prompt_builder_service import PromptBuilderService
 from app.services.rag_service import RAGService
@@ -20,10 +23,14 @@ class IntraGenerationService:
         rag_service: RAGService | None = None,
         llm_client: LLMClient | None = None,
         prompt_builder: PromptBuilderService | None = None,
+        resource_discovery_service: ResourceDiscoveryService | None = None,
     ) -> None:
         self.rag_service = rag_service or RAGService()
         self.llm_client = llm_client or LLMClient()
         self.prompt_builder = prompt_builder or PromptBuilderService()
+        self.resource_discovery_service = (
+            resource_discovery_service or ResourceDiscoveryService()
+        )
 
     async def generate(self, payload: GenerateRppRequest) -> GenerateRppResponse:
         references = await self.rag_service.search_for_context(
@@ -34,6 +41,10 @@ class IntraGenerationService:
         )
 
         source_data = self._build_source_data(payload, references)
+        discovered_resources = await self.resource_discovery_service.discover(
+            source_data
+        )
+        self._attach_discovered_resources(source_data, discovered_resources)
         response_shape = self._empty_response_shape(payload, source_data)
 
         messages = [
@@ -57,7 +68,9 @@ class IntraGenerationService:
                             "Jangan menambahkan informasi, perangkat, sumber daya, produk, tugas, tautan, aplikasi, atau fasilitas yang tidak disebut atau tidak dapat diturunkan langsung dari Stage 1-4. "
                             "Gunakan Stage 3 untuk mengisi learningDesign.partnership, learningDesign.digitalUse, learningDesign.resources, produk akhir, diferensiasi, dan alur kegiatan. "
                             "learningDesign.partnership hanya boleh berasal dari Stage 3 field partnership. "
-                            "learningDesign.digitalUse hanya boleh berasal dari Stage 3 field digitalPlatform. "
+                            "Preferensi learningDesign.digitalUse berasal dari Stage 3 field mediaPreferences, mediaUsage, dan legacy digitalPlatform. "
+                            "Judul, penyedia, dan tautan konkret learningDesign.digitalUse hanya boleh berasal dari sourceData.selectedResources yang sudah diverifikasi resource discovery service. "
+                            "Jika selectedResources kosong, jangan mengarang judul buku, judul video, kanal, atau URL. "
                             "learningDesign.resources hanya boleh berasal dari Stage 3 field facilityAndTechnologyUse. "
                             "Jangan menurunkan resources dari digitalPlatform. Jika digitalPlatform menyebut media atau platform digital, jangan otomatis menambahkan perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi ke resources kecuali perangkat itu disebut eksplisit pada facilityAndTechnologyUse. "
                             "Produk akhir, tugas utama, dan asesmen harus konsisten dengan finalStudentProduct Stage 3. Jangan menambahkan produk besar lain seperti laporan tertulis, LKPD, poster, video, atau artefak tambahan jika tidak disebut pada Stage 1-4. "
@@ -69,6 +82,8 @@ class IntraGenerationService:
                             "Wajib isi meetingActivities.overview dan seluruh meetings sesuai jumlah pertemuan. "
                             "Wajib isi setiap meeting dengan diagnostic, understanding, applying, reflecting, dan formativeAssessment. "
                             "Jangan mengembalikan JSON parsial. "
+                            "profileAndLearningDirection.interdisciplinaryIntegration wajib berasal dari Stage 2 field mataPelajaranLintasDisiplin dan tetap ditampilkan meskipun hanya sebagai pendukung. "
+                            "learningDesign.partnership wajib berasal dari Stage 3 field partnership dan tetap ditampilkan; jika Stage 3 menyatakan tidak digunakan, tuliskan secara eksplisit bahwa tidak ada kemitraan khusus. "
                         ),
                         "project": payload.project.model_dump(),
                         "sourceData": source_data,
@@ -97,6 +112,8 @@ class IntraGenerationService:
 
             candidate = self._normalize_generated_text(candidate)
             candidate = self._normalize_output_structure(candidate)
+            candidate = self._apply_identity_defaults(candidate, payload, source_data)
+            candidate = self._apply_meeting_title_defaults(candidate, source_data)
 
             if self._is_content_complete_enough(candidate):
                 content_json = candidate
@@ -169,10 +186,21 @@ class IntraGenerationService:
         learning_design = content.get("learningDesign") or {}
         if self._is_empty_value(learning_design.get("pedagogicalPractice")):
             return False
+        if self._is_empty_value(learning_design.get("partnership")):
+            return False
         if self._is_empty_value(learning_design.get("digitalUse")):
             return False
         if self._is_empty_value(learning_design.get("resources")):
             return False
+
+        profile = content.get("profileAndLearningDirection") or {}
+        interdisciplinary = profile.get("interdisciplinaryIntegration") or {}
+        if self._is_empty_value(interdisciplinary):
+            return False
+
+        for key in ("relatedDiscipline", "rationale", "integrationForm", "notes"):
+            if not str(interdisciplinary.get(key, "")).strip():
+                return False
 
         meeting_activities = content.get("meetingActivities") or {}
         if not str(meeting_activities.get("overview", "")).strip():
@@ -253,6 +281,17 @@ B. Prinsip Utama
 9. learningObjectives dan target pertemuan harus diawali "Murid mampu ...".
 10. Gaya bahasa harus naratif, siap ditempel ke dokumen RPM, dan tidak berupa frasa pendek.
 
+B2. Standar Kualitas Isi Seperti Template Final
+1. Output harus terasa sebagai panduan mengajar yang bisa langsung dijalankan guru, bukan ringkasan umum.
+2. Setiap bagian kegiatan wajib menyebut konteks konkret dari Stage 1-4, seperti objek kelas, lingkungan sekolah, data sederhana, masalah kontekstual, media yang dipilih, sumber daya yang tersedia, atau produk akhir.
+3. Jika sourceData hanya memberi topik umum, turunkan contoh konkret yang wajar dari topik, kelas, dan lingkungan sekolah tanpa menambah fasilitas, platform, mitra, atau produk baru.
+4. Hindari kalimat generik tanpa detail operasional, misalnya "murid mencari contoh nyata", "guru memberi penjelasan", atau "murid berdiskusi" jika tidak dijelaskan contoh yang dibahas, cara kerja, bukti belajar, dan peran guru.
+5. Untuk setiap pertemuan, buat alur yang runtut: cek awal, pembahasan miskonsepsi, penguatan konsep, tugas aplikasi, berbagi hasil, refleksi, dan asesmen formatif.
+6. Kegiatan harus sesuai alokasi waktu. Jika hanya 1 pertemuan, produk harus kecil dan selesai di kelas; jangan mengubahnya menjadi proyek besar.
+7. Pakai contoh yang dekat dengan guru dan murid Indonesia, seperti kelas, kantin, koperasi, jadwal, kelompok belajar, data sederhana, peta lingkungan sekolah, atau fenomena lokal yang relevan dengan topik.
+8. Jangan mengulang frasa yang sama antarbagian. Setiap langkah harus menambah informasi baru yang membantu guru menjalankan kelas.
+9. Gunakan gaya seperti contoh final: konkret, instruktif, pedagogis, dan tetap ringkas dalam batas template.
+
 C. Prioritas Keputusan
 Jika ada konflik antar data, gunakan urutan prioritas berikut:
 1. lockedDecisionsFromStage3
@@ -268,17 +307,20 @@ Aturan prioritas:
 - produk akhir, media digital, kemitraan, sumber daya yang dipilih, alur kegiatan, dan diferensiasi mengikuti Stage 3.
 - fasilitasAwal pada Stage 1 hanya menunjukkan fasilitas yang tersedia. Fasilitas awal tidak otomatis menjadi sumber daya yang digunakan.
 - partnership berasal dari field partnership Stage 3.
-- digitalUse berasal dari field digitalPlatform Stage 3.
+- preferensi digitalUse berasal dari mediaPreferences, mediaUsage, dan legacy digitalPlatform Stage 3.
+- judul, penyedia, dan tautan digitalUse berasal dari selectedResources.
 - resources berasal dari field facilityAndTechnologyUse Stage 3.
 - discussionSummary digunakan sebagai konteks penguat agar narasi setiap bagian saling nyambung.
 
 D. Aturan Learning Design
 - pedagogicalPractice dikembangkan dari learningStrategy dan pedagogicalApproach Stage 3.
 - partnership dikembangkan dari partnership Stage 3.
-- digitalUse dikembangkan dari digitalPlatform Stage 3.
+- digitalUse dikembangkan dari mediaPreferences, mediaUsage, legacy digitalPlatform, dan selectedResources.
 - resources dikembangkan dari facilityAndTechnologyUse Stage 3.
 - partnership hanya memuat mitra pembelajaran.
 - digitalUse hanya memuat media, aplikasi, sumber digital, atau platform digital.
+- Setiap selectedResources wajib dipertahankan judul, provider, URL, fungsi, dan alasan pemilihannya tanpa diubah atau dikarang ulang.
+- Jika selectedResources kosong, digitalUse boleh menjelaskan preferensi media, tetapi linkOrAccess wajib kosong dan tidak boleh memuat URL buatan.
 - resources hanya memuat alat, bahan, fasilitas, atau sumber daya fisik yang disebut eksplisit pada Stage 3 field facilityAndTechnologyUse.
 - Jangan memasukkan alat fisik ke digitalUse jika alat tersebut dijelaskan pada facilityAndTechnologyUse.
 - Jangan memasukkan media/platform digital ke resources jika media tersebut dijelaskan pada digitalPlatform.
@@ -335,7 +377,7 @@ Field berikut wajib diisi:
 - finalFlowSummary
 
 G. Kedalaman Narasi Minimal
-- materialContext: 1 paragraf, 3 kalimat.
+- materialContext: 1 paragraf, 3-4 kalimat, memuat konteks materi, situasi kelas, dan alasan konteks dipilih.
 - graduateProfiles.description: 1 kalimat konkret tentang perilaku murid.
 - interdisciplinaryIntegration.rationale: 3-4 kalimat.
 - interdisciplinaryIntegration.integrationForm: 2-3 kalimat.
@@ -348,13 +390,13 @@ G. Kedalaman Narasi Minimal
 - digitalUse.notes: 2 kalimat.
 - resources[].function: 2 kalimat.
 - meetingActivities.overview: 1 paragraf, 3-4 kalimat.
-- meetings[].introParagraph: 1 paragraf, 3 kalimat.
-- diagnostic.step1Description: 3-4 kalimat.
-- diagnostic.step2Description: 3-4 kalimat.
-- understanding.step4Description: 3-4 kalimat.
-- understanding.step5Description: 3-4 kalimat.
-- applying.step6Description: 3-4 kalimat.
-- applying.step7Description: 3-4 kalimat.
+- meetings[].introParagraph: 1 paragraf, 3-4 kalimat, memuat fokus, durasi, konteks kegiatan, dan target bukti belajar.
+- diagnostic.step1Description: 4-5 kalimat, memuat alat, instruksi guru, cara murid menjawab, contoh konteks, dan tujuan diagnostik.
+- diagnostic.step2Description: 4-5 kalimat, memuat cara guru membaca jawaban, aturan Kelompok A/B, tujuan diferensiasi, dan transisi ke pembahasan.
+- understanding.step4Description: 4-5 kalimat, memuat jawaban yang dibahas, miskonsepsi yang mungkin muncul, dan cara guru meluruskannya.
+- understanding.step5Description: 4-5 kalimat, memuat penguatan konsep, contoh atau noncontoh, sumber daya yang dipakai, dan catatan keterkaitan dengan konteks.
+- applying.step6Description: 4-5 kalimat, memuat nama tugas atau mini-proyek kecil, bahan yang digunakan, tindakan murid, dan hasil antara.
+- applying.step7Description: 4-5 kalimat, memuat cara murid menyelesaikan produk, cara guru berkeliling memberi umpan balik, dan cara hasil dibagikan.
 - reflecting.description: 2 kalimat.
 - reflecting.step8Description: 3-4 kalimat.
 - formativeAssessment.step9Description: 2-3 kalimat.
@@ -374,6 +416,13 @@ H. Lintas Disiplin
 - integrationForm menjelaskan bentuk integrasi lintas disiplin dalam kegiatan belajar, produk akhir, komunikasi hasil, atau penggunaan teknologi sesuai Stage 3.
 - notes menjelaskan bahwa lintas disiplin bersifat pendukung, sedangkan kompetensi utama tetap berada pada mata pelajaran utama.
 - Jangan menambah disiplin lain yang tidak ada pada Stage 2 atau Stage 3.
+- Bagian lintas disiplin tetap wajib ada di output. Jika Stage 2 tidak memilih lintas disiplin khusus, tuliskan bahwa tidak ada lintas disiplin khusus dan pembelajaran tetap berpusat pada mata pelajaran utama.
+
+H2. Kemitraan
+- partnership diambil dari Stage 3 field partnership.
+- Bagian kemitraan tetap wajib ada di output karena Stage 3 menanyakan keputusan kemitraan.
+- Jika Stage 3 menyebut mitra tertentu, setiap mitra harus menjadi item terpisah dengan partner dan partnerRole.
+- Jika Stage 3 menyatakan tidak ada atau tidak digunakan, tuliskan secara eksplisit "Tidak ada kemitraan khusus" sebagai partner dan jelaskan bahwa pembelajaran dapat berjalan tanpa mitra eksternal.
 
 I. Struktur Meeting Activities
 meetingActivities harus berisi:
@@ -394,7 +443,9 @@ Setiap meeting wajib berisi:
 - formativeAssessment
 
 Aturan isi meeting:
-- meetingTitle boleh mengikuti Stage 4 jika tersedia.
+- meetingTitle adalah judul materi/fokus pertemuan yang ringkas seperti "Bilangan Bulat dan Garis Bilangan".
+- meetingTitle tidak boleh berisi judul asesmen/LKPD seperti "LKPD Pertemuan 1", "LKPD Pertemuan 2", atau "Asesmen Formatif".
+- Jika Stage 4 meetingTitle berisi LKPD/asesmen, abaikan dan gunakan focus, target, atau topik Stage 1 sebagai judul pertemuan.
 - duration mengikuti alokasi per pertemuan dari Stage 1.
 - focus dan target mengikuti tujuan pembelajaran Stage 2.
 - applying.product mengikuti finalStudentProduct Stage 3.
@@ -406,11 +457,11 @@ Aturan isi meeting:
 
 J. Struktur Diagnostik
 Setiap diagnostic wajib berisi:
-- step1Description: cara guru melakukan cek kesiapan awal, alat atau media yang digunakan, cara murid menjawab, dan tujuan diagnostik.
-- sampleQuestion: contoh soal sesuai materi pertemuan.
-- answerOptions: pilihan A dan B jika sesuai.
-- correctAnswer: jawaban tepat dan alasan singkat.
-- step2Description: cara guru membaca hasil jawaban dan membentuk kelompok sementara.
+- step1Description: cara guru melakukan cek kesiapan awal, alat atau media yang digunakan, instruksi singkat kepada murid, cara murid menjawab, dan tujuan diagnostik.
+- sampleQuestion: contoh soal sesuai materi pertemuan, konkret, kontekstual, dan bisa dikerjakan di kelas.
+- answerOptions: wajib pilihan A dan B jika sampleQuestion berbentuk pilihan; pilihan A/B harus jelas dan tidak boleh kosong.
+- correctAnswer: jawaban tepat dan alasan singkat yang menjelaskan konsep inti.
+- step2Description: cara guru membaca hasil jawaban dan membentuk kelompok sementara. Wajib konsisten: Kelompok A adalah murid yang lebih siap atau menjawab tepat; Kelompok B adalah murid yang masih ragu, belum tepat, atau membutuhkan dukungan bertahap.
 - teacherNotes: buat banyak kata dan inti penjelasan sama dengan contoh, berikut "Kelompok A/B bersifat sementara dan tidak boleh disebut sebagai kelompok pintar atau kurang pintar. Guru perlu menyampaikan bahwa pengelompokan hanya digunakan untuk menyesuaikan bentuk bantuan belajar. Murid dapat berpindah kelompok pada kegiatan berikutnya ketika pemahamannya berubah" .
 
 K. Struktur Memahami
@@ -422,11 +473,11 @@ Setiap understanding wajib berisi:
 
 L. Struktur Mengaplikasi
 Setiap applying wajib berisi:
-- step6Description: murid mulai mengerjakan mini-PjBL atau tugas aplikasi.
-- differentiation.supportGroup: bantuan untuk murid yang membutuhkan dukungan.
-- differentiation.advancedGroup: tantangan untuk murid yang lebih siap.
-- step7Description: penyelesaian produk/kinerja dan persiapan penyampaian hasil.
-- flowSummary: 3-4 butir alur kegiatan.
+- step6Description: murid mulai mengerjakan mini-PjBL atau tugas aplikasi kecil yang dapat selesai sesuai alokasi waktu. Jelaskan judul tugas, bahan atau data yang dipakai, cara kerja kelompok, dan hasil antara yang harus terlihat.
+- differentiation.supportGroup: bantuan untuk Kelompok B, yaitu murid yang membutuhkan dukungan; tuliskan contoh scaffold, template, pertanyaan bantu, atau langkah bertahap.
+- differentiation.advancedGroup: tantangan untuk Kelompok A, yaitu murid yang lebih siap; tuliskan perluasan, pembandingan, alasan tambahan, atau contoh baru yang masih sesuai tujuan.
+- step7Description: penyelesaian produk/kinerja dan persiapan penyampaian hasil. Jelaskan cara guru memberi umpan balik, bentuk berbagi hasil, dan apa yang harus dikumpulkan.
+- flowSummary: 4 butir alur kegiatan yang dimulai dari memahami masalah, merancang strategi, membuat produk/kinerja, dan berbagi/menanggapi hasil.
 - product: produk akhir dari Stage 3.
 
 M. Struktur Merefleksi
@@ -481,12 +532,25 @@ N. Struktur Asesmen
         stage3_from_stages = stages_by_number.get(3, {}) or {}
         stage3_from_summary = self._as_dict(payload.kinaChatSummary)
         stage3 = self._merge_dicts_keep_non_empty(stage3_from_summary, stage3_from_stages)
+        stage1 = self._normalize_stage1_basic_context(
+            stages_by_number.get(1, {}),
+            payload,
+            onboarding,
+        )
+        stage2 = stages_by_number.get(2, {}) or {}
+        interdisciplinary_source = self._join_list(stage2.get("mataPelajaranLintasDisiplin"))
 
         locked_decisions_from_stage3 = {
             "discussionSummary": stage3.get("discussionSummary", ""),
             "learningStrategy": stage3.get("learningStrategy", ""),
             "pedagogicalApproach": stage3.get("pedagogicalApproach", ""),
             "facilityAndTechnologyUse": stage3.get("facilityAndTechnologyUse", ""),
+            "mediaPreferences": stage3.get("mediaPreferences", []),
+            "mediaUsage": stage3.get("mediaUsage", ""),
+            "resourceDiscoveryMode": stage3.get(
+                "resourceDiscoveryMode", "automatic"
+            ),
+            "selectedResources": stage3.get("selectedResources", []),
             "digitalPlatform": stage3.get("digitalPlatform", ""),
             "partnership": stage3.get("partnership", ""),
             "finalStudentProduct": stage3.get("finalStudentProduct", ""),
@@ -497,7 +561,7 @@ N. Struktur Asesmen
 
         return {
             "onboarding": onboarding,
-            "stage1_basicContext": stages_by_number.get(1, {}),
+            "stage1_basicContext": stage1,
             "stage2_curriculumFoundation": stages_by_number.get(2, {}),
             "stage3_learningStrategyFromKina": stage3,
             "lockedDecisionsFromStage3": locked_decisions_from_stage3,
@@ -507,17 +571,25 @@ N. Struktur Asesmen
                 "identitySource": "onboarding, Stage 1, Stage 2, dan project payload.",
                 "topicSource": "Stage 1.",
                 "learningObjectivesSource": "Stage 2.",
+                "interdisciplinarySourceText": interdisciplinary_source,
                 "meetingCountSource": "Stage 1.",
                 "formativeAssessmentSource": "Stage 4.",
                 "partnershipSourceText": locked_decisions_from_stage3["partnership"],
+                "mediaPreferences": locked_decisions_from_stage3["mediaPreferences"],
+                "mediaUsage": locked_decisions_from_stage3["mediaUsage"],
+                "selectedResources": locked_decisions_from_stage3[
+                    "selectedResources"
+                ],
                 "digitalUseSourceText": locked_decisions_from_stage3["digitalPlatform"],
                 "resourcesSourceText": locked_decisions_from_stage3["facilityAndTechnologyUse"],
                 "finalStudentProductSourceText": locked_decisions_from_stage3["finalStudentProduct"],
                 "differentiationSource": locked_decisions_from_stage3["differentiationPlan"],
                 "activityFlowSource": locked_decisions_from_stage3["activityFlowDecision"],
                 "hardRules": [
+                    "interdisciplinaryIntegration hanya boleh berasal dari interdisciplinarySourceText dan konteks Stage 2.",
                     "partnership hanya boleh berasal dari partnershipSourceText.",
-                    "digitalUse hanya boleh berasal dari digitalUseSourceText.",
+                    "preferensi digitalUse hanya boleh berasal dari mediaPreferences, mediaUsage, dan digitalUseSourceText.",
+                    "judul dan tautan digitalUse hanya boleh berasal dari selectedResources.",
                     "resources hanya boleh berasal dari resourcesSourceText.",
                     "produk akhir, tugas utama, dan asesmen harus konsisten dengan finalStudentProductSourceText.",
                     "jangan menambahkan perangkat, media, aplikasi, fasilitas, atau produk yang tidak disebut pada Stage 1-4.",
@@ -526,6 +598,31 @@ N. Struktur Asesmen
             },
             "ragReferences": [reference.model_dump() for reference in references],
         }
+
+    def _attach_discovered_resources(
+        self,
+        source_data: dict[str, Any],
+        resources: list[Any],
+    ) -> None:
+        serialized = [
+            item.model_dump() if hasattr(item, "model_dump") else item
+            for item in resources
+            if isinstance(item, dict) or hasattr(item, "model_dump")
+        ]
+        source_data["selectedResources"] = serialized
+
+        stage3 = self._as_dict(source_data.get("stage3_learningStrategyFromKina"))
+        stage3["selectedResources"] = serialized
+        stage3.setdefault("resourceDiscoveryMode", "automatic")
+        source_data["stage3_learningStrategyFromKina"] = stage3
+
+        locked = self._as_dict(source_data.get("lockedDecisionsFromStage3"))
+        locked["selectedResources"] = serialized
+        source_data["lockedDecisionsFromStage3"] = locked
+
+        contract = self._as_dict(source_data.get("strictGroundingContract"))
+        contract["selectedResources"] = serialized
+        source_data["strictGroundingContract"] = contract
 
     def _empty_response_shape(
         self,
@@ -539,30 +636,22 @@ N. Struktur Asesmen
         teacher_subject = onboarding.get("teacherSubject") or {}
         stage1 = source_data.get("stage1_basicContext") or {}
         stage2 = source_data.get("stage2_curriculumFoundation") or {}
+        identity = self._identity_defaults(payload, source_data)
 
         return {
             "title": payload.project.title or "",
           "identity": {
-                "schoolName": school.get("schoolName") or school.get("name", ""),
-                "teacherName": teacher_profile.get("teacherName") or teacher_profile.get("fullName", ""),
-                "educationLevel": (
-                    school.get("educationLevel")
-                    or teacher_profile.get("educationLevel")
-                    or stage1.get("jenjangPendidikan", "")
-                ),
-                "phase": teacher_class.get("phase", payload.project.phase or stage1.get("fase", "")),
-                "gradeLevel": teacher_class.get("gradeLevel", payload.project.gradeLevel or stage1.get("kelas", "")),
-                "subject": (
-                    teacher_subject.get("subject")
-                    or teacher_subject.get("subjectName")
-                    or payload.project.subject
-                    or stage1.get("mataPelajaran", "")
-                ),
-                "topic": stage1.get("topikMateriPokok", ""),
+                "schoolName": identity["schoolName"],
+                "teacherName": identity["teacherName"],
+                "educationLevel": identity["educationLevel"],
+                "phase": identity["phase"],
+                "gradeLevel": identity["gradeLevel"],
+                "subject": identity["subject"],
+                "topic": identity["topic"],
                 "element": self._infer_element(stage1, stage2),
                 "timeAllocation": stage1.get("durasiPembelajaran", ""),
                 "meetingCount": str(stage1.get("jumlahPertemuan", "")),
-                "academicYear": school.get("academicYear", ""),
+                "academicYear": identity["academicYear"],
                 "rppType": payload.project.rppType,
             },
             "materialContext": "",
@@ -592,10 +681,8 @@ N. Struktur Asesmen
                     "notes": "",
                 },
                 "digitalUse": {
-                    "items": [
-                        {"sourceOrPlatform": "", "linkOrAccess": "", "function": ""},
-                    ],
-                    "notes": "",
+                    "items": self._build_digital_use_shape(source_data),
+                    "notes": self._digital_use_notes(source_data),
                 },
                 "resources": [
                     {"name": "", "function": ""},
@@ -644,6 +731,59 @@ N. Struktur Asesmen
             ],
             "finalFlowSummary": "",
         }
+
+    def _build_digital_use_shape(
+        self,
+        source_data: dict[str, Any],
+    ) -> list[dict[str, str]]:
+        resources = source_data.get("selectedResources")
+        if not isinstance(resources, list) or not resources:
+            return [
+                {
+                    "sourceOrPlatform": "",
+                    "linkOrAccess": "",
+                    "function": "",
+                }
+            ]
+
+        items: list[dict[str, str]] = []
+        for resource in resources:
+            if not isinstance(resource, dict):
+                continue
+            title = str(resource.get("title") or "").strip()
+            url = str(resource.get("url") or "").strip()
+            if not title or not url:
+                continue
+            provider = str(resource.get("provider") or "").strip()
+            usage = str(resource.get("usage") or "").strip()
+            reason = str(resource.get("selectionReason") or "").strip()
+            items.append(
+                {
+                    "sourceOrPlatform": (
+                        f"{title} - {provider}" if provider else title
+                    ),
+                    "linkOrAccess": url,
+                    "function": usage or reason,
+                }
+            )
+
+        return items or [
+            {
+                "sourceOrPlatform": "",
+                "linkOrAccess": "",
+                "function": "",
+            }
+        ]
+
+    def _digital_use_notes(self, source_data: dict[str, Any]) -> str:
+        resources = source_data.get("selectedResources")
+        if isinstance(resources, list) and resources:
+            return (
+                "Sumber belajar dipilih otomatis oleh KINA berdasarkan mata "
+                "pelajaran, fase, kelas, topik, tujuan pembelajaran, dan "
+                "ketersediaan fasilitas."
+            )
+        return ""
 
     def _build_graduate_profile_shape(self, stage2: dict[str, Any]) -> list[dict[str, str]]:
         dimensions = stage2.get("dimensiProfilLulusan") or []
@@ -743,15 +883,20 @@ N. Struktur Asesmen
 
         for index in range(meeting_count):
             stage4_item = stage4_meetings[index] if index < len(stage4_meetings) else {}
+            meeting_title = self._meeting_title_from_stage4(
+                stage4_item,
+                index + 1,
+                stage1,
+            )
 
             meetings.append(
                 {
                     "meetingOrder": index + 1,
-                    "meetingTitle": str(stage4_item.get("meetingTitle", "")),
+                    "meetingTitle": meeting_title,
                     "duration": duration,
                     "introParagraph": "",
-                    "focus": "",
-                    "target": "",
+                    "focus": self._first_text(stage4_item.get("focus"), stage4_item.get("fokusPertemuan")),
+                    "target": self._first_text(stage4_item.get("target"), stage4_item.get("targetPertemuan")),
                     "diagnostic": {
                         "step1Description": "",
                         "sampleQuestion": "",
@@ -773,7 +918,7 @@ N. Struktur Asesmen
                             "advancedGroup": "",
                         },
                         "step7Description": "",
-                        "flowSummary": ["", "", ""],
+                        "flowSummary": ["", "", "", ""],
                         "product": "",
                     },
                     "reflecting": {
@@ -907,6 +1052,80 @@ Output wajib hanya JSON valid:
 
         return duration_text
 
+    def _meeting_title_from_stage4(
+        self,
+        stage4_item: Any,
+        order: int,
+        stage1: dict[str, Any],
+    ) -> str:
+        item = self._as_dict(stage4_item)
+        for value in (
+            item.get("meetingTitle"),
+            item.get("title"),
+            item.get("focus"),
+            item.get("fokusPertemuan"),
+            item.get("target"),
+            item.get("targetPertemuan"),
+            stage1.get("topikMateriPokok"),
+            stage1.get("materiPokokBahasan"),
+            stage1.get("topic"),
+        ):
+            title = self._clean_meeting_title(value, order)
+            if title:
+                return title
+        return ""
+
+    def _clean_meeting_title(self, value: Any, order: int) -> str:
+        title = str(value or "").strip()
+        if not title:
+            return ""
+
+        lower = title.lower()
+        if "lkpd" in lower or "asesmen formatif" in lower:
+            return ""
+
+        prefixes = (
+            f"d.{order}",
+            f"pertemuan {order}",
+            f"pertemuan ke-{order}",
+            f"pertemuan ke {order}",
+        )
+        cleaned = title
+        for prefix in prefixes:
+            if cleaned.lower().startswith(prefix):
+                cleaned = cleaned[len(prefix):].lstrip(" -–—:").strip()
+                break
+
+        return cleaned
+
+    def _apply_meeting_title_defaults(
+        self,
+        content: dict[str, Any],
+        source_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        meeting_activities = self._as_dict(content.get("meetingActivities"))
+        meetings = meeting_activities.get("meetings")
+        if not isinstance(meetings, list):
+            return content
+
+        stage1 = self._as_dict(source_data.get("stage1_basicContext"))
+        stage4 = self._as_dict(source_data.get("stage4_formativeAssessment"))
+        stage4_meetings = stage4.get("meetings") if isinstance(stage4.get("meetings"), list) else []
+
+        for index, meeting in enumerate(meetings):
+            if not isinstance(meeting, dict):
+                continue
+            order = int(meeting.get("meetingOrder") or index + 1)
+            current = self._clean_meeting_title(meeting.get("meetingTitle"), order)
+            stage4_item = stage4_meetings[index] if index < len(stage4_meetings) else {}
+            replacement = self._meeting_title_from_stage4(stage4_item, order, stage1)
+            focus_title = self._clean_meeting_title(meeting.get("focus"), order)
+            target_title = self._clean_meeting_title(meeting.get("target"), order)
+            meeting["meetingTitle"] = current or replacement or focus_title or target_title
+
+        content["meetingActivities"] = meeting_activities
+        return content
+
     def _ensure_murid_mampu(self, text: str) -> str:
         cleaned = str(text or "").strip()
 
@@ -923,6 +1142,291 @@ Output wajib hanya JSON valid:
             return cleaned.replace("Siswa mampu", "Murid mampu", 1)
 
         return f"Murid mampu {cleaned[0].lower() + cleaned[1:] if cleaned else cleaned}"
+
+    def _normalize_stage1_basic_context(
+        self,
+        raw_stage1: Any,
+        payload: GenerateRppRequest,
+        onboarding: dict[str, Any],
+    ) -> dict[str, Any]:
+        raw = self._as_dict(raw_stage1)
+        inputs = self._as_dict(raw.get("inputs"))
+        wizard = self._as_dict(raw.get("wizard"))
+        konteks = self._as_dict(wizard.get("konteks"))
+        mission = self._as_dict(konteks.get("mission"))
+        merged = self._merge_dicts_keep_non_empty(raw, inputs, mission)
+
+        teacher_profile = self._as_dict(onboarding.get("teacherProfile"))
+        teacher_class = self._as_dict(onboarding.get("teacherClass"))
+        teacher_subject = self._as_dict(onboarding.get("teacherSubject"))
+        school = self._as_dict(onboarding.get("school"))
+
+        phase = self._format_phase(
+            self._first_text(
+                merged.get("fase"),
+                merged.get("phase"),
+                teacher_class.get("phase"),
+                payload.project.phase,
+            )
+        )
+        grade_level = self._format_class_label(
+            self._first_text(
+                merged.get("kelasSemester"),
+                merged.get("kelas"),
+                merged.get("gradeLevel"),
+                teacher_class.get("gradeLevel"),
+                payload.project.gradeLevel,
+            ),
+            phase,
+        )
+        education_level = self._format_education_level(
+            self._first_text(
+                merged.get("jenjangPendidikan"),
+                merged.get("jenjang"),
+                merged.get("educationLevel"),
+                school.get("educationLevel"),
+                school.get("schoolLevel"),
+                teacher_profile.get("educationLevel"),
+            )
+        )
+
+        return {
+            **raw,
+            **inputs,
+            **mission,
+            "jenjangPendidikan": education_level,
+            "educationLevel": education_level,
+            "fase": phase,
+            "phase": phase,
+            "kelas": grade_level,
+            "kelasSemester": grade_level,
+            "gradeLevel": grade_level,
+            "mataPelajaran": self._first_text(
+                merged.get("mataPelajaran"),
+                merged.get("subject"),
+                teacher_subject.get("subject"),
+                teacher_subject.get("subjectName"),
+                payload.project.subject,
+            ),
+            "topikMateriPokok": self._first_text(
+                merged.get("topikMateriPokok"),
+                merged.get("materiPokokBahasan"),
+                merged.get("topic"),
+                getattr(payload.project, "topic", None),
+            ),
+            "durasiPembelajaran": self._first_text(
+                merged.get("durasiPembelajaran"),
+                self._format_jp(
+                    merged.get("alokasiJpTotal")
+                    or getattr(payload.project, "totalJp", None)
+                ),
+            ),
+            "jumlahPertemuan": self._first_text(
+                merged.get("jumlahPertemuan"),
+                getattr(payload.project, "meetingCount", None),
+            ),
+        }
+
+    def _identity_defaults(
+        self,
+        payload: GenerateRppRequest,
+        source_data: dict[str, Any],
+    ) -> dict[str, str]:
+        onboarding = source_data.get("onboarding") or {}
+        school = self._as_dict(onboarding.get("school"))
+        teacher_profile = self._as_dict(onboarding.get("teacherProfile"))
+        teacher_class = self._as_dict(onboarding.get("teacherClass"))
+        teacher_subject = self._as_dict(onboarding.get("teacherSubject"))
+        stage1 = self._as_dict(source_data.get("stage1_basicContext"))
+
+        phase = self._format_phase(
+            self._first_text(
+                teacher_class.get("phase"),
+                payload.project.phase,
+                stage1.get("fase"),
+                stage1.get("phase"),
+            )
+        )
+
+        return {
+            "schoolName": self._first_text(school.get("schoolName"), school.get("name")),
+            "teacherName": self._first_text(
+                teacher_profile.get("teacherName"),
+                teacher_profile.get("fullName"),
+            ),
+            "educationLevel": self._format_education_level(
+                self._first_text(
+                    school.get("educationLevel"),
+                    school.get("schoolLevel"),
+                    teacher_profile.get("educationLevel"),
+                    stage1.get("jenjangPendidikan"),
+                    stage1.get("educationLevel"),
+                )
+            ),
+            "phase": phase,
+            "gradeLevel": self._format_class_label(
+                self._first_text(
+                    teacher_class.get("gradeLevel"),
+                    payload.project.gradeLevel,
+                    stage1.get("kelas"),
+                    stage1.get("kelasSemester"),
+                    stage1.get("gradeLevel"),
+                ),
+                phase,
+            ),
+            "subject": self._first_text(
+                teacher_subject.get("subject"),
+                teacher_subject.get("subjectName"),
+                payload.project.subject,
+                stage1.get("mataPelajaran"),
+            ),
+            "topic": self._first_text(
+                stage1.get("topikMateriPokok"),
+                stage1.get("materiPokokBahasan"),
+                getattr(payload.project, "topic", None),
+            ),
+            "academicYear": self._first_text(school.get("academicYear")),
+        }
+
+    def _apply_identity_defaults(
+        self,
+        content: dict[str, Any],
+        payload: GenerateRppRequest,
+        source_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        identity = self._as_dict(content.get("identity"))
+        defaults = self._identity_defaults(payload, source_data)
+
+        for key, value in defaults.items():
+            if value:
+                identity[key] = value
+
+        content["identity"] = identity
+        return content
+
+    def _first_text(self, *values: Any) -> str:
+        for value in values:
+            if value is None:
+                continue
+            text = str(value).strip()
+            if text and not self._is_blank_identity_value(text):
+                return text
+        return ""
+
+    def _is_blank_identity_value(self, value: str) -> bool:
+        cleaned = str(value or "").strip()
+        return not cleaned or cleaned in {"-", "–", "—"} or cleaned.lower() in {
+            "none",
+            "null",
+            "undefined",
+        }
+
+    def _format_education_level(self, value: str) -> str:
+        raw = str(value or "").strip()
+        key = raw.lower().replace("_", "-").replace(" ", "-")
+        mapping = {
+            "sd": "SD/MI",
+            "sd/mi": "SD/MI",
+            "smp": "SMP/MTs",
+            "smp/mts": "SMP/MTs",
+            "sma": "SMA/MA/Paket C",
+            "sma/ma/paket-c": "SMA/MA/Paket C",
+            "smk": "SMK/MAK",
+            "smk/mak": "SMK/MAK",
+            "kesetaraan": "Kesetaraan",
+            "pendidikan-khusus": "Pendidikan Khusus",
+        }
+        return mapping.get(key, raw)
+
+    def _format_phase(self, value: str) -> str:
+        raw = str(value or "").strip()
+        if not raw:
+            return ""
+        normalized = raw.upper().replace("FASE", "").strip()
+        if normalized in {"A", "B", "C", "D", "E", "F"}:
+            return f"Fase {normalized}"
+        if normalized == "FONDASI":
+            return "Fase Fondasi"
+        return raw
+
+    def _format_class_label(self, value: str, phase: str = "") -> str:
+        raw = str(value or "").strip()
+        mapping = {
+            "kelas 1": "Kelas I",
+            "kelas i": "Kelas I",
+            "1": "Kelas I",
+            "i": "Kelas I",
+            "kelas 2": "Kelas II",
+            "kelas ii": "Kelas II",
+            "2": "Kelas II",
+            "ii": "Kelas II",
+            "kelas 3": "Kelas III",
+            "kelas iii": "Kelas III",
+            "3": "Kelas III",
+            "iii": "Kelas III",
+            "kelas 4": "Kelas IV",
+            "kelas iv": "Kelas IV",
+            "4": "Kelas IV",
+            "iv": "Kelas IV",
+            "kelas 5": "Kelas V",
+            "kelas v": "Kelas V",
+            "5": "Kelas V",
+            "v": "Kelas V",
+            "kelas 6": "Kelas VI",
+            "kelas vi": "Kelas VI",
+            "6": "Kelas VI",
+            "vi": "Kelas VI",
+            "kelas 7": "Kelas VII",
+            "kelas vii": "Kelas VII",
+            "7": "Kelas VII",
+            "vii": "Kelas VII",
+            "kelas 8": "Kelas VIII",
+            "kelas viii": "Kelas VIII",
+            "8": "Kelas VIII",
+            "viii": "Kelas VIII",
+            "kelas 9": "Kelas IX",
+            "kelas ix": "Kelas IX",
+            "9": "Kelas IX",
+            "ix": "Kelas IX",
+            "kelas 10": "Kelas X",
+            "kelas x": "Kelas X",
+            "10": "Kelas X",
+            "x": "Kelas X",
+            "kelas 11": "Kelas XI",
+            "kelas xi": "Kelas XI",
+            "11": "Kelas XI",
+            "xi": "Kelas XI",
+            "kelas 12": "Kelas XII",
+            "kelas xii": "Kelas XII",
+            "12": "Kelas XII",
+            "xii": "Kelas XII",
+        }
+        normalized = raw.lower().replace("/", " ").replace("-", " ")
+        normalized = " ".join(normalized.split())
+        if normalized in mapping:
+            return mapping[normalized]
+
+        fallback_by_phase = {
+            "fase a": "Kelas I",
+            "fase b": "Kelas III",
+            "fase c": "Kelas V",
+            "fase d": "Kelas VII",
+            "fase e": "Kelas X",
+            "fase f": "Kelas XI",
+        }
+        phase_key = str(phase or "").strip().lower()
+        if self._is_blank_identity_value(raw):
+            return fallback_by_phase.get(phase_key, "")
+        return raw
+
+    def _format_jp(self, value: Any) -> str:
+        if value is None:
+            return ""
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            return str(value).strip()
+        return f"{number} JP" if number > 0 else ""
 
     def _join_list(self, value: Any) -> str:
         if isinstance(value, list):

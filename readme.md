@@ -520,7 +520,14 @@ INTERNAL_API_KEY="change-this-internal-key"
 LLM_PROVIDER="openrouter"
 OPENROUTER_API_KEY="your-openrouter-api-key"
 GEMINI_API_KEY="your-gemini-api-key"
-LLM_MODEL="gemini-1.5-flash"
+LLM_MODEL="qwen/qwen3.7-plus"
+LLM_MAX_TOKENS=12000
+
+RESOURCE_DISCOVERY_ENABLED=true
+YOUTUBE_API_KEY="your-youtube-data-api-key"
+YOUTUBE_API_BASE_URL="https://www.googleapis.com/youtube/v3"
+BOOK_CATALOG_API_URL="https://api.buku.cloudapp.web.id/api/catalogue/getPenggerakTextBooks"
+BOOK_CATALOG_ALLOWED_DOMAINS="buku.kemendikdasmen.go.id,static.sc.cloudapp.web.id,static-sc.cloudapp.web.id,files.cloudapp.web.id"
 
 EMBEDDING_MODEL_NAME="sentence-transformers/all-MiniLM-L6-v2"
 
@@ -537,6 +544,27 @@ Catatan:
 - `SUPABASE_SERVICE_ROLE_KEY` hanya boleh dipakai di backend.
 - Jangan commit `.env` ke repository.
 - Jika metadata RAG disimpan dalam file lokal, `SUPABASE_SERVICE_ROLE_KEY` belum wajib dipakai pada tahap awal.
+- `YOUTUBE_API_KEY` bersifat opsional. Tanpa key, provider YouTube dilewati dan generate tetap berjalan.
+- `BOOK_CATALOG_API_URL` menggunakan endpoint katalog publik yang dipakai situs resmi SIBI. Provider ini tidak membutuhkan API key.
+- Adapter memfilter hasil berdasarkan mata pelajaran dan kelas, lalu memprioritaskan buku siswa PDF resmi.
+
+Contoh struktur respons SIBI yang didukung:
+
+```json
+{
+  "results": [
+    {
+      "title": "Matematika untuk SMA/SMK Kelas X",
+      "attachment": "https://static-sc.cloudapp.web.id/...pdf",
+      "subject": "matematika",
+      "class": "10",
+      "level": "SMA/MA/SMK/MAK",
+      "book_type": "buku_siswa",
+      "publisher": "Pusat Perbukuan"
+    }
+  ]
+}
+```
 
 ---
 

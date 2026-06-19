@@ -4,12 +4,24 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.schemas.common_schema import ChatMessageSchema, ProjectSchema, StageSchema
-from app.schemas.common_schema import UsedReferenceSchema
+from app.schemas.common_schema import (
+    ChatMessageSchema,
+    ProjectSchema,
+    SchoolSchema,
+    StageSchema,
+    TeacherClassSchema,
+    TeacherProfileSchema,
+    TeacherSubjectSchema,
+    UsedReferenceSchema,
+)
 
 
 class KinaChatRequest(BaseModel):
     project: ProjectSchema
+    teacherProfile: TeacherProfileSchema | None = None
+    school: SchoolSchema | None = None
+    teacherSubject: TeacherSubjectSchema | None = None
+    teacherClass: TeacherClassSchema | None = None
     stages: list[StageSchema] = Field(default_factory=list)
     chatHistory: list[ChatMessageSchema] = Field(default_factory=list)
     message: str = Field(..., min_length=1)

@@ -10,8 +10,8 @@ INTRA_DUMMY_ONBOARDING = {
         "academicYear": "2025/2026",
     },
     "teacherProfile": {
-        "teacherName": "Vica Mawaddatus Syifa",
-        "gender": "Perempuan",
+        "teacherName": "Guru Demo",
+        "gender": "",
     },
     "teacherClass": {
         "gradeLevel": "VII / Ganjil",
