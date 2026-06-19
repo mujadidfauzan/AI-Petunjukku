@@ -1,30 +1,29 @@
 from __future__ import annotations
 
-from fastapi import HTTPException, status
-
-from app.schemas.generate_rpp_schema import GenerateRppRequest, GenerateRppResponse
 from app.schemas.environment_schema import (
     SchoolEnvironmentCurationRequest,
     SchoolEnvironmentCurationResponse,
 )
+from app.schemas.generate_rpp_schema import GenerateRppRequest, GenerateRppResponse
 from app.schemas.kina_schema import (
     KinaChatRequest,
     KinaChatResponse,
     KinaSummaryRequest,
     KinaSummaryResponse,
 )
-from app.schemas.recommendation_schema import (
-    RecommendStageRequest,
-    RecommendStageResponse,
-)
 from app.schemas.lintas_disiplin_schema import (
     RecommendLintasDisiplinRequest,
     RecommendLintasDisiplinResponse,
+)
+from app.schemas.recommendation_schema import (
+    RecommendStageRequest,
+    RecommendStageResponse,
 )
 from app.schemas.stage3_diagram_schema import (
     Stage3DiagramRequest,
     Stage3DiagramResponse,
 )
+from app.services.environment_curation_service import EnvironmentCurationService
 from app.services.intrakurikuler.intra_generation_service import (
     IntraGenerationService,
 )
@@ -35,15 +34,15 @@ from app.services.intrakurikuler.intra_lintas_disiplin_service import (
 from app.services.intrakurikuler.intra_recommendation_service import (
     IntraRecommendationService,
 )
-from app.services.intrakurikuler.intra_summary_service import IntraSummaryService
 from app.services.intrakurikuler.intra_stage3_diagram_service import (
     IntraStage3DiagramService,
 )
-from app.services.environment_curation_service import EnvironmentCurationService
+from app.services.intrakurikuler.intra_summary_service import IntraSummaryService
 from app.services.pjbl.pjbl_generation_service import PjblGenerationService
 from app.services.pjbl.pjbl_kina_service import PjblKinaService
 from app.services.pjbl.pjbl_recommendation_service import PjblRecommendationService
 from app.services.pjbl.pjbl_summary_service import PjblSummaryService
+from fastapi import HTTPException, status
 
 
 class AIOrchestratorService:

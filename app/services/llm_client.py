@@ -23,14 +23,14 @@ class LLMClient:
     async def generate_text(
         self,
         messages: list[dict[str, str]],
-        fallback: str,
+        _unused_default: str,
         *,
         model: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> str:
         if not self.settings.llm_configured:
-            return fallback
+            raise RuntimeError("LLM belum dikonfigurasi.")
 
         try:
             content = await self._chat_completion(
@@ -39,10 +39,14 @@ class LLMClient:
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
-            return content.strip() or fallback
         except Exception as exc:
             logger.warning("LLM text generation failed: %s", exc)
-            return fallback
+            raise RuntimeError("LLM text generation failed.") from exc
+
+        cleaned = content.strip()
+        if not cleaned:
+            raise RuntimeError("LLM mengembalikan respons kosong.")
+        return cleaned
 
     async def generate_text_strict(
         self,
@@ -69,14 +73,14 @@ class LLMClient:
     async def generate_json(
         self,
         messages: list[dict[str, str]],
-        fallback: dict[str, Any],
+        _unused_shape: dict[str, Any],
         *,
         model: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> dict[str, Any]:
         if not self.settings.llm_configured:
-            return fallback
+            raise RuntimeError("LLM belum dikonfigurasi.")
 
         try:
             content = await self._chat_completion(
@@ -101,7 +105,7 @@ class LLMClient:
                 return parse_json_object(repaired)
         except Exception as exc:
             logger.warning("LLM JSON generation failed: %s", exc)
-            return fallback
+            raise RuntimeError("LLM JSON generation failed.") from exc
 
     async def generate_json_strict(
         self,
@@ -131,6 +135,26 @@ class LLMClient:
                 max_tokens=max_tokens,
             )
             return parse_json_object(repaired)
+
+    async def generate_json_once(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> dict[str, Any]:
+        if not self.settings.llm_configured:
+            raise RuntimeError("LLM belum dikonfigurasi.")
+
+        content = await self._chat_completion(
+            messages=messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_format={"type": "json_object"},
+        )
+        return parse_json_object(content)
 
     async def _repair_json_content(
         self,

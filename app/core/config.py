@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     )
     llm_model: str = Field(default="qwen/qwen3.7-plus", alias="LLM_MODEL")
     kina_llm_model: str = Field(
-        default="qwen/qwen3-coder-flash",
+        default="deepseek/deepseek-v4-flash",
         alias="KINA_LLM_MODEL",
     )
     kina_solver_model: str | None = Field(default=None, alias="KINA_SOLVER_MODEL")

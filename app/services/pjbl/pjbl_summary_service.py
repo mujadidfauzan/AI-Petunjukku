@@ -57,31 +57,48 @@ Tugas:
 Wajib kembalikan JSON valid dengan struktur:
 {
   "discussionSummary": "",
-  "focusAndScope": "",
   "learningStyle": "",
+  "pedagogicalPreference": "",
+  "learningEnvironment": "",
+  "implementationDuration": "",
+  "facilitiesTechnologyUse": "",
+  "digitalUse": "",
+  "partnership": "",
+  "finalProjectForm": "",
+  "projectAssessment": "",
+  "stageCompletionSummary": {
+    "learning_style": {"complete": false, "summary": ""},
+    "pedagogical_preference": {"complete": false, "summary": ""},
+    "learning_environment": {"complete": false, "summary": ""},
+    "implementation_duration": {"complete": false, "summary": ""},
+    "facility_technology_use": {"complete": false, "summary": ""},
+    "digital_use": {"complete": false, "summary": ""},
+    "partnership": {"complete": false, "summary": ""},
+    "final_project_form": {"complete": false, "summary": ""},
+    "project_assessment": {"complete": false, "summary": ""}
+  },
   "finalProduct": "",
   "activitiesAndSchedule": "",
-  "rolesAndSupport": "",
   "facilitiesTechnologyPartnership": "",
-  "digitalUse": "",
-  "riskMitigation": "",
   "assessmentReflection": "",
   "teacherNotes": "",
   "projectCompletionStatus": "complete"
 }
 
 Aturan isi:
-- focusAndScope berisi fokus masalah dan batas ruang lingkup proyek.
 - learningStyle berisi gaya pembelajaran yang paling sesuai untuk siswa.
-- finalProduct berisi produk atau aksi akhir siswa.
-- activitiesAndSchedule berisi alur kegiatan dan durasi/jadwal.
-- rolesAndSupport berisi peran siswa, kelompok, dan pendampingan guru.
-- facilitiesTechnologyPartnership berisi fasilitas, teknologi, dan kemitraan.
+- pedagogicalPreference berisi pendekatan/preferensi pedagogis.
+- learningEnvironment berisi lingkungan/tempat belajar proyek.
+- implementationDuration berisi lama pelaksanaan, jumlah tahap, atau jumlah pertemuan.
+- facilitiesTechnologyUse berisi fasilitas/teknologi dan cara pemanfaatannya.
 - digitalUse berisi pemanfaatan digital, aplikasi, dokumentasi, atau platform.
-- riskMitigation berisi risiko utama dan cara mencegahnya.
-- assessmentReflection berisi cara asesmen, presentasi, bukti proses, dan refleksi.
+- partnership berisi keputusan kemitraan, termasuk tanpa mitra jika itu pilihan guru.
+- finalProjectForm berisi bentuk proyek akhir siswa.
+- projectAssessment berisi cara penilaian proyek.
+- Field legacy finalProduct, activitiesAndSchedule, facilitiesTechnologyPartnership,
+  dan assessmentReflection harus diisi dari field baru yang sepadan untuk kompatibilitas.
 - teacherNotes berisi preferensi penting guru.
-- projectCompletionStatus isi "complete" jika sembilan bagian utama sudah cukup.
+- projectCompletionStatus isi "complete" jika 9 data utama sudah cukup.
 
 Jika informasi tidak eksplisit:
 - Isi dengan inferensi paling aman dari chatHistory dan project.
@@ -101,89 +118,170 @@ Jika informasi tidak eksplisit:
             discussion = "Belum ada percakapan yang cukup untuk diringkas."
 
         completion_status = "complete" if self._looks_complete(raw_discussion) else "draft"
+        learning_style = self._find_recent_decision(
+            user_messages,
+            (
+                "gaya pembelajaran",
+                "gaya belajar",
+                "visual",
+                "auditori",
+                "kinestetik",
+                "praktik langsung",
+                "diskusi",
+                "kolaboratif",
+                "diferensiasi",
+            ),
+            "Gaya pembelajaran disesuaikan dengan karakteristik siswa dan kebutuhan proyek.",
+            exclude=("asesmen", "rubrik"),
+        )
+        pedagogical_preference = self._find_recent_decision(
+            user_messages,
+            (
+                "preferensi pedagogis",
+                "pendekatan pedagogis",
+                "model pembelajaran",
+                "strategi pembelajaran",
+                "inkuiri",
+                "kolaboratif",
+                "diferensiasi",
+                "mini-pjbl",
+            ),
+            "Preferensi pedagogis menggunakan pendekatan proyek terbimbing dan kolaboratif.",
+        )
+        learning_environment = self._find_recent_decision(
+            user_messages,
+            (
+                "lingkungan belajar",
+                "area belajar",
+                "tempat belajar",
+                "kelas",
+                "halaman sekolah",
+                "kantin",
+                "perpustakaan",
+                "luar kelas",
+            ),
+            "Lingkungan belajar mengikuti konteks sekolah dan proyek yang dipilih.",
+        )
+        implementation_duration = self._find_recent_decision(
+            user_messages,
+            (
+                "lama pelaksanaan",
+                "durasi",
+                "pertemuan",
+                "tahap",
+                "minggu",
+                "jp",
+                "jam",
+                "menit",
+            ),
+            "Lama pelaksanaan mengikuti durasi dan batasan pada Stage 1.",
+            exclude=("asesmen", "rubrik", "kriteria"),
+        )
+        facilities_technology = self._find_recent_decision(
+            user_messages,
+            (
+                "fasilitas",
+                "teknologi",
+                "proyektor",
+                "gawai",
+                "laptop",
+                "kamera",
+                "internet",
+                "alat tulis",
+            ),
+            "Fasilitas dan teknologi memakai sumber daya yang tersedia di sekolah.",
+        )
+        digital_use = self._find_recent_decision(
+            user_messages,
+            (
+                "pemanfaatan digital",
+                "digital",
+                "aplikasi",
+                "platform",
+                "canva",
+                "google form",
+                "google docs",
+                "google slides",
+                "padlet",
+                "dokumentasi",
+            ),
+            "Pemanfaatan digital digunakan seperlunya untuk dokumentasi, pengumpulan data, atau presentasi.",
+        )
+        partnership = self._find_recent_decision(
+            user_messages,
+            (
+                "kemitraan",
+                "mitra",
+                "narasumber",
+                "orang tua",
+                "komunitas",
+                "warga",
+                "tanpa mitra",
+            ),
+            "Kemitraan bersifat opsional dan dapat dijalankan tanpa mitra luar jika lebih realistis.",
+        )
+        final_project_form = self._find_recent_decision(
+            user_messages,
+            (
+                "bentuk proyek akhir",
+                "produk akhir",
+                "aksi akhir",
+                "poster",
+                "infografis",
+                "laporan",
+                "video",
+                "prototipe",
+                "presentasi",
+            ),
+            "Bentuk proyek akhir mengikuti produk yang dipilih pada Stage 2.",
+            exclude=("asesmen", "rubrik", "kriteria"),
+        )
+        project_assessment = self._find_recent_decision(
+            user_messages,
+            (
+                "penilaian proyek",
+                "asesmen",
+                "penilaian",
+                "rubrik",
+                "refleksi",
+                "presentasi",
+                "bukti",
+                "kriteria",
+            ),
+            "Penilaian proyek menilai proses, produk akhir, presentasi, kontribusi siswa, dan refleksi singkat.",
+        )
+        facilities_partnership = compact_text(
+            " ".join(
+                part for part in (facilities_technology, partnership) if part
+            ),
+            900,
+        )
         return {
             "discussionSummary": discussion,
-            "focusAndScope": self._find_recent_decision(
-                user_messages,
-                ("fokus proyek", "fokus", "ruang lingkup", "masalah utama"),
-                "Fokus dan ruang lingkup proyek mengikuti proyek yang dipilih pada Stage 2.",
-                exclude=("risiko", "mitigasi", "asesmen", "rubrik"),
-                prefer_latest=False,
-            ),
-            "learningStyle": self._find_recent_decision(
-                user_messages,
-                (
-                    "gaya pembelajaran",
-                    "gaya belajar",
-                    "visual",
-                    "auditori",
-                    "kinestetik",
-                    "praktik langsung",
-                    "diskusi",
-                    "kolaboratif",
-                    "diferensiasi",
-                ),
-                "Gaya pembelajaran disesuaikan dengan karakteristik siswa dan kebutuhan proyek.",
-                exclude=("asesmen", "rubrik", "risiko", "mitigasi"),
-            ),
-            "finalProduct": self._find_recent_decision(
-                user_messages,
-                ("produk akhir", "aksi akhir", "poster infografis", "peta temuan"),
-                "Produk akhir mengikuti produk yang dipilih pada Stage 2.",
-                exclude=(
-                    "asesmen",
-                    "rubrik",
-                    "kriteria",
-                    "alur kegiatan",
-                    "durasi",
-                    "pembukaan",
-                    "observasi area",
-                ),
-            ),
-            "activitiesAndSchedule": self._find_recent_decision(
-                user_messages,
-                ("alur kegiatan", "jadwal", "durasi", "2 x 35", "pertemuan", "menit", "jp"),
-                "Alur kegiatan mengikuti durasi dan batasan pada Stage 1.",
-                exclude=("asesmen", "rubrik", "kriteria"),
-            ),
-            "rolesAndSupport": self._find_recent_decision(
-                user_messages,
-                ("peran", "kelompok", "ketua", "pencatat", "pendampingan"),
-                "Peran siswa dan pendampingan guru disusun sederhana sesuai kebutuhan proyek.",
-                exclude=("asesmen", "rubrik", "kriteria", "risiko", "mitigasi"),
-            ),
-            "facilitiesTechnologyPartnership": self._find_recent_decision(
-                user_messages,
-                ("fasilitas", "teknologi", "proyektor", "kemitraan", "mitra"),
-                "Fasilitas dan teknologi memakai sumber daya yang tersedia di sekolah.",
-            ),
-            "digitalUse": self._find_recent_decision(
-                user_messages,
-                (
-                    "pemanfaatan digital",
-                    "digital",
-                    "aplikasi",
-                    "platform",
-                    "canva",
-                    "google form",
-                    "google docs",
-                    "google slides",
-                    "padlet",
-                    "dokumentasi",
-                ),
-                "Pemanfaatan digital digunakan seperlunya untuk dokumentasi, pengumpulan data, atau presentasi.",
-                exclude=("risiko", "mitigasi"),
-            ),
-            "riskMitigation": self._find_recent_decision(
-                user_messages,
-                ("risiko", "mitigasi", "keselamatan", "izin", "panduan"),
-                "Risiko utama dicegah dengan batas area, instruksi jelas, dan format kerja sederhana.",
-            ),
-            "assessmentReflection": self._find_recent_decision(
-                user_messages,
-                ("asesmen", "penilaian", "rubrik", "refleksi", "presentasi"),
-                "Asesmen menilai proses, produk akhir, kontribusi siswa, dan refleksi singkat.",
-            ),
+            "learningStyle": learning_style,
+            "pedagogicalPreference": pedagogical_preference,
+            "learningEnvironment": learning_environment,
+            "implementationDuration": implementation_duration,
+            "facilitiesTechnologyUse": facilities_technology,
+            "digitalUse": digital_use,
+            "partnership": partnership,
+            "finalProjectForm": final_project_form,
+            "projectAssessment": project_assessment,
+            "stageCompletionSummary": {
+                "learning_style": {"complete": bool(learning_style), "summary": learning_style},
+                "pedagogical_preference": {"complete": bool(pedagogical_preference), "summary": pedagogical_preference},
+                "learning_environment": {"complete": bool(learning_environment), "summary": learning_environment},
+                "implementation_duration": {"complete": bool(implementation_duration), "summary": implementation_duration},
+                "facility_technology_use": {"complete": bool(facilities_technology), "summary": facilities_technology},
+                "digital_use": {"complete": bool(digital_use), "summary": digital_use},
+                "partnership": {"complete": bool(partnership), "summary": partnership},
+                "final_project_form": {"complete": bool(final_project_form), "summary": final_project_form},
+                "project_assessment": {"complete": bool(project_assessment), "summary": project_assessment},
+            },
+            "finalProduct": final_project_form,
+            "activitiesAndSchedule": implementation_duration,
+            "facilitiesTechnologyPartnership": facilities_partnership,
+            "assessmentReflection": project_assessment,
             "teacherNotes": "Guru menginginkan proyek yang realistis, sederhana, dan sesuai konteks siswa.",
             "projectCompletionStatus": completion_status,
         }

@@ -10,10 +10,7 @@ from app.schemas.common_schema import UsedReferenceSchema
 from app.schemas.kina_schema import KinaChatRequest, KinaChatResponse
 from app.schemas.rag_schema import RagReference
 from app.services.llm_client import LLMClient
-from app.services.pjbl.pjbl_prompt_templates import (
-    PJBL_KINA_SOLVER_SYSTEM_PROMPT,
-    PJBL_KINA_SYSTEM_PROMPT,
-)
+from app.services.pjbl.pjbl_prompt_templates import PJBL_KINA_SYSTEM_PROMPT
 from app.services.prompt_builder_service import PromptBuilderService
 from app.services.rag_service import RAGService
 from app.utils.text_cleaner import compact_text
@@ -28,32 +25,21 @@ COMPLETION_MESSAGE = (
 )
 
 DEFAULT_KINA_MODEL = "deepseek/deepseek-v4-flash"
-MAX_KINA_RESPONSE_WORDS = 120
+MAX_KINA_RESPONSE_WORDS = 140
 
 DISCUSSION_STAGES: tuple[tuple[str, str], ...] = (
-    ("focus_scope", "fokus dan ruang lingkup proyek"),
     ("learning_style", "gaya pembelajaran"),
-    ("final_product", "produk atau aksi akhir"),
-    ("activities_schedule", "alur kegiatan dan jadwal"),
-    ("roles_support", "pembagian peran dan pendampingan"),
-    ("facilities_partnership", "fasilitas, teknologi, dan kemitraan"),
+    ("pedagogical_preference", "preferensi pedagogis"),
+    ("learning_environment", "lingkungan belajar"),
+    ("implementation_duration", "lama pelaksanaan"),
+    ("facility_technology_use", "pemanfaatan fasilitas dan teknologi"),
     ("digital_use", "pemanfaatan digital"),
-    ("risk_mitigation", "risiko dan mitigasi"),
-    ("assessment_reflection", "asesmen, presentasi, dan refleksi"),
+    ("partnership", "kemitraan"),
+    ("final_project_form", "bentuk proyek akhir"),
+    ("project_assessment", "penilaian proyek"),
 )
 
 STAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "focus_scope": (
-        "fokus proyek",
-        "ruang lingkup",
-        "masalah utama",
-        "tujuan proyek",
-        "driving question",
-        "drivingquestion",
-        "pertanyaan mendasar",
-        "projectobjectives",
-        "proyek ini",
-    ),
     "learning_style": (
         "gaya pembelajaran",
         "gaya belajar",
@@ -69,64 +55,75 @@ STAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "learningstyle",
         "dominantlearningstyle",
     ),
-    "final_product": (
-        "produk akhir",
-        "aksi akhir",
-        "poster",
-        "kampanye",
-        "prototipe",
-        "laporan",
-        "infografis",
-        "pameran",
-        "video",
-        "karya",
-        "studentproduct",
+    "pedagogical_preference": (
+        "preferensi pedagogis",
+        "pendekatan pedagogis",
+        "model pembelajaran",
+        "strategi pembelajaran",
+        "praktik pedagogis",
+        "inkuiri",
+        "project based learning",
+        "pjbl",
+        "problem based learning",
+        "pbl",
+        "cooperative learning",
+        "discovery",
+        "diferensiasi",
+        "scaffolding",
+        "praktikpedagogis",
+        "preferensipedagogis",
     ),
-    "activities_schedule": (
-        "alur kegiatan",
-        "jadwal",
-        "tahapan proyek",
-        "timeline",
-        "minggu pertama",
-        "pertemuan",
+    "learning_environment": (
+        "lingkungan belajar",
+        "area belajar",
+        "tempat belajar",
+        "kelas",
+        "luar kelas",
+        "halaman sekolah",
+        "kantin",
+        "perpustakaan",
+        "laboratorium",
+        "sekitar sekolah",
+        "lingkungan sekolah",
+        "belajarenvironment",
+        "learningenvironment",
+    ),
+    "implementation_duration": (
+        "lama pelaksanaan",
+        "durasi",
         "durasi kegiatan",
         "durasi proyek",
         "berapa lama",
+        "berapa tahap",
+        "berapa pertemuan",
+        "alur kegiatan",
+        "jadwal",
+        "tahapan proyek",
+        "tahap pelaksanaan",
+        "timeline",
+        "minggu pertama",
+        "pertemuan",
         "projectactivitiesoverview",
         "activityflowdecision",
         "projectduration",
+        "implementationduration",
     ),
-    "roles_support": (
-        "pembagian peran",
-        "peran siswa",
-        "peran ketua",
-        "peran anggota",
-        "kerja kelompok",
-        "kelompok empat orang",
-        "ketua kelompok",
-        "anggota kelompok",
-        "pencatat data",
-        "pengolah data",
-        "penyaji",
-        "pendampingan",
-        "cek kemajuan",
-        "monitoring guru",
-        "studentroles",
-        "teacherfacilitation",
-    ),
-    "facilities_partnership": (
+    "facility_technology_use": (
+        "pemanfaatan fasilitas",
+        "fasilitas dan teknologi",
         "fasilitas",
         "teknologi",
         "proyektor",
         "internet",
         "gawai",
-        "kemitraan",
-        "mitra",
-        "orang tua",
-        "komunitas",
-        "tanpa mitra",
+        "hp",
+        "laptop",
+        "kamera",
+        "alat tulis",
+        "bahan",
+        "media",
         "facilityandtechnologyuse",
-        "partnership",
+        "facilitiestechnologyuse",
     ),
     "digital_use": (
         "pemanfaatan digital",
@@ -146,21 +143,47 @@ STAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "media digital",
         "digitalresources",
     ),
-    "risk_mitigation": (
-        "risiko",
-        "mitigasi",
-        "keselamatan",
-        "perizinan",
-        "izin kegiatan",
-        "keterlambatan",
-        "keterbatasan biaya",
-        "risiko proyek",
-        "riskmitigation",
+    "partnership": (
+        "kemitraan",
+        "mitra",
+        "narasumber",
+        "orang tua",
+        "komunitas",
+        "warga",
+        "umkm",
+        "pelaku usaha",
+        "tanpa mitra",
+        "tidak perlu mitra",
+        "tidak menggunakan mitra",
+        "partnership",
+        "kemitraandetail",
     ),
-    "assessment_reflection": (
+    "final_project_form": (
+        "bentuk proyek akhir",
+        "produk akhir",
+        "aksi akhir",
+        "hasil akhir",
+        "poster",
+        "kampanye",
+        "prototipe",
+        "laporan",
+        "infografis",
+        "infografik",
+        "pameran",
+        "video",
+        "karya",
+        "presentasi",
+        "studentproduct",
+        "finalstudentproduct",
+        "produkkinerjaakhir",
+    ),
+    "project_assessment": (
+        "penilaian proyek",
         "asesmen",
         "penilaian",
         "rubrik",
+        "sumatif",
+        "formatif",
         "bukti proses",
         "kontribusi individu",
         "umpan balik",
@@ -197,11 +220,6 @@ SOLVER_LLM_REQUEST_PATTERN = re.compile(
     r"apakah|bisakah|dapatkah)\b)",
     flags=re.IGNORECASE,
 )
-COMPLEX_PEDAGOGICAL_PATTERN = re.compile(
-    r"\b(?:risiko|mitigasi|keselamatan|konflik|kendala|masalah|biaya|"
-    r"perizinan|diferensiasi|asesmen diagnostik|kebutuhan khusus)\b",
-    flags=re.IGNORECASE,
-)
 SHORT_CONFIRMATION_PATTERN = re.compile(
     r"^\s*(?:ya|iya|setuju|sepakat|baik|oke|ok|pilih|saya pilih|"
     r"saya memilih|gunakan|tetap|tanpa|tidak menggunakan)\b",
@@ -215,34 +233,32 @@ SIMPLE_FACT_PATTERN = re.compile(
     flags=re.IGNORECASE,
 )
 STAGE_DECISION_PATTERNS: dict[str, re.Pattern[str]] = {
-    "focus_scope": re.compile(
-        r"\b(?:fokus proyek|ruang lingkup|masalah utama|fokusnya|masalahnya)\b",
-        flags=re.IGNORECASE,
-    ),
     "learning_style": re.compile(
         r"\b(?:gaya pembelajaran|gaya belajar|visual|auditori|kinestetik|"
         r"praktik langsung|diskusi|kolaboratif|mandiri|diferensiasi|minat siswa)\b",
         flags=re.IGNORECASE,
     ),
-    "final_product": re.compile(
-        r"\b(?:produk akhir|aksi akhir|memilih|pilih|gunakan)\b.{0,60}"
-        r"\b(?:infografis|poster|laporan|video|prototipe|kampanye|pameran)\b",
-        flags=re.IGNORECASE | re.DOTALL,
-    ),
-    "activities_schedule": re.compile(
-        r"\b(?:durasi|jadwal|alur kegiatan|minggu pertama|minggu kedua|"
-        r"minggu ketiga|pertemuan|tahapan proyek)\b",
+    "pedagogical_preference": re.compile(
+        r"\b(?:preferensi pedagogis|pendekatan pedagogis|model pembelajaran|"
+        r"strategi pembelajaran|inkuiri|pjbl|project based learning|"
+        r"cooperative learning|discovery|scaffolding)\b",
         flags=re.IGNORECASE,
     ),
-    "roles_support": re.compile(
-        r"\b(?:pembagian peran|peran ketua|peran anggota|kelompok .{0,20} orang|"
-        r"pencatat data|pengolah data|penyaji|cek kemajuan|pendampingan)\b",
+    "learning_environment": re.compile(
+        r"\b(?:lingkungan belajar|area belajar|tempat belajar|kelas|luar kelas|"
+        r"halaman sekolah|kantin|perpustakaan|laboratorium|sekitar sekolah)\b",
         flags=re.IGNORECASE,
     ),
-    "facilities_partnership": re.compile(
-        r"\b(?:fasilitas|proyektor|halaman sekolah|alat tulis|alat|peralatan|"
-        r"internet|gawai|drone|kamera|"
-        r"mitra|kemitraan|orang tua|komunitas)\b",
+    "implementation_duration": re.compile(
+        r"\b(?:lama pelaksanaan|durasi|jadwal|alur kegiatan|minggu pertama|"
+        r"minggu kedua|minggu ketiga|pertemuan|tahapan proyek|berapa tahap|"
+        r"berapa pertemuan)\b",
+        flags=re.IGNORECASE,
+    ),
+    "facility_technology_use": re.compile(
+        r"\b(?:pemanfaatan fasilitas|fasilitas|proyektor|halaman sekolah|"
+        r"alat tulis|alat|peralatan|internet|gawai|hp|laptop|kamera|"
+        r"teknologi)\b",
         flags=re.IGNORECASE,
     ),
     "digital_use": re.compile(
@@ -251,40 +267,25 @@ STAGE_DECISION_PATTERNS: dict[str, re.Pattern[str]] = {
         r"dokumentasi digital|media digital)\b",
         flags=re.IGNORECASE,
     ),
-    "risk_mitigation": re.compile(
-        r"\b(?:risiko|mitigasi|keselamatan|perizinan|keterlambatan|"
-        r"batas area|lembar panduan|target mingguan)\b",
+    "partnership": re.compile(
+        r"\b(?:mitra|kemitraan|narasumber|orang tua|komunitas|warga|umkm|"
+        r"pelaku usaha|tanpa mitra|tidak perlu mitra|tidak menggunakan mitra)\b",
         flags=re.IGNORECASE,
     ),
-    "assessment_reflection": re.compile(
-        r"\b(?:penilaian|asesmen|rubrik|bukti proses|kontribusi individu|"
-        r"kriteria keberhasilan|refleksi individu|refleksi siswa)\b",
+    "final_project_form": re.compile(
+        r"\b(?:bentuk proyek akhir|produk akhir|aksi akhir|hasil akhir|"
+        r"infografis|infografik|poster|laporan|video|prototipe|kampanye|"
+        r"pameran|presentasi)\b",
+        flags=re.IGNORECASE,
+    ),
+    "project_assessment": re.compile(
+        r"\b(?:penilaian proyek|penilaian|asesmen|rubrik|bukti proses|"
+        r"kontribusi individu|kriteria keberhasilan|refleksi individu|"
+        r"refleksi siswa|formatif|sumatif)\b",
         flags=re.IGNORECASE,
     ),
 }
 STAGE_REQUIRED_SLOTS: dict[str, tuple[tuple[str, str, re.Pattern[str]], ...]] = {
-    "focus_scope": (
-        (
-            "issue",
-            "masalah utama",
-            re.compile(
-                r"\b(?:sampah|limbah|kebersihan|boros|hemat|jajan|kantin|"
-                r"perundungan|disiplin|minat baca|literasi|antre|antri|air|"
-                r"tanaman|lingkungan|kebiasaan|tantangan|kebutuhan|masalah)\b",
-                flags=re.IGNORECASE,
-            ),
-        ),
-        (
-            "boundary",
-            "batas lokasi atau sasaran",
-            re.compile(
-                r"\b(?:kantin|kelas|halaman|perpustakaan|sekolah|warga|"
-                r"siswa|murid|kelompok|area|lokasi|sekitar|sasaran|"
-                r"batasi|batas|ruang lingkup|lingkup)\b",
-                flags=re.IGNORECASE,
-            ),
-        ),
-    ),
     "learning_style": (
         (
             "style",
@@ -297,79 +298,63 @@ STAGE_REQUIRED_SLOTS: dict[str, tuple[tuple[str, str, re.Pattern[str]], ...]] = 
             ),
         ),
     ),
-    "final_product": (
+    "pedagogical_preference": (
         (
-            "product",
-            "produk atau aksi akhir",
+            "approach",
+            "preferensi pedagogis",
             re.compile(
-                r"\b(?:poster|infografis|laporan|video|prototipe|kampanye|"
-                r"pameran|presentasi|produk akhir|aksi akhir|karya|"
-                r"media kampanye|peta temuan)\b",
+                r"\b(?:preferensi pedagogis|pendekatan pedagogis|model pembelajaran|"
+                r"strategi pembelajaran|inkuiri|eksplorasi|pjbl|project based learning|"
+                r"cooperative learning|kolaboratif|discovery|scaffolding|"
+                r"diferensiasi|berbasis proyek)\b",
                 flags=re.IGNORECASE,
             ),
         ),
     ),
-    "activities_schedule": (
+    "learning_environment": (
         (
-            "duration",
-            "durasi atau jumlah pertemuan",
+            "environment",
+            "lingkungan belajar",
+            re.compile(
+                r"\b(?:lingkungan belajar|area belajar|tempat belajar|kelas|"
+                r"luar kelas|halaman sekolah|halaman madrasah|kantin|"
+                r"perpustakaan|laboratorium|sekitar sekolah|lingkungan sekolah|"
+                r"area observasi|lokasi proyek)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+    "implementation_duration": (
+        (
+            "duration_or_steps",
+            "jumlah tahap atau pertemuan",
             re.compile(
                 r"\b(?:\d+|satu|dua|tiga|empat|lima|enam|tujuh|delapan|"
                 r"sembilan|sepuluh)\s*(?:hari|minggu|bulan|pertemuan|jp|jam|"
-                r"menit)\b|\b(?:durasi|jadwal|alokasi waktu)\b",
-                flags=re.IGNORECASE,
-            ),
-        ),
-        (
-            "flow",
-            "alur kegiatan utama",
-            re.compile(
-                r"\b(?:observasi|wawancara|survei|diskusi|mengumpulkan|data|"
-                r"membuat|menyusun|presentasi|refleksi|tahap|alur|mulai|"
-                r"lanjut|akhir|pertemuan pertama|minggu pertama)\b",
+                r"menit|tahap)\b|\b(?:durasi|jadwal|alokasi waktu|"
+                r"lama pelaksanaan|berapa tahap|berapa pertemuan|timeline)\b",
                 flags=re.IGNORECASE,
             ),
         ),
     ),
-    "roles_support": (
+    "facility_technology_use": (
         (
-            "roles",
-            "peran atau bentuk kelompok",
-            re.compile(
-                r"\b(?:kelompok|tim|anggota|ketua|pencatat|penyaji|pengolah|"
-                r"peran|individu|berpasangan)\b",
-                flags=re.IGNORECASE,
-            ),
-        ),
-        (
-            "support",
-            "cara pendampingan guru",
-            re.compile(
-                r"\b(?:monitoring|pantau|memantau|pendampingan|bimbing|"
-                r"membimbing|cek|umpan balik|lembar kerja|guru|arahan|"
-                r"dibantu|difasilitasi)\b",
-                flags=re.IGNORECASE,
-            ),
-        ),
-    ),
-    "facilities_partnership": (
-        (
-            "facilities",
+            "facility",
             "fasilitas atau teknologi",
             re.compile(
                 r"\b(?:fasilitas|proyektor|internet|gawai|hp|laptop|kamera|"
-                r"alat tulis|halaman sekolah|kelas|perpustakaan|laboratorium|"
-                r"google|canva|padlet|slides|form)\b",
+                r"alat tulis|bahan|media|papan tulis|kelas|halaman sekolah|"
+                r"perpustakaan|laboratorium|teknologi)\b",
                 flags=re.IGNORECASE,
             ),
         ),
         (
-            "use_or_partnership",
-            "cara penggunaan atau keputusan kemitraan",
+            "usage",
+            "cara pemanfaatan fasilitas atau teknologi",
             re.compile(
-                r"\b(?:pakai|gunakan|menggunakan|digunakan|untuk|platform|"
-                r"mitra|kemitraan|orang tua|komunitas|warga|tanpa mitra|"
-                r"tidak menggunakan|tidak perlu mitra)\b",
+                r"\b(?:pakai|gunakan|menggunakan|digunakan|untuk|membantu|"
+                r"presentasi|observasi|dokumentasi|pengumpulan data|"
+                r"mengolah data|menyajikan hasil|membuat produk)\b",
                 flags=re.IGNORECASE,
             ),
         ),
@@ -382,46 +367,50 @@ STAGE_REQUIRED_SLOTS: dict[str, tuple[tuple[str, str, re.Pattern[str]], ...]] = 
                 r"\b(?:pemanfaatan digital|digital|aplikasi|platform|canva|"
                 r"google forms?|google docs|google slides|padlet|spreadsheet|"
                 r"video|kamera|foto|dokumentasi|media digital|gawai|hp|"
-                r"laptop|internet)\b",
+                r"laptop|internet|tanpa digital|tidak menggunakan digital)\b",
                 flags=re.IGNORECASE,
             ),
         ),
     ),
-    "risk_mitigation": (
+    "partnership": (
         (
-            "risk",
-            "risiko utama",
+            "partnership_decision",
+            "keputusan kemitraan",
             re.compile(
-                r"\b(?:risiko|kendala|hambatan|keselamatan|izin|perizinan|"
-                r"biaya|keterlambatan|alat terbatas|internet|konflik|"
-                r"cuaca|ramai)\b",
-                flags=re.IGNORECASE,
-            ),
-        ),
-        (
-            "mitigation",
-            "cara mitigasi",
-            re.compile(
-                r"\b(?:mitigasi|cegah|mencegah|antisipasi|batas|panduan|"
-                r"aturan|dampingi|pengawasan|cadangan|sederhanakan|aman|"
-                r"hemat|target|izin guru)\b",
+                r"\b(?:mitra|kemitraan|narasumber|orang tua|komunitas|warga|"
+                r"umkm|pelaku usaha|kantin|puskesmas|perpustakaan|tanpa mitra|"
+                r"tidak perlu mitra|tidak menggunakan mitra|mitra internal)\b",
                 flags=re.IGNORECASE,
             ),
         ),
     ),
-    "assessment_reflection": (
+    "final_project_form": (
+        (
+            "product_form",
+            "bentuk proyek akhir",
+            re.compile(
+                r"\b(?:bentuk proyek akhir|produk akhir|aksi akhir|hasil akhir|"
+                r"poster|infografis|infografik|laporan|video|prototipe|"
+                r"kampanye|pameran|presentasi|karya|media kampanye|peta temuan|"
+                r"tabel temuan|portofolio)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+    "project_assessment": (
         (
             "assessment",
-            "aspek yang dinilai",
+            "aspek atau kriteria penilaian proyek",
             re.compile(
-                r"\b(?:asesmen|penilaian|nilai|rubrik|kriteria|kontribusi|"
-                r"kerja sama|produk|proses|presentasi)\b",
+                r"\b(?:penilaian proyek|asesmen|penilaian|nilai|rubrik|"
+                r"kriteria|kontribusi|kerja sama|produk|proses|presentasi|"
+                r"formatif|sumatif)\b",
                 flags=re.IGNORECASE,
             ),
         ),
         (
             "evidence_reflection",
-            "bukti proses atau refleksi",
+            "bukti penilaian atau refleksi",
             re.compile(
                 r"\b(?:bukti|catatan|jurnal|observasi|dokumentasi|foto|"
                 r"presentasi|refleksi|umpan balik|hasil kerja|lembar refleksi)\b",
@@ -431,19 +420,35 @@ STAGE_REQUIRED_SLOTS: dict[str, tuple[tuple[str, str, re.Pattern[str]], ...]] = 
     ),
 }
 SAVED_STAGE_SUMMARY_FIELDS: dict[str, str] = {
-    "focusAndScope": "focus_scope",
     "learningStyle": "learning_style",
-    "finalProduct": "final_product",
-    "activitiesAndSchedule": "activities_schedule",
-    "rolesAndSupport": "roles_support",
-    "facilitiesTechnologyPartnership": "facilities_partnership",
+    "pedagogicalPreference": "pedagogical_preference",
+    "pedagogicalApproach": "pedagogical_preference",
+    "learningEnvironment": "learning_environment",
+    "implementationDuration": "implementation_duration",
+    "activitiesAndSchedule": "implementation_duration",
+    "facilitiesTechnologyUse": "facility_technology_use",
+    "facilityAndTechnologyUse": "facility_technology_use",
+    "facilitiesTechnologyPartnership": "facility_technology_use",
     "digitalUse": "digital_use",
-    "riskMitigation": "risk_mitigation",
-    "assessmentReflection": "assessment_reflection",
+    "digitalPlatform": "digital_use",
+    "partnership": "partnership",
+    "partnershipDetail": "partnership",
+    "finalProjectForm": "final_project_form",
+    "finalProduct": "final_project_form",
+    "finalStudentProduct": "final_project_form",
+    "projectAssessment": "project_assessment",
+    "assessmentReflection": "project_assessment",
 }
 STAGE_MEMORY_FIELDS: dict[str, str] = {
-    stage_key: field_name
-    for field_name, stage_key in SAVED_STAGE_SUMMARY_FIELDS.items()
+    "learning_style": "learningStyle",
+    "pedagogical_preference": "pedagogicalPreference",
+    "learning_environment": "learningEnvironment",
+    "implementation_duration": "implementationDuration",
+    "facility_technology_use": "facilitiesTechnologyUse",
+    "digital_use": "digitalUse",
+    "partnership": "partnership",
+    "final_project_form": "finalProjectForm",
+    "project_assessment": "projectAssessment",
 }
 AI_STYLE_PATTERN = re.compile(
     r"\b(?:berada di persimpangan|menjadi jantung(?: dari)?|pada akhirnya|"
@@ -490,17 +495,6 @@ KINA_RESPONSE_RULES: tuple[str, ...] = (
     "Jangan membuat respons seperti formulir atau menyusun RPP lengkap terlalu dini.",
 )
 
-SOLVER_FIELDS: tuple[str, ...] = (
-    "teacher_intent",
-    "known_context",
-    "decision_summary",
-    "response_goal",
-    "recommended_response_points",
-    "pedagogical_suggestions",
-    "question_to_ask",
-    "risk_notes",
-)
-
 class PjblKinaService:
     def __init__(
         self,
@@ -541,95 +535,79 @@ class PjblKinaService:
             )
             timings["context"] += self._elapsed_ms(context_started)
 
-            solver_started = perf_counter()
+            local_suggestions = self._local_suggested_questions(payload, analysis)
+            llm_started = perf_counter()
             try:
-                if self._can_use_local_solver(payload.message, analysis):
-                    solver_output = self._solve_pedagogical_response_locally(
-                        user_message=payload.message,
-                        context=context,
-                        analysis=analysis,
-                    )
-                    solver_mode = "local"
-                else:
-                    solver_output = await self._solve_pedagogical_response(
-                        user_message=payload.message,
-                        context=context,
-                    )
-                    solver_mode = "llm"
-            except Exception:
-                timings["solver"] = self._elapsed_ms(solver_started)
-                stage_statuses["solver"] = "error"
-                route = "solver_fallback"
-                fallback_started = perf_counter()
-                try:
-                    reply = await self._existing_generation_fallback(
-                        payload, references, analysis, fallback
-                    )
-                    stage_statuses["fallback"] = "success"
-                except Exception:
-                    stage_statuses["fallback"] = "error"
-                    raise
-                finally:
-                    timings["fallback"] = self._elapsed_ms(fallback_started)
-            else:
-                timings["solver"] = self._elapsed_ms(solver_started)
-                stage_statuses["solver"] = solver_mode
-
-                draft_started = perf_counter()
-                try:
-                    draft = await self._generate_kina_draft(
-                        user_message=payload.message,
-                        context=context,
-                        solver_output=solver_output,
-                        fallback=fallback,
-                        analysis=analysis,
-                    )
-                except Exception:
-                    timings["draft"] = self._elapsed_ms(draft_started)
-                    stage_statuses["draft"] = "error"
-                    route = "draft_fallback"
-                    fallback_started = perf_counter()
-                    try:
-                        reply = await self._existing_generation_fallback(
-                            payload, references, analysis, fallback
-                        )
-                        stage_statuses["fallback"] = "success"
-                    except Exception:
-                        stage_statuses["fallback"] = "error"
-                        raise
-                    finally:
-                        timings["fallback"] = self._elapsed_ms(fallback_started)
-                else:
-                    timings["draft"] = self._elapsed_ms(draft_started)
-                    stage_statuses["draft"] = "success"
-                    route = "draft_sanitized"
-                    if analysis["input_relevance"] in {"irrelevant", "unclear"}:
-                        reply = fallback
-                    else:
-                        reply = self._sanitize_reply(
-                            draft,
-                            fallback=fallback,
-                            is_complete=analysis["is_complete"],
-                            limit_options=analysis["teacher_uncertain"],
-                            enforce_word_limit=True,
-                        )
-
-            suggestions_started = perf_counter()
-            try:
-                suggested_followups = await self._suggested_questions(
-                    payload,
-                    analysis,
-                    reply,
+                turn_output = await self._generate_single_turn(
+                    payload=payload,
+                    context=context,
+                    analysis=analysis,
+                    fallback=fallback,
+                    local_suggestions=local_suggestions,
                 )
-                stage_statuses["suggestions"] = "success"
-            except Exception:
+                stage_statuses["llm"] = "success"
+                route = "single_deepseek"
+                stage_assessment = self._normalize_stage_assessment(
+                    turn_output.get("stageAssessment"),
+                    analysis=analysis,
+                    stage3_memory=stage3_memory,
+                )
+                if analysis["input_relevance"] in {"irrelevant", "unclear"}:
+                    reply = fallback
+                else:
+                    reply = self._sanitize_reply(
+                        str(turn_output.get("reply") or ""),
+                        fallback=fallback,
+                        is_complete=self._assessment_is_complete(stage_assessment),
+                        limit_options=analysis["teacher_uncertain"],
+                        enforce_word_limit=True,
+                    )
+                suggested_followups = self._clean_suggestions(
+                    [
+                        item
+                        for item in turn_output.get(
+                            "suggestedFollowUpQuestions",
+                            [],
+                        )
+                        if isinstance(item, str)
+                    ]
+                )
+                if not suggested_followups:
+                    suggested_followups = local_suggestions
+            except Exception as exc:
+                logger.warning("Kina single LLM turn failed: %s", exc)
+                stage_statuses["llm"] = "error"
+                route = "single_deepseek_fallback"
+                reply = fallback
+                stage_assessment = self._normalize_stage_assessment(
+                    {},
+                    analysis=analysis,
+                    stage3_memory=stage3_memory,
+                )
                 suggested_followups = self._local_suggested_questions(payload, analysis)
-                stage_statuses["suggestions"] = "fallback"
             finally:
-                timings["suggestions"] = self._elapsed_ms(suggestions_started)
+                timings["llm"] = self._elapsed_ms(llm_started)
+
+            if (
+                not compact_text(payload.message, 700)
+                and re.search(
+                    r"\b(?:belum melihat kaitan|apa kaitannya)\b",
+                    reply,
+                    flags=re.IGNORECASE,
+                )
+            ):
+                reply = fallback
+
+            stage3_memory = self._build_stage3_memory(
+                payload,
+                analysis,
+                stage_assessment=stage_assessment,
+            )
+            progress = self._progress_payload(analysis, stage_assessment)
 
             return KinaChatResponse(
                 reply=reply,
+                model=self._kina_model(),
                 usedReferences=[
                     UsedReferenceSchema(
                         cpReferenceId=reference.cpReferenceId,
@@ -639,7 +617,7 @@ class PjblKinaService:
                     for reference in references
                 ],
                 suggestedFollowUpQuestions=suggested_followups,
-                progress=self._progress_payload(analysis),
+                progress=progress,
                 stage3Memory=stage3_memory,
             )
         finally:
@@ -665,6 +643,7 @@ class PjblKinaService:
         ordered_stages = (
             "context",
             "rag",
+            "llm",
             "solver",
             "draft",
             "suggestions",
@@ -788,272 +767,165 @@ class PjblKinaService:
             ],
         }
 
-    def _can_use_local_solver(
-        self,
-        user_message: str,
-        analysis: dict[str, Any],
-    ) -> bool:
-        message = compact_text(user_message, 700)
-        if not message or len(message) > 500:
-            return False
-        if (
-            analysis["change_requested"]
-            or analysis["teacher_uncertain"]
-            or analysis["input_relevance"] in {"irrelevant", "unclear"}
-        ):
-            return False
-        if SOLVER_LLM_REQUEST_PATTERN.search(message):
-            return False
-        if COMPLEX_PEDAGOGICAL_PATTERN.search(message):
-            return False
-        if analysis["is_complete"]:
-            return True
-        return bool(
-            DECISION_PATTERN.search(message)
-            or SHORT_CONFIRMATION_PATTERN.search(message)
-            or SIMPLE_FACT_PATTERN.search(message)
-        )
-
-    def _solve_pedagogical_response_locally(
+    async def _generate_single_turn(
         self,
         *,
-        user_message: str,
+        payload: KinaChatRequest,
         context: dict[str, Any],
         analysis: dict[str, Any],
-    ) -> dict[str, Any]:
-        decision = compact_text(user_message, 350)
-        active_stage = analysis["active_stage"]
-        project_context = compact_text(context.get("project", ""), 350)
-
-        if analysis["is_complete"]:
-            return self._normalize_solver_output(
-                {
-                    "teacher_intent": "Mengonfirmasi bahwa rancangan proyek selesai.",
-                    "known_context": project_context,
-                    "decision_summary": decision,
-                    "response_goal": "Merangkum rancangan dan menutup diskusi.",
-                    "recommended_response_points": [
-                        "Validasi bahwa seluruh bagian utama proyek sudah dibahas.",
-                        "Ringkas kesiapan rancangan untuk tahap berikutnya.",
-                        f"Tutup dengan kalimat: {COMPLETION_MESSAGE}",
-                    ],
-                    "pedagogical_suggestions": [],
-                    "question_to_ask": "",
-                    "risk_notes": [],
-                }
-            )
-
-        stage_guidance = {
-            "focus_scope": (
-                "Arahkan pembahasan pada satu masalah utama yang realistis.",
-                "Apa batas masalah yang paling realistis untuk proyek ini?",
-            ),
-            "learning_style": (
-                "Selaraskan proyek dengan gaya belajar dominan siswa.",
-                "Gaya pembelajaran apa yang paling cocok untuk kelas ini?",
-            ),
-            "final_product": (
-                "Pastikan produk akhir menjawab masalah dan sesuai fasilitas.",
-                "Produk atau aksi akhir apa yang paling sesuai?",
-            ),
-            "activities_schedule": (
-                "Susun kegiatan bertahap dari observasi hingga presentasi.",
-                "Berapa minggu PjBL ini akan dilakukan?",
-            ),
-            "roles_support": (
-                "Gunakan peran kelompok yang jelas agar kontribusi siswa merata.",
-                "Bagaimana peran siswa akan dibagi dalam kelompok?",
-            ),
-            "facilities_partnership": (
-                "Utamakan fasilitas yang tersedia dan kemitraan yang realistis.",
-                "Fasilitas apa yang paling realistis digunakan?",
-            ),
-            "digital_use": (
-                "Gunakan digital hanya untuk membantu proses belajar yang perlu.",
-                "Pemanfaatan digital apa yang paling realistis digunakan?",
-            ),
-            "risk_mitigation": (
-                "Prioritaskan risiko yang paling mungkin menghambat pelaksanaan.",
-                "Risiko utama apa yang perlu dicegah terlebih dahulu?",
-            ),
-            "assessment_reflection": (
-                "Seimbangkan penilaian proses, produk, dan kontribusi individu.",
-                "Aspek proses dan hasil apa yang akan dinilai?",
-            ),
-        }
-        suggestion, question = stage_guidance[active_stage]
-        decision_area = self._local_decision_area(user_message, active_stage)
-        return self._normalize_solver_output(
-            {
-                "teacher_intent": f"Mengonfirmasi keputusan tentang {decision_area}.",
-                "known_context": project_context,
-                "decision_summary": decision,
-                "response_goal": (
-                    "Memvalidasi keputusan guru, memberi penguatan singkat, dan "
-                    f"melanjutkan ke {analysis['active_label']}."
-                ),
-                "recommended_response_points": [
-                    f"Validasi keputusan guru: {decision}",
-                    f"Pertahankan keputusan tersebut dalam rancangan {project_context}.",
-                    suggestion,
-                ],
-                "pedagogical_suggestions": [suggestion],
-                "question_to_ask": question,
-                "risk_notes": [
-                    "Jangan menanyakan kembali keputusan yang baru dikonfirmasi."
-                ],
-            }
-        )
-
-    def _local_decision_area(self, message: str, active_stage: str) -> str:
-        for stage_key, stage_label in DISCUSSION_STAGES:
-            if self._matches_stage(message, stage_key):
-                return stage_label
-
-        stage_keys = [stage_key for stage_key, _ in DISCUSSION_STAGES]
-        active_index = stage_keys.index(active_stage)
-        if active_index > 0:
-            return DISCUSSION_STAGES[active_index - 1][1]
-        return DISCUSSION_STAGES[active_index][1]
-
-    async def _solve_pedagogical_response(
-        self,
-        *,
-        user_message: str,
-        context: dict[str, Any],
-    ) -> dict[str, Any]:
-        solver_output = await self.llm_client.generate_json(
-            [
-                {"role": "system", "content": PJBL_KINA_SOLVER_SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": "\n\n".join(
-                        [
-                            f"PESAN GURU:\n{user_message}",
-                            "KONTEKS RINGKAS:",
-                            json.dumps(context, ensure_ascii=False),
-                            f"ARAH GILIRAN:\n{self._turn_instruction_from_context(context)}",
-                        ]
-                    ),
-                },
-            ],
-            {},
-            model=self._solver_model(),
-            temperature=0.2,
-            max_tokens=900,
-        )
-        return self._normalize_solver_output(solver_output)
-
-    async def _generate_kina_draft(
-        self,
-        *,
-        user_message: str,
-        context: dict[str, Any],
-        solver_output: dict[str, Any],
         fallback: str,
-        analysis: dict[str, Any],
-    ) -> str:
-        draft = await self.llm_client.generate_text(
+        local_suggestions: list[str],
+    ) -> dict[str, Any]:
+        required_shape = {
+            "reply": fallback,
+            "stageAssessment": self._stage_assessment_fallback(
+                analysis,
+                context.get("stage_3_memory") or {},
+            ),
+            "suggestedFollowUpQuestions": local_suggestions,
+        }
+        return await self.llm_client.generate_json_once(
             [
                 {"role": "system", "content": PJBL_KINA_SYSTEM_PROMPT},
                 {
                     "role": "user",
-                    "content": "\n\n".join(
-                        [
-                            f"PESAN GURU:\n{user_message}",
-                            "SUBSTANSI DARI SOLVER:",
-                            json.dumps(solver_output, ensure_ascii=False),
-                            "KONTEKS RANCANGAN PJBL:",
-                            json.dumps(
-                                {
-                                    "project": context["project"],
-                                    "stage_1_summary": context["stage_1_summary"],
-                                    "stage_2_summary": context["stage_2_summary"],
-                                    "stage_3_memory": context["stage_3_memory"],
-                                    "confirmed_stage_decisions": context[
-                                        "confirmed_stage_decisions"
-                                    ],
-                                    "teacher_decisions": context[
-                                        "teacher_decisions"
-                                    ],
-                                    "saved_stage_decisions": context[
-                                        "saved_stage_decisions"
-                                    ],
-                                    "recent_exchange": context["recent_exchange"],
-                                    "communication_method": context[
-                                        "communication_method"
-                                    ],
-                                    "discussion_flow": context["discussion_flow"],
-                                },
-                                ensure_ascii=False,
-                            ),
-                            "KONTEKS GILIRAN:",
-                            json.dumps(
-                                {
-                                    "current_conversation_stage": context[
-                                        "current_conversation_stage"
-                                    ],
-                                    "conversation_complete": context[
-                                        "conversation_complete"
-                                    ],
-                                    "teacher_uncertain": context[
-                                        "teacher_uncertain"
-                                    ],
-                                    "change_requested": context["change_requested"],
-                                    "input_out_of_sequence": context[
-                                        "input_out_of_sequence"
-                                    ],
-                                    "expected_stage_before_message": context[
-                                        "expected_stage_before_message"
-                                    ],
-                                    "input_relevance": context["input_relevance"],
-                                },
-                                ensure_ascii=False,
-                            ),
-                            "Tulis hanya teks respons Kina yang natural. Validasi "
-                            "maksud guru, sampaikan saran konkret bila relevan, lalu "
-                            "ajukan maksimal satu pertanyaan ringan. Gunakan maksimal "
-                            f"{MAX_KINA_RESPONSE_WORDS} kata, langsung ke inti, tanpa "
-                            "metafora atau frasa generik khas AI. Jika input tidak relevan, "
-                            "jangan masukkan sebagai keputusan proyek; jelaskan batasan "
-                            "secara singkat dan arahkan kembali ke tahap aktif.",
-                        ]
+                    "content": json.dumps(
+                        {
+                            "latestUserMessage": payload.message,
+                            "project": context["project"],
+                            "stage1Context": context["stage_1_summary"],
+                            "stage2SelectedProjectContext": context[
+                                "stage_2_summary"
+                            ],
+                            "stage3Memory": context["stage_3_memory"],
+                            "recentExchange": context["recent_exchange"],
+                            "teacherDecisions": context["teacher_decisions"],
+                            "savedStageDecisions": context[
+                                "saved_stage_decisions"
+                            ],
+                            "turnContext": {
+                                "isInitialTurn": not bool(
+                                    compact_text(payload.message, 700)
+                                ),
+                                "activeStage": context[
+                                    "current_conversation_stage_key"
+                                ],
+                                "activeLabel": context[
+                                    "current_conversation_stage"
+                                ],
+                                "expectedStageBeforeMessage": context[
+                                    "expected_stage_before_message"
+                                ],
+                                "expectedLabelBeforeMessage": context[
+                                    "expected_label_before_message"
+                                ],
+                                "inputStageKeys": context["input_stage_keys"],
+                                "inputOutOfSequence": context[
+                                    "input_out_of_sequence"
+                                ],
+                                "inputRelevance": context["input_relevance"],
+                                "teacherUncertain": context["teacher_uncertain"],
+                                "changeRequested": context["change_requested"],
+                                "missingSlots": context["missing_slots"],
+                                "conversationComplete": context[
+                                    "conversation_complete"
+                                ],
+                                "instruction": self._turn_instruction_from_context(
+                                    context
+                                ),
+                            },
+                            "discussionFlow": context["discussion_flow"],
+                            "requiredResponseShape": required_shape,
+                        },
+                        ensure_ascii=False,
                     ),
                 },
             ],
-            "",
             model=self._kina_model(),
-            temperature=0.55,
-            max_tokens=700,
-        )
-        if not str(draft or "").strip() or self._looks_like_json(str(draft)):
-            raise ValueError("Draft Kina kosong.")
-        return self._sanitize_reply(
-            draft,
-            fallback=fallback,
-            is_complete=analysis["is_complete"],
-            limit_options=analysis["teacher_uncertain"],
-            enforce_word_limit=False,
+            temperature=0.35,
+            max_tokens=1300,
         )
 
-    async def _existing_generation_fallback(
+    def _stage_assessment_fallback(
         self,
-        payload: KinaChatRequest,
-        references: list[RagReference],
         analysis: dict[str, Any],
-        fallback: str,
-    ) -> str:
-        generated_reply = await self.llm_client.generate_text(
-            self._build_messages(payload, references, analysis),
-            fallback,
-            model=self._kina_model(),
-            temperature=0.55,
+        stage3_memory: dict[str, Any],
+    ) -> dict[str, dict[str, Any]]:
+        confirmed = (
+            stage3_memory.get("confirmedDecisions")
+            if isinstance(stage3_memory, dict)
+            else {}
         )
-        return self._sanitize_reply(
-            generated_reply,
-            fallback=fallback,
-            is_complete=analysis["is_complete"],
-            limit_options=analysis["teacher_uncertain"],
+        if not isinstance(confirmed, dict):
+            confirmed = {}
+        slot_progress = analysis.get("stage_slot_progress") or {}
+        stage_slot_sets = {
+            key: set(slot_progress.get(key, [])) for key, _ in DISCUSSION_STAGES
+        }
+        assessment: dict[str, dict[str, Any]] = {}
+        for key, label in DISCUSSION_STAGES:
+            summary = compact_text(self._flatten(confirmed.get(key, "")), 500)
+            complete = bool(analysis.get("evidence", {}).get(key)) and bool(summary)
+            missing = [] if complete else self._missing_stage_slot_labels(
+                key,
+                stage_slot_sets,
+            )
+            assessment[key] = {
+                "key": key,
+                "label": label,
+                "complete": complete,
+                "summary": summary,
+                "missingSlots": missing,
+            }
+        return assessment
+
+    def _normalize_stage_assessment(
+        self,
+        value: Any,
+        *,
+        analysis: dict[str, Any],
+        stage3_memory: dict[str, Any],
+    ) -> dict[str, dict[str, Any]]:
+        fallback = self._stage_assessment_fallback(analysis, stage3_memory)
+        raw = value if isinstance(value, dict) else {}
+        normalized: dict[str, dict[str, Any]] = {}
+
+        for key, label in DISCUSSION_STAGES:
+            item = raw.get(key) or raw.get(STAGE_MEMORY_FIELDS.get(key, ""))
+            if not isinstance(item, dict):
+                item = {}
+
+            summary = compact_text(
+                item.get("summary") or fallback[key].get("summary") or "",
+                500,
+            )
+            missing = self._clean_string_list(
+                item.get("missingSlots") or fallback[key].get("missingSlots") or [],
+                limit=4,
+            )
+            complete = bool(item.get("complete", fallback[key]["complete"]))
+            if complete and not summary:
+                complete = False
+            if complete:
+                missing = []
+
+            normalized[key] = {
+                "key": key,
+                "label": label,
+                "complete": complete,
+                "summary": summary,
+                "missingSlots": missing,
+            }
+
+        return normalized
+
+    def _assessment_is_complete(
+        self,
+        stage_assessment: dict[str, dict[str, Any]],
+    ) -> bool:
+        return all(
+            bool(stage_assessment.get(key, {}).get("complete"))
+            for key, _ in DISCUSSION_STAGES
         )
 
     def _turn_instruction_from_context(self, context: dict[str, Any]) -> str:
@@ -1070,49 +942,17 @@ class PjblKinaService:
             }
         )
 
-    def _normalize_solver_output(self, value: Any) -> dict[str, Any]:
-        if not isinstance(value, dict) or not all(
-            field in value for field in SOLVER_FIELDS
-        ):
-            raise ValueError("Output Solver tidak lengkap.")
-
-        normalized = {
-            "teacher_intent": self._clean_internal_text(value["teacher_intent"]),
-            "known_context": self._clean_internal_text(value["known_context"]),
-            "decision_summary": self._clean_internal_text(value["decision_summary"]),
-            "response_goal": self._clean_internal_text(value["response_goal"]),
-            "recommended_response_points": self._clean_string_list(
-                value["recommended_response_points"], limit=6
-            ),
-            "pedagogical_suggestions": self._clean_string_list(
-                value["pedagogical_suggestions"], limit=3
-            ),
-            "question_to_ask": self._clean_internal_text(value["question_to_ask"]),
-            "risk_notes": self._clean_string_list(value["risk_notes"], limit=4),
-        }
-        normalized["question_to_ask"] = self._limit_questions(
-            normalized["question_to_ask"]
-        )
-        if not normalized["teacher_intent"] or not normalized[
-            "recommended_response_points"
-        ]:
-            raise ValueError("Output Solver tidak memiliki substansi yang cukup.")
-        return normalized
-
     def _clean_internal_text(self, value: Any) -> str:
         return compact_text(str(value or ""), 700)
 
     def _kina_model(self) -> str:
         llm_settings = getattr(self.llm_client, "settings", None)
-        return getattr(llm_settings, "kina_llm_model", DEFAULT_KINA_MODEL)
-
-    def _solver_model(self) -> str:
-        llm_settings = getattr(self.llm_client, "settings", None)
-        return getattr(llm_settings, "kina_solver_model", None) or self._kina_model()
-
-    def _suggestion_model(self) -> str:
-        llm_settings = getattr(self.llm_client, "settings", None)
-        return getattr(llm_settings, "kina_suggestion_model", "openai/gpt-4o-mini")
+        configured = str(
+            getattr(llm_settings, "kina_llm_model", DEFAULT_KINA_MODEL) or ""
+        ).strip()
+        if configured.startswith("deepseek/"):
+            return configured
+        return DEFAULT_KINA_MODEL
 
     def _clean_string_list(self, value: Any, *, limit: int) -> list[str]:
         if not isinstance(value, list):
@@ -1255,28 +1095,60 @@ class PjblKinaService:
             return key, label, completed_count
         return "complete", "selesai", completed_count
 
-    def _progress_payload(self, analysis: dict[str, Any]) -> dict[str, Any]:
-        evidence = analysis["evidence"]
+    def _progress_payload(
+        self,
+        analysis: dict[str, Any],
+        stage_assessment: dict[str, dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        stage_assessment = stage_assessment or self._stage_assessment_fallback(
+            analysis,
+            {},
+        )
         total_count = len(DISCUSSION_STAGES)
-        completed_count = sum(1 for key, _ in DISCUSSION_STAGES if evidence[key])
+        completed_count = sum(
+            1
+            for key, _ in DISCUSSION_STAGES
+            if stage_assessment.get(key, {}).get("complete")
+        )
+        active_stage = "complete"
+        active_label = "selesai"
+        for key, label in DISCUSSION_STAGES:
+            if not stage_assessment.get(key, {}).get("complete"):
+                active_stage = key
+                active_label = label
+                break
+
+        is_complete = completed_count == total_count
+        missing_slots = (
+            []
+            if is_complete
+            else self._clean_string_list(
+                stage_assessment.get(active_stage, {}).get("missingSlots") or [],
+                limit=4,
+            )
+        )
+        stage_slot_sets = {
+            slot_key: set(analysis["stage_slot_progress"].get(slot_key, []))
+            for slot_key, _ in DISCUSSION_STAGES
+        }
         return {
-            "activeStage": analysis["active_stage"],
-            "activeLabel": analysis["active_label"],
+            "activeStage": active_stage,
+            "activeLabel": active_label,
             "completedCount": completed_count,
             "totalCount": total_count,
             "percentage": round((completed_count / total_count) * 100),
-            "isComplete": analysis["is_complete"],
-            "missingSlots": analysis["missing_slots"],
+            "isComplete": is_complete,
+            "missingSlots": missing_slots,
             "stages": [
                 {
                     "key": key,
                     "label": label,
-                    "complete": evidence[key],
+                    "complete": bool(stage_assessment.get(key, {}).get("complete")),
+                    "summary": stage_assessment.get(key, {}).get("summary", ""),
                     "foundSlots": analysis["stage_slot_progress"].get(key, []),
-                    "missingSlots": self._missing_stage_slot_labels(
-                        key,
-                        {slot_key: set(analysis["stage_slot_progress"].get(slot_key, []))
-                         for slot_key, _ in DISCUSSION_STAGES},
+                    "missingSlots": stage_assessment.get(key, {}).get(
+                        "missingSlots",
+                        self._missing_stage_slot_labels(key, stage_slot_sets),
                     ),
                 }
                 for key, label in DISCUSSION_STAGES
@@ -1287,10 +1159,17 @@ class PjblKinaService:
         self,
         payload: KinaChatRequest,
         analysis: dict[str, Any],
+        *,
+        stage_assessment: dict[str, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         confirmed_decisions = self._memory_confirmed_decisions(payload)
         self._merge_saved_stage_decisions(payload, confirmed_decisions)
         self._merge_history_stage_decisions(payload, confirmed_decisions)
+        if stage_assessment:
+            for key, item in stage_assessment.items():
+                summary = compact_text(item.get("summary") or "", 700)
+                if key in dict(DISCUSSION_STAGES) and summary:
+                    confirmed_decisions[key] = summary
 
         stage_slot_progress: dict[str, list[str]] = {}
         for key, _ in DISCUSSION_STAGES:
@@ -1309,20 +1188,38 @@ class PjblKinaService:
         completed_stage_keys = [
             key
             for key, _ in DISCUSSION_STAGES
-            if self._stage_slots_complete(key, stage_slot_sets[key])
+            if (
+                stage_assessment
+                and stage_assessment.get(key, {}).get("complete")
+            )
+            or self._stage_slots_complete(key, stage_slot_sets[key])
         ]
+        normalized_assessment = stage_assessment or self._stage_assessment_fallback(
+            analysis,
+            {"confirmedDecisions": confirmed_decisions},
+        )
         open_questions = [
             f"{label}: {', '.join(missing)}"
             for key, label in DISCUSSION_STAGES
             if (
-                missing := self._missing_stage_slot_labels(key, stage_slot_sets)
+                missing := self._clean_string_list(
+                    normalized_assessment.get(key, {}).get("missingSlots")
+                    or self._missing_stage_slot_labels(key, stage_slot_sets),
+                    limit=4,
+                )
             )
         ][:7]
 
         return {
-            "version": 1,
-            "activeStage": analysis["active_stage"],
-            "activeLabel": analysis["active_label"],
+            "version": 2,
+            "activeStage": self._progress_payload(
+                analysis,
+                normalized_assessment,
+            )["activeStage"],
+            "activeLabel": self._progress_payload(
+                analysis,
+                normalized_assessment,
+            )["activeLabel"],
             "confirmedDecisions": {
                 key: confirmed_decisions.get(key, "")
                 for key, _ in DISCUSSION_STAGES
@@ -1331,10 +1228,45 @@ class PjblKinaService:
                 STAGE_MEMORY_FIELDS[key]: confirmed_decisions.get(key, "")
                 for key, _ in DISCUSSION_STAGES
             },
+            "legacyStageFields": self._legacy_stage_fields(confirmed_decisions),
+            "stageAssessment": normalized_assessment,
+            "stageSummaries": {
+                key: normalized_assessment.get(key, {}).get("summary", "")
+                for key, _ in DISCUSSION_STAGES
+            },
             "stageSlotProgress": stage_slot_progress,
             "completedStageKeys": completed_stage_keys,
             "latestSummary": self._stage3_memory_summary(confirmed_decisions),
             "openQuestions": open_questions,
+        }
+
+    def _legacy_stage_fields(
+        self,
+        confirmed_decisions: dict[str, str],
+    ) -> dict[str, str]:
+        facilities = confirmed_decisions.get("facility_technology_use", "")
+        partnership = confirmed_decisions.get("partnership", "")
+        facilities_and_partnership = compact_text(
+            " ".join(part for part in (facilities, partnership) if part),
+            900,
+        )
+        return {
+            "learningStyle": confirmed_decisions.get("learning_style", ""),
+            "pedagogicalApproach": confirmed_decisions.get(
+                "pedagogical_preference",
+                "",
+            ),
+            "activitiesAndSchedule": confirmed_decisions.get(
+                "implementation_duration",
+                "",
+            ),
+            "facilitiesTechnologyPartnership": facilities_and_partnership,
+            "digitalUse": confirmed_decisions.get("digital_use", ""),
+            "finalProduct": confirmed_decisions.get("final_project_form", ""),
+            "assessmentReflection": confirmed_decisions.get(
+                "project_assessment",
+                "",
+            ),
         }
 
     def _memory_confirmed_decisions(
@@ -1348,6 +1280,8 @@ class PjblKinaService:
         )
         raw_confirmed = raw_memory.get("confirmedDecisions")
         raw_saved_fields = raw_memory.get("savedStageFields")
+        raw_legacy_fields = raw_memory.get("legacyStageFields")
+        raw_assessment = raw_memory.get("stageAssessment")
         confirmed: dict[str, str] = {}
 
         for key, _ in DISCUSSION_STAGES:
@@ -1360,6 +1294,22 @@ class PjblKinaService:
                 dict,
             ):
                 value = raw_saved_fields.get(field_name) or raw_saved_fields.get(key)
+            if self._is_empty_saved_decision(value) and isinstance(
+                raw_assessment,
+                dict,
+            ):
+                assessment_item = raw_assessment.get(key)
+                if isinstance(assessment_item, dict):
+                    value = assessment_item.get("summary")
+            if self._is_empty_saved_decision(value) and isinstance(
+                raw_legacy_fields,
+                dict,
+            ):
+                for legacy_field, legacy_stage_key in SAVED_STAGE_SUMMARY_FIELDS.items():
+                    if legacy_stage_key == key:
+                        value = raw_legacy_fields.get(legacy_field)
+                        if not self._is_empty_saved_decision(value):
+                            break
             if not self._is_empty_saved_decision(value):
                 confirmed[key] = compact_text(self._flatten(value), 700)
 
@@ -1482,6 +1432,8 @@ class PjblKinaService:
         previous_assistant: str,
     ) -> str:
         message = compact_text(payload.message, 700)
+        if not message:
+            return "current"
         if IRRELEVANT_INPUT_PATTERN.search(message):
             return "irrelevant"
 
@@ -1499,7 +1451,8 @@ class PjblKinaService:
             r"\b(?:proyek|PjBL|siswa|guru|kelas|sekolah|pembelajaran|observasi|"
             r"presentasi|kelompok|produk|kegiatan|jadwal|fasilitas|asesmen|"
             r"penilaian|refleksi|gaya belajar|gaya pembelajaran|digital|"
-            r"aplikasi|platform)\b",
+            r"aplikasi|platform|pedagogis|lingkungan belajar|kemitraan|mitra|"
+            r"durasi|pertemuan|tahap)\b",
             message,
             flags=re.IGNORECASE,
         ):
@@ -1574,6 +1527,7 @@ class PjblKinaService:
         confirmed_decisions = self._memory_confirmed_decisions(payload)
         raw_stage_progress = raw_memory.get("stageSlotProgress")
         raw_completed = raw_memory.get("completedStageKeys")
+        raw_assessment = raw_memory.get("stageAssessment")
         completed_stage_keys = (
             {
                 key
@@ -1610,6 +1564,19 @@ class PjblKinaService:
                 )
             if self._stage_slots_complete(key, stage_slots[key]):
                 evidence[key] = True
+
+        if isinstance(raw_assessment, dict):
+            for key, item in raw_assessment.items():
+                if key not in stage_slots or not isinstance(item, dict):
+                    continue
+                if item.get("complete") and not self._is_empty_saved_decision(
+                    item.get("summary")
+                ):
+                    stage_slots[key].update(
+                        slot_key
+                        for slot_key, _, _ in STAGE_REQUIRED_SLOTS.get(key, ())
+                    )
+                    evidence[key] = True
 
         for key, _ in DISCUSSION_STAGES:
             if self._stage_slots_complete(key, stage_slots[key]):
@@ -1757,26 +1724,28 @@ class PjblKinaService:
         if analysis["change_requested"]:
             return (
                 "Guru meminta perubahan proyek. Jelaskan dampaknya terhadap tujuan, "
-                "durasi, fasilitas, biaya, dan risiko sebelum mengarahkan perubahan."
+                "durasi, fasilitas, biaya, dan risiko. Beri rekomendasi apakah perubahan "
+                "itu layak, perlu dipersempit, atau sebaiknya menjadi variasi kecil."
             )
         if analysis.get("input_relevance") == "irrelevant":
             return (
                 "Pesan guru tidak relevan dengan diskusi RPP PjBL saat ini. Jangan "
                 "mencatatnya sebagai keputusan proyek dan jangan menjawab topik di luar "
-                "cakupan secara panjang. Jelaskan batasan dengan sopan lalu arahkan "
-                f"kembali ke {analysis['active_label']} dengan satu pertanyaan ringan."
+                "cakupan secara panjang. Jelaskan batasan dengan sopan, lalu beri "
+                f"jembatan singkat kembali ke {analysis['active_label']}."
             )
         if analysis.get("input_relevance") == "unclear":
             return (
                 "Hubungan pesan guru dengan diskusi saat ini belum jelas. Jangan "
-                "menganggapnya sebagai keputusan. Minta klarifikasi singkat tentang "
-                f"kaitannya dengan {analysis['active_label']}."
+                "menganggapnya sebagai keputusan. Tawarkan contoh cara mengaitkannya "
+                f"dengan {analysis['active_label']}, lalu minta klarifikasi singkat."
             )
         if analysis.get("input_relevance") == "project":
             return (
-                "Pesan guru relevan dengan proyek tetapi membahas bagian lain. Tanggapi "
-                "secara singkat tanpa mengabaikannya, lalu kembalikan pembahasan ke "
-                f"bagian yang sedang aktif: {analysis['active_label']}."
+                "Pesan guru relevan dengan proyek tetapi membahas bagian lain. Jawab "
+                "substansinya dulu dengan penilaian atau rekomendasi singkat, catat jika "
+                "jelas, lalu hubungkan kembali ke "
+                f"{analysis['active_label']} secara natural."
             )
         if analysis["is_complete"]:
             return (
@@ -1790,11 +1759,12 @@ class PjblKinaService:
             else ""
         )
         return (
-            f"Utamakan {analysis['active_label']}. Jika guru bertanya tentang bagian "
-            "lain, jawab seperlunya lalu kembalikan pembahasan ke bagian aktif. "
-            "Pertahankan keputusan yang sudah disepakati, jangan menyimpulkan tahap "
-            "sebelum informasi wajibnya lengkap, dan ajukan maksimal satu pertanyaan "
-            f"ringan.{missing_instruction}"
+            f"Diskusikan {analysis['active_label']} sebagai keputusan desain proyek, "
+            "bukan sebagai isian formulir. Jika guru memberi ide, nilai kelayakannya "
+            "dan beri rekomendasi konkret. Jika guru bertanya atau ragu, jawab dulu "
+            "dengan opsi dan alasan singkat. Pertahankan keputusan yang sudah "
+            "disepakati, jangan menyimpulkan tahap sebelum informasi wajibnya lengkap, "
+            f"dan ajukan maksimal satu pertanyaan hanya bila perlu.{missing_instruction}"
         )
 
     def _fallback_reply(
@@ -1805,6 +1775,8 @@ class PjblKinaService:
         project_title = self._project_title(payload)
         next_question = self._question_for_missing_slot(analysis)
 
+        if not compact_text(payload.message, 700):
+            return self._initial_context_reply(payload, next_question)
         if analysis["input_relevance"] == "irrelevant":
             follow_up = self._local_suggested_questions(payload, analysis)
             redirect = (
@@ -1831,11 +1803,10 @@ class PjblKinaService:
             )
         if analysis["is_complete"]:
             return (
-                f"Baik, rancangan {project_title} sudah mencakup fokus proyek, gaya "
-                "pembelajaran, produk akhir, alur kegiatan, pembagian peran, fasilitas, "
-                "pemanfaatan digital, mitigasi risiko, serta asesmen dan refleksi. "
-                "Seluruh keputusan tersebut dapat menjadi dasar pelaksanaan proyek "
-                "yang terarah.\n\n"
+                f"Baik, rancangan {project_title} sudah mencakup gaya pembelajaran, "
+                "preferensi pedagogis, lingkungan belajar, lama pelaksanaan, fasilitas "
+                "dan teknologi, pemanfaatan digital, kemitraan, bentuk proyek akhir, "
+                "serta penilaian proyek.\n\n"
                 f"{COMPLETION_MESSAGE}"
             )
         if analysis["teacher_uncertain"]:
@@ -1843,119 +1814,144 @@ class PjblKinaService:
 
         latest_decision = compact_text(payload.message, 180)
         active_stage = analysis["active_stage"]
-        if active_stage == "focus_scope":
-            return (
-                f"Baik, kita akan mematangkan {project_title} tanpa mengganti arah "
-                "proyek yang sudah dipilih. Fokus awalnya perlu dibatasi pada masalah, "
-                "tujuan, dan pertanyaan mendasar yang realistis bagi siswa.\n\n"
-                f"{next_question}"
-            )
         if active_stage == "learning_style":
             return (
-                f"Baik, fokus {project_title} sudah mulai terarah. Sekarang kita perlu "
-                "menyesuaikan cara belajar yang paling cocok, misalnya lebih banyak "
-                "praktik langsung, diskusi, visual, atau kerja kolaboratif.\n\n"
+                f"Untuk {project_title}, gaya belajar sebaiknya tidak terlalu teoritis. "
+                "Saya menilai praktik langsung yang dipadukan diskusi kecil akan lebih "
+                "kuat, karena siswa bisa melihat masalah nyata lalu mengolah temuan "
+                "bersama.\n\n"
+                f"Kita bisa pakai itu sebagai arah awal, atau Bapak/Ibu ingin gaya lain? {next_question}"
+            )
+        if active_stage == "pedagogical_preference":
+            return (
+                "Gaya pembelajaran tadi sudah bisa jadi dasar. Rekomendasi saya: "
+                "inkuiri terbimbing, karena proyek tetap memberi ruang eksplorasi tetapi "
+                "guru masih menjaga arah, waktu, dan kualitas data siswa.\n\n"
+                f"Kalau kelasnya cukup mandiri, pendekatan kolaboratif juga bisa diperkuat. {next_question}"
+            )
+        if active_stage == "learning_environment":
+            return (
+                "Untuk lingkungan belajar, pilihan paling aman biasanya kombinasi: kelas "
+                "untuk diskusi dan refleksi, area sekolah untuk observasi singkat. Ini "
+                "menjaga proyek tetap kontekstual tanpa membuat kontrol kelas terlalu berat.\n\n"
                 f"{next_question}"
             )
-        if active_stage == "final_product":
+        if active_stage == "implementation_duration":
             return (
-                f"Baik, gaya pembelajaran sudah dapat menjadi dasar pelaksanaan "
-                f"{project_title}. Berikutnya, produk atau aksi akhir perlu dipilih agar "
-                "benar-benar menjawab masalah proyek dan tetap sesuai waktu serta "
-                "fasilitas sekolah.\n\n"
-                f"{next_question}"
+                f"Saya tangkap arahnya: {latest_decision}. Dari sisi kelayakan, durasi "
+                "perlu dibuat cukup pendek agar observasi, produk, dan presentasi tidak "
+                "melebar.\n\n"
+                f"Rekomendasi saya 3-4 tahap/pertemuan dengan target kecil tiap tahap. {next_question}"
             )
-        if active_stage == "activities_schedule":
+        if active_stage == "facility_technology_use":
             return (
-                f"Baik, pilihan guru sudah saya tangkap: {latest_decision}. Keputusan ini "
-                "akan menjadi dasar penyusunan kegiatan proyek dari pengenalan masalah "
-                "hingga presentasi dan refleksi.\n\n"
-                f"{next_question}"
-            )
-        if active_stage == "roles_support":
-            return (
-                "Baik, alur dan waktu proyek sudah cukup terarah. Agar semua siswa "
-                "berkontribusi, pembagian kelompok, peran anggota, dan cara guru "
-                "memantau kemajuan perlu disepakati.\n\n"
-                f"{next_question}"
-            )
-        if active_stage == "facilities_partnership":
-            return (
-                "Baik, pembagian peran siswa sudah dapat menjadi dasar pelaksanaan. "
-                "Selanjutnya kita perlu memilih fasilitas dan teknologi yang benar-benar "
-                "tersedia, sedangkan kemitraan tetap bersifat opsional.\n\n"
+                "Untuk fasilitas, prinsipnya pakai yang sudah tersedia agar proyek tidak "
+                "berhenti karena alat. Proyektor cocok untuk contoh dan presentasi, "
+                "sedangkan gawai cukup untuk dokumentasi atau pengumpulan data sederhana.\n\n"
                 f"{next_question}"
             )
         if active_stage == "digital_use":
             return (
-                "Baik, fasilitas dan kemitraan sudah cukup jelas. Sekarang kita perlu "
-                "menentukan pemanfaatan digital yang benar-benar membantu, misalnya "
-                "untuk dokumentasi, pengumpulan data, desain produk, atau presentasi.\n\n"
+                "Pemanfaatan digital sebaiknya tidak menjadi beban tambahan. Menurut saya "
+                "digital paling berguna untuk tiga hal: dokumentasi, pengumpulan data "
+                "singkat, dan menyajikan produk akhir.\n\n"
+                f"Jika akses internet terbatas, cukup pakai kamera dan Slides/Canva saat di kelas. {next_question}"
+            )
+        if active_stage == "partnership":
+            return (
+                "Kemitraan tidak wajib. Kalau waktunya pendek, tanpa mitra luar justru "
+                "lebih aman. Jika ingin tetap ada nuansa nyata, cukup libatkan warga "
+                "sekolah sebagai narasumber ringan.\n\n"
                 f"{next_question}"
             )
-        if active_stage == "risk_mitigation":
+        if active_stage == "final_project_form":
             return (
-                "Baik, pemanfaatan digital sudah cukup terarah. Sekarang kita perlu "
-                "mengantisipasi risiko yang paling mungkin terjadi agar proyek tetap "
-                "aman, hemat biaya, dan selesai tepat waktu.\n\n"
+                "Bentuk proyek akhir perlu sederhana tapi terlihat hasil belajarnya. "
+                "Saya cenderung merekomendasikan poster/infografis plus presentasi singkat, "
+                "karena siswa bisa menunjukkan data, pesan, dan proses berpikirnya.\n\n"
                 f"{next_question}"
             )
         return (
-            "Baik, risiko utama dan langkah pencegahannya sudah cukup terarah. Bagian "
-            "terakhir adalah menentukan bukti proses, kualitas produk, kontribusi siswa, "
-            "cara presentasi, dan refleksi yang akan dinilai.\n\n"
-            f"{next_question}"
+            "Untuk penilaian, jangan hanya menilai produk akhir. Lebih adil jika rubrik "
+            "memuat proses kerja, ketepatan data, kualitas produk, presentasi, dan "
+            "refleksi individu.\n\n"
+            f"Ini membantu siswa yang kontribusinya kuat tetapi bukan penyaji utama tetap terlihat. {next_question}"
+        )
+
+    def _initial_context_reply(
+        self,
+        payload: KinaChatRequest,
+        next_question: str,
+    ) -> str:
+        context = self._suggestion_context(payload)
+        project_title = self._project_title(payload)
+        issue = context.get("issue") or "isu lokal yang sudah dipetakan"
+        location = context.get("location") or "lingkungan sekolah"
+        duration = context.get("duration") or "durasi yang tersedia"
+        products = context.get("products") or []
+        product_text = ", ".join(products[:2]) if products else "produk proyek siswa"
+        facilities = context.get("facilities") or []
+        facility_text = ", ".join(facilities[:2]) if facilities else "fasilitas sekolah yang tersedia"
+        question = next_question or "Gaya pembelajaran apa yang paling cocok untuk kelas ini?"
+
+        return (
+            f"Kita mulai Stage 3 dari {project_title}. Dari Stage 1, konteksnya "
+            f"berangkat dari {issue} di {location}, dengan dukungan {facility_text} "
+            f"dan alokasi sekitar {duration}.\n\n"
+            f"Dari Stage 2, proyek sudah mengarah pada {product_text}. Menurut saya "
+            "arah paling aman adalah diskusi singkat, observasi/praktik, lalu produk "
+            f"visual agar siswa tidak hanya mendengar penjelasan. {question}"
         )
 
     def _uncertainty_reply(self, project_title: str, active_stage: str) -> str:
         options: dict[str, tuple[str, str, str]] = {
-            "focus_scope": (
-                "batasi proyek pada satu lokasi sekolah agar observasi mudah",
-                "batasi pada satu kelompok sasaran agar solusi lebih terarah",
-                "batasi pada satu kebiasaan utama agar dampaknya dapat diamati",
-            ),
             "learning_style": (
                 "gunakan praktik langsung agar siswa belajar dari pengalaman nyata",
                 "gunakan diskusi kelompok kecil agar ide siswa saling melengkapi",
                 "gunakan pendekatan visual agar temuan mudah dipahami dan dipresentasikan",
             ),
-            "final_product": (
-                "media kampanye sederhana karena murah dan mudah dipresentasikan",
-                "laporan temuan karena kuat untuk menunjukkan proses pengumpulan data",
-                "prototipe atau aksi kecil karena memberi pengalaman praktik langsung",
+            "pedagogical_preference": (
+                "inkuiri terbimbing agar siswa tetap punya arahan",
+                "kolaboratif agar diskusi dan pembagian tugas lebih kuat",
+                "diferensiasi sederhana agar siswa bisa memilih peran sesuai kemampuan",
             ),
-            "activities_schedule": (
-                "alur tiga tahap untuk durasi singkat",
-                "alur lima tahap untuk proyek beberapa minggu",
+            "learning_environment": (
+                "kelas sebagai pusat diskusi dan refleksi",
+                "area sekolah sebagai tempat observasi terbatas",
+                "kombinasi kelas dan area sekolah agar proyek tetap kontekstual",
+            ),
+            "implementation_duration": (
+                "tiga tahap untuk proyek singkat",
+                "empat pertemuan agar ada waktu observasi, produk, dan presentasi",
                 "alur mingguan dengan target kecil agar mudah dipantau",
             ),
-            "roles_support": (
-                "kelompok kecil dengan ketua, pencatat, dan penyaji",
-                "peran bergilir agar kontribusi siswa lebih merata",
-                "pembagian berdasarkan minat dengan lembar monitoring guru",
-            ),
-            "facilities_partnership": (
+            "facility_technology_use": (
                 "gunakan fasilitas kelas yang sudah tersedia",
                 "gunakan gawai secara terbatas hanya untuk dokumentasi atau riset",
-                "libatkan mitra internal sekolah tanpa pihak luar",
+                "gunakan proyektor untuk contoh, diskusi, dan presentasi hasil",
             ),
             "digital_use": (
                 "gunakan gawai hanya untuk dokumentasi foto atau video singkat",
                 "gunakan Canva atau Slides untuk menyusun produk presentasi",
                 "gunakan Google Form sederhana untuk mengumpulkan data observasi",
             ),
-            "risk_mitigation": (
-                "sederhanakan produk untuk mencegah keterlambatan",
-                "batasi alat dan bahan untuk mengendalikan biaya",
-                "gunakan panduan keselamatan dan area kerja yang jelas",
+            "partnership": (
+                "tanpa mitra luar agar pelaksanaan lebih ringan",
+                "libatkan warga sekolah sebagai narasumber sederhana",
+                "libatkan orang tua hanya untuk dukungan alat atau informasi",
             ),
-            "assessment_reflection": (
+            "final_project_form": (
+                "poster atau infografis karena mudah dibuat dan dipresentasikan",
+                "laporan temuan singkat karena kuat untuk menunjukkan data",
+                "presentasi kelompok dengan produk visual sederhana",
+            ),
+            "project_assessment": (
                 "nilai proses dan kerja sama melalui observasi",
                 "nilai produk menggunakan rubrik sederhana",
                 "gabungkan presentasi kelompok dengan refleksi individu",
             ),
         }
-        first, second, third = options[active_stage]
+        first, second, third = options.get(active_stage, options["learning_style"])
         return (
             f"Wajar jika Bapak/Ibu masih ragu saat mematangkan {project_title}. Kita dapat "
             "memilih pendekatan yang paling sederhana dan sesuai kondisi sekolah.\n\n"
@@ -1991,61 +1987,6 @@ class PjblKinaService:
                 if candidate:
                     return candidate
         return None
-
-    async def _suggested_questions(
-        self,
-        payload: KinaChatRequest,
-        analysis: dict[str, Any],
-        reply: str,
-    ) -> list[str]:
-        if analysis["is_complete"]:
-            return []
-        local_suggestions = self._local_suggested_questions(payload, analysis)
-        context = self._suggestion_context(payload)
-        generated = await self.llm_client.generate_json(
-            [
-                {
-                    "role": "system",
-                    "content": (
-                        "Anda membuat suggestedFollowUpQuestions untuk chatbot KINA. "
-                        "Tulis 2-3 opsi jawaban singkat yang bisa langsung diklik guru. "
-                        "Opsi harus menjawab pertanyaan terakhir KINA, mengikuti konteks proyek, "
-                        "dan terdengar natural sebagai jawaban guru. Jangan membuat pertanyaan baru, "
-                        "jangan menulis markdown, jangan numbering, jangan memakai istilah teknis."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": json.dumps(
-                        {
-                            "latestUserMessage": payload.message,
-                            "kinaReply": reply,
-                            "activeStage": analysis.get("active_stage"),
-                            "activeLabel": analysis.get("active_label"),
-                            "missingSlots": analysis.get("missing_slots"),
-                            "project": payload.project.model_dump(),
-                            "context": context,
-                            "localFallbackOptions": local_suggestions,
-                            "requiredResponseShape": {
-                                "suggestedFollowUpQuestions": local_suggestions,
-                            },
-                        },
-                        ensure_ascii=False,
-                    ),
-                },
-            ],
-            {"suggestedFollowUpQuestions": local_suggestions},
-            model=self._suggestion_model(),
-            temperature=0.45,
-            max_tokens=350,
-        )
-        raw_suggestions = generated.get("suggestedFollowUpQuestions")
-        if not isinstance(raw_suggestions, list):
-            raw_suggestions = local_suggestions
-        cleaned = self._clean_suggestions(
-            [item for item in raw_suggestions if isinstance(item, str)]
-        )
-        return cleaned or local_suggestions
 
     def _local_suggested_questions(
         self,
@@ -2138,71 +2079,39 @@ class PjblKinaService:
         products = context["mentioned_products"] or context["products"]
         activities = context["activities"]
         facilities = context["mentioned_facilities"] or context["facilities"]
-        risks = context["risks"]
         grade = context["grade"]
 
-        if active_stage == "focus_scope" and slot_key == "issue":
-            return [
-                f"Fokus pada {issue}.",
-                f"Masalah utamanya adalah kebiasaan di {location} yang paling mudah diamati murid.",
-                f"Ambil satu masalah yang dekat dengan {grade} dan bisa diamati langsung.",
-            ]
-        if active_stage == "focus_scope" and slot_key == "boundary":
-            return [
-                f"Batasi observasi di {location}.",
-                f"Sasarannya murid {grade} dan warga sekolah yang terlibat langsung.",
-                "Ruang lingkupnya cukup di area sekolah agar aman dan mudah dipantau.",
-            ]
         if active_stage == "learning_style":
             return [
                 "Gunakan praktik langsung dan diskusi kelompok kecil.",
                 "Gaya belajarnya visual dan kolaboratif agar hasil mudah dipresentasikan.",
                 "Utamakan observasi langsung, kerja kelompok, lalu refleksi singkat.",
             ]
-        if active_stage == "final_product":
-            product_text = ", ".join(products[:2])
+        if active_stage == "pedagogical_preference":
             return [
-                f"Produk akhirnya {product_text}.",
-                f"Saya pilih {products[0]} karena paling realistis dibuat murid.",
-                "Produk dibuat sederhana, visual, dan dipresentasikan singkat di kelas.",
+                "Gunakan inkuiri terbimbing agar murid tetap punya arahan.",
+                "Pakai kolaboratif berbasis proyek dengan contoh dan umpan balik bertahap.",
+                "Gunakan diferensiasi sederhana melalui pilihan peran dan produk.",
             ]
-        if active_stage == "activities_schedule" and slot_key == "duration":
+        if active_stage == "learning_environment":
             return [
-                f"Gunakan durasi {duration}.",
-                f"Proyek dijalankan dalam {duration} dengan target kecil tiap tahap.",
-                "Durasi dibuat singkat agar observasi, produk, dan refleksi tetap selesai.",
+                f"Gunakan kelas dan {location} sebagai lingkungan belajar.",
+                f"Observasi dibatasi di {location} agar aman untuk {grade}.",
+                "Kelas dipakai untuk diskusi, sedangkan area sekolah untuk observasi singkat.",
             ]
-        if active_stage == "activities_schedule" and slot_key == "flow":
+        if active_stage == "implementation_duration":
             flow = ", ".join(activities[:4])
             return [
-                f"Alurnya: {flow}.",
-                "Mulai dari pemantik, observasi, olah data, buat produk, lalu refleksi.",
-                "Bagi kegiatan menjadi pembuka, kerja kelompok, presentasi, dan refleksi.",
+                f"Gunakan durasi {duration}.",
+                f"Proyek dijalankan dalam {duration} dengan alur: {flow}.",
+                "Bagi menjadi 4 pertemuan: pemantik, observasi, produk, presentasi-refleksi.",
             ]
-        if active_stage == "roles_support" and slot_key == "roles":
-            return [
-                "Murid bekerja kelompok kecil dengan ketua, pencatat, pengolah data, dan penyaji.",
-                "Peran dibagi sesuai minat agar semua murid berkontribusi.",
-                "Gunakan kelompok 4 orang agar pembagian tugas mudah dipantau.",
-            ]
-        if active_stage == "roles_support" and slot_key == "support":
-            return [
-                "Guru memantau memakai lembar cek singkat di setiap tahap.",
-                "Guru memberi contoh dulu, lalu mengecek kemajuan tiap kelompok.",
-                "Pendampingan dilakukan lewat pertanyaan pemandu dan umpan balik cepat.",
-            ]
-        if active_stage == "facilities_partnership" and slot_key == "facilities":
+        if active_stage == "facility_technology_use":
             facility_text = ", ".join(facilities[:3])
             return [
-                f"Gunakan {facility_text} sebagai fasilitas utama.",
+                f"Gunakan {facility_text} untuk observasi, diskusi, dan presentasi.",
                 f"Fasilitas cukup memakai {facility_text} agar proyek tetap sederhana.",
-                "Pakai fasilitas yang sudah tersedia di sekolah tanpa alat tambahan mahal.",
-            ]
-        if active_stage == "facilities_partnership" and slot_key == "use_or_partnership":
-            return [
-                "Fasilitas dipakai untuk observasi, dokumentasi, dan presentasi; tanpa mitra luar.",
-                "Teknologi hanya dipakai seperlunya untuk dokumentasi dan menyajikan hasil.",
-                "Kemitraan tidak digunakan dulu agar proyek tetap mudah dijalankan.",
+                "Pakai proyektor untuk contoh dan presentasi; gawai hanya untuk dokumentasi.",
             ]
         if active_stage == "digital_use":
             return [
@@ -2210,26 +2119,26 @@ class PjblKinaService:
                 "Gunakan Canva atau Slides untuk menyusun produk akhir kelompok.",
                 "Gunakan Google Form sederhana agar data observasi mudah dikumpulkan.",
             ]
-        if active_stage == "risk_mitigation" and slot_key == "risk":
-            risk_text = risks[0]
+        if active_stage == "partnership":
             return [
-                f"Risiko utamanya {risk_text}.",
-                "Risiko yang perlu dijaga adalah waktu terbatas dan data kelompok tidak konsisten.",
-                "Risiko utama: murid melebar dari tugas atau keluar dari area pengamatan.",
+                "Tidak perlu mitra luar dulu agar proyek mudah dijalankan.",
+                "Libatkan warga sekolah sebagai narasumber ringan.",
+                "Gunakan orang tua hanya untuk dukungan alat atau informasi sederhana.",
             ]
-        if active_stage == "risk_mitigation" and slot_key == "mitigation":
+        if active_stage == "final_project_form":
+            product_text = ", ".join(products[:2])
             return [
-                "Mitigasinya pakai batas area, timer, dan lembar observasi seragam.",
-                "Guru memberi contoh pengisian dan mengecek tiap kelompok secara berkala.",
-                "Sederhanakan target supaya proyek selesai dalam waktu yang tersedia.",
+                f"Bentuk akhirnya {product_text}.",
+                f"Saya pilih {products[0]} karena paling realistis dibuat murid.",
+                "Produk dibuat sederhana, visual, dan dipresentasikan singkat di kelas.",
             ]
-        if active_stage == "assessment_reflection" and slot_key == "assessment":
+        if active_stage == "project_assessment" and slot_key == "assessment":
             return [
                 "Nilai proses kerja kelompok, ketepatan data, kualitas produk, dan presentasi.",
                 "Aspek utamanya kelengkapan data, kolaborasi, dan kejelasan pesan produk.",
                 "Gunakan rubrik sederhana untuk proses, produk, kontribusi, dan komunikasi.",
             ]
-        if active_stage == "assessment_reflection" and slot_key == "evidence_reflection":
+        if active_stage == "project_assessment" and slot_key == "evidence_reflection":
             return [
                 "Buktinya catatan observasi, produk akhir, presentasi, dan refleksi singkat.",
                 "Murid mengumpulkan hasil kerja kelompok dan menulis satu kalimat refleksi.",
@@ -2370,50 +2279,38 @@ class PjblKinaService:
         missing = analysis.get("missing_slot_keys") or []
         first_missing = missing[0] if missing else ""
         questions: dict[tuple[str, str], str] = {
-            ("focus_scope", "issue"): (
-                "Masalah utama apa yang paling perlu dijawab melalui proyek ini?"
-            ),
-            ("focus_scope", "boundary"): (
-                "Batas lokasi atau sasaran proyeknya ingin difokuskan ke mana?"
-            ),
             ("learning_style", "style"): (
                 "Gaya pembelajaran apa yang paling cocok untuk kelas ini?"
             ),
-            ("final_product", "product"): (
-                "Produk atau aksi akhir apa yang paling realistis dibuat murid?"
+            ("pedagogical_preference", "approach"): (
+                "Preferensi pedagogis apa yang ingin dipakai untuk proyek ini?"
             ),
-            ("activities_schedule", "duration"): (
-                "Berapa minggu PjBL ini akan dilakukan?"
+            ("learning_environment", "environment"): (
+                "Lingkungan belajar proyeknya akan berlangsung di mana?"
             ),
-            ("activities_schedule", "flow"): (
-                "Alur kegiatan utamanya mau dibuat seperti apa dari awal sampai refleksi?"
+            ("implementation_duration", "duration_or_steps"): (
+                "Lama pelaksanaannya ingin dibuat berapa tahap atau berapa pertemuan?"
             ),
-            ("roles_support", "roles"): (
-                "Bagaimana peran murid akan dibagi dalam kelompok?"
-            ),
-            ("roles_support", "support"): (
-                "Bagaimana guru akan memantau dan mendampingi kerja kelompok?"
-            ),
-            ("facilities_partnership", "facilities"): (
+            ("facility_technology_use", "facility"): (
                 "Fasilitas atau teknologi apa yang paling realistis digunakan?"
             ),
-            ("facilities_partnership", "use_or_partnership"): (
-                "Fasilitas itu akan dipakai untuk apa, dan perlu mitra atau tanpa mitra?"
+            ("facility_technology_use", "usage"): (
+                "Fasilitas dan teknologi itu akan dimanfaatkan untuk apa?"
             ),
             ("digital_use", "digital_plan"): (
                 "Pemanfaatan digital apa yang paling realistis digunakan dalam proyek ini?"
             ),
-            ("risk_mitigation", "risk"): (
-                "Risiko utama apa yang paling mungkin menghambat proyek ini?"
+            ("partnership", "partnership_decision"): (
+                "Proyek ini perlu kemitraan tertentu atau cukup tanpa mitra luar?"
             ),
-            ("risk_mitigation", "mitigation"): (
-                "Cara mencegah risiko itu paling realistis seperti apa?"
+            ("final_project_form", "product_form"): (
+                "Bentuk proyek akhir apa yang paling realistis dibuat murid?"
             ),
-            ("assessment_reflection", "assessment"): (
-                "Aspek proses dan hasil apa yang paling penting dinilai?"
+            ("project_assessment", "assessment"): (
+                "Aspek proses dan hasil apa yang paling penting dinilai dalam proyek?"
             ),
-            ("assessment_reflection", "evidence_reflection"): (
-                "Bukti proses atau refleksi apa yang akan dikumpulkan dari murid?"
+            ("project_assessment", "evidence_reflection"): (
+                "Bukti penilaian atau refleksi apa yang akan dikumpulkan dari murid?"
             ),
         }
         return questions.get((str(active_stage), str(first_missing)), "")

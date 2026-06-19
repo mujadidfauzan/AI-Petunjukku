@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
-
 from app.schemas.environment_schema import (
     SchoolEnvironmentCurationRequest,
     SchoolEnvironmentCurationResponse,
@@ -26,7 +24,7 @@ from app.schemas.stage3_diagram_schema import (
     Stage3DiagramResponse,
 )
 from app.services.ai_orchestrator_service import AIOrchestratorService
-
+from fastapi import APIRouter
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -38,11 +36,19 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 async def curate_school_environment(
     payload: SchoolEnvironmentCurationRequest,
 ) -> SchoolEnvironmentCurationResponse:
+    # print("=== INPUT CURATE SCHOOL ENVIRONMENT ===")
+    # print(payload.model_dump())
+    # print("=============================")
     return await AIOrchestratorService().curate_school_environment(payload)
 
 
 @router.post("/recommend-stage", response_model=RecommendStageResponse)
 async def recommend_stage(payload: RecommendStageRequest) -> RecommendStageResponse:
+    print("=== INPUT RECOMMEND STAGE ===")
+    print(payload.model_dump())
+    # print("Recommendation Type:")
+    # print(payload)
+    print("=============================")
     return await AIOrchestratorService().recommend_stage(payload)
 
 

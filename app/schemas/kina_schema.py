@@ -26,13 +26,16 @@ class KinaChatRequest(BaseModel):
     chatHistory: list[ChatMessageSchema] = Field(default_factory=list)
     message: str = ""
     requireAi: bool = False
+    stage3Memory: dict[str, Any] = Field(default_factory=dict)
 
 
 class KinaChatResponse(BaseModel):
     reply: str
+    model: str | None = None
     usedReferences: list[UsedReferenceSchema] = Field(default_factory=list)
     suggestedFollowUpQuestions: list[str] = Field(default_factory=list)
     progress: dict[str, Any] | None = None
+    stage3Memory: dict[str, Any] | None = None
 
 
 class KinaSummaryRequest(BaseModel):
