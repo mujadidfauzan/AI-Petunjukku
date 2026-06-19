@@ -58,10 +58,12 @@ Wajib kembalikan JSON valid dengan struktur:
 {
   "discussionSummary": "",
   "focusAndScope": "",
+  "learningStyle": "",
   "finalProduct": "",
   "activitiesAndSchedule": "",
   "rolesAndSupport": "",
   "facilitiesTechnologyPartnership": "",
+  "digitalUse": "",
   "riskMitigation": "",
   "assessmentReflection": "",
   "teacherNotes": "",
@@ -70,14 +72,16 @@ Wajib kembalikan JSON valid dengan struktur:
 
 Aturan isi:
 - focusAndScope berisi fokus masalah dan batas ruang lingkup proyek.
+- learningStyle berisi gaya pembelajaran yang paling sesuai untuk siswa.
 - finalProduct berisi produk atau aksi akhir siswa.
 - activitiesAndSchedule berisi alur kegiatan dan durasi/jadwal.
 - rolesAndSupport berisi peran siswa, kelompok, dan pendampingan guru.
 - facilitiesTechnologyPartnership berisi fasilitas, teknologi, dan kemitraan.
+- digitalUse berisi pemanfaatan digital, aplikasi, dokumentasi, atau platform.
 - riskMitigation berisi risiko utama dan cara mencegahnya.
 - assessmentReflection berisi cara asesmen, presentasi, bukti proses, dan refleksi.
 - teacherNotes berisi preferensi penting guru.
-- projectCompletionStatus isi "complete" jika tujuh bagian utama sudah cukup.
+- projectCompletionStatus isi "complete" jika sembilan bagian utama sudah cukup.
 
 Jika informasi tidak eksplisit:
 - Isi dengan inferensi paling aman dari chatHistory dan project.
@@ -105,6 +109,22 @@ Jika informasi tidak eksplisit:
                 "Fokus dan ruang lingkup proyek mengikuti proyek yang dipilih pada Stage 2.",
                 exclude=("risiko", "mitigasi", "asesmen", "rubrik"),
                 prefer_latest=False,
+            ),
+            "learningStyle": self._find_recent_decision(
+                user_messages,
+                (
+                    "gaya pembelajaran",
+                    "gaya belajar",
+                    "visual",
+                    "auditori",
+                    "kinestetik",
+                    "praktik langsung",
+                    "diskusi",
+                    "kolaboratif",
+                    "diferensiasi",
+                ),
+                "Gaya pembelajaran disesuaikan dengan karakteristik siswa dan kebutuhan proyek.",
+                exclude=("asesmen", "rubrik", "risiko", "mitigasi"),
             ),
             "finalProduct": self._find_recent_decision(
                 user_messages,
@@ -136,6 +156,23 @@ Jika informasi tidak eksplisit:
                 user_messages,
                 ("fasilitas", "teknologi", "proyektor", "kemitraan", "mitra"),
                 "Fasilitas dan teknologi memakai sumber daya yang tersedia di sekolah.",
+            ),
+            "digitalUse": self._find_recent_decision(
+                user_messages,
+                (
+                    "pemanfaatan digital",
+                    "digital",
+                    "aplikasi",
+                    "platform",
+                    "canva",
+                    "google form",
+                    "google docs",
+                    "google slides",
+                    "padlet",
+                    "dokumentasi",
+                ),
+                "Pemanfaatan digital digunakan seperlunya untuk dokumentasi, pengumpulan data, atau presentasi.",
+                exclude=("risiko", "mitigasi"),
             ),
             "riskMitigation": self._find_recent_decision(
                 user_messages,

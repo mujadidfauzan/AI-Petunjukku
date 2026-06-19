@@ -23,6 +23,7 @@ class PjblGenerationService:
         self.prompt_builder = prompt_builder or PromptBuilderService()
 
     async def generate(self, payload: GenerateRppRequest) -> GenerateRppResponse:
+        generation_model = self._generation_model()
         references = await self.rag_service.search_for_context(
             query=payload.project.title or payload.project.subject or "RPP PjBL",
             subject=payload.project.subject,
@@ -65,6 +66,7 @@ class PjblGenerationService:
         generated = await self.llm_client.generate_json(
             messages,
             fallback,
+            model=generation_model,
             temperature=0.2,
         )
         content_json = (
@@ -78,7 +80,7 @@ class PjblGenerationService:
 
         return GenerateRppResponse(
             status="success",
-            model=self.llm_client.model_name,
+            model=generation_model,
             rppType=payload.project.rppType,
             usedReferences=[
                 UsedReferenceSchema(
@@ -90,6 +92,14 @@ class PjblGenerationService:
             ],
             contentJson=content_json,
             contentMarkdown=content_markdown,
+        )
+
+    def _generation_model(self) -> str:
+        llm_settings = getattr(self.llm_client, "settings", None)
+        return getattr(
+            llm_settings,
+            "rpp_generation_model",
+            "deepseek/deepseek-v4-pro",
         )
 
     def _build_system_prompt(self) -> str:
@@ -305,11 +315,13 @@ Aturan:
             },
             "learningDesign": {
                 "finalProduct": final_product,
-                "pedagogicalApproach": stage3_flat.get("praktikPedagogis")
+                "pedagogicalApproach": summary.get("learningStyle")
+                or stage3_flat.get("praktikPedagogis")
                 or stage3_flat.get("preferensiPedagogis"),
                 "activityFlowReason": stage3_flat.get("alasanPraktikPedagogis"),
                 "pedagogicalPracticeDescription": (
-                    stage3_flat.get("alasanPraktikPedagogis")
+                    summary.get("learningStyle")
+                    or stage3_flat.get("alasanPraktikPedagogis")
                     or "Pembelajaran menggunakan mini-PjBL, diskusi kolaboratif, dan refleksi terarah agar murid mengalami proses proyek secara bertahap."
                 ),
                 "pedagogicalForms": self._pedagogical_forms(title),
@@ -318,7 +330,10 @@ Aturan:
                     stage1_flat,
                 ),
                 "partnerships": self._partnerships(stage3_flat),
-                "digitalResources": self._digital_resources(stage3_flat),
+                "digitalResources": self._digital_resources(
+                    stage3_flat,
+                    summary.get("digitalUse"),
+                ),
                 "resources": self._resources(stage3_flat, school_context),
                 "activitiesAndSchedule": summary.get("activitiesAndSchedule")
                 or stage3_flat.get("ringkasan")
@@ -526,9 +541,14 @@ Aturan:
             },
         ]
 
-    def _digital_resources(self, stage3_flat: dict[str, Any]) -> list[dict[str, str]]:
+    def _digital_resources(
+        self,
+        stage3_flat: dict[str, Any],
+        summary_digital_use: Any = None,
+    ) -> list[dict[str, str]]:
         digital = self._join(
-            stage3_flat.get("pemanfaatanDigital")
+            summary_digital_use
+            or stage3_flat.get("pemanfaatanDigital")
             or stage3_flat.get("fungsiTeknologiDigital")
             or stage3_flat.get("platformDigital")
         )

@@ -11,7 +11,6 @@ from app.schemas.kina_schema import KinaChatRequest, KinaChatResponse
 from app.schemas.rag_schema import RagReference
 from app.services.llm_client import LLMClient
 from app.services.pjbl.pjbl_prompt_templates import (
-    PJBL_KINA_EVALUATOR_SYSTEM_PROMPT,
     PJBL_KINA_SOLVER_SYSTEM_PROMPT,
     PJBL_KINA_SYSTEM_PROMPT,
 )
@@ -28,15 +27,17 @@ COMPLETION_MESSAGE = (
     "tahap berikutnya."
 )
 
-DEFAULT_KINA_MODEL = "qwen/qwen3-coder-flash"
+DEFAULT_KINA_MODEL = "deepseek/deepseek-v4-flash"
 MAX_KINA_RESPONSE_WORDS = 120
 
 DISCUSSION_STAGES: tuple[tuple[str, str], ...] = (
     ("focus_scope", "fokus dan ruang lingkup proyek"),
+    ("learning_style", "gaya pembelajaran"),
     ("final_product", "produk atau aksi akhir"),
     ("activities_schedule", "alur kegiatan dan jadwal"),
     ("roles_support", "pembagian peran dan pendampingan"),
     ("facilities_partnership", "fasilitas, teknologi, dan kemitraan"),
+    ("digital_use", "pemanfaatan digital"),
     ("risk_mitigation", "risiko dan mitigasi"),
     ("assessment_reflection", "asesmen, presentasi, dan refleksi"),
 )
@@ -52,6 +53,21 @@ STAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "pertanyaan mendasar",
         "projectobjectives",
         "proyek ini",
+    ),
+    "learning_style": (
+        "gaya pembelajaran",
+        "gaya belajar",
+        "visual",
+        "auditori",
+        "kinestetik",
+        "praktik langsung",
+        "diskusi",
+        "kolaboratif",
+        "mandiri",
+        "diferensiasi",
+        "minat siswa",
+        "learningstyle",
+        "dominantlearningstyle",
     ),
     "final_product": (
         "produk akhir",
@@ -111,6 +127,24 @@ STAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "tanpa mitra",
         "facilityandtechnologyuse",
         "partnership",
+    ),
+    "digital_use": (
+        "pemanfaatan digital",
+        "digital",
+        "aplikasi",
+        "platform",
+        "canva",
+        "google form",
+        "google forms",
+        "google docs",
+        "google slides",
+        "padlet",
+        "spreadsheet",
+        "video",
+        "kamera",
+        "dokumentasi digital",
+        "media digital",
+        "digitalresources",
     ),
     "risk_mitigation": (
         "risiko",
@@ -185,6 +219,11 @@ STAGE_DECISION_PATTERNS: dict[str, re.Pattern[str]] = {
         r"\b(?:fokus proyek|ruang lingkup|masalah utama|fokusnya|masalahnya)\b",
         flags=re.IGNORECASE,
     ),
+    "learning_style": re.compile(
+        r"\b(?:gaya pembelajaran|gaya belajar|visual|auditori|kinestetik|"
+        r"praktik langsung|diskusi|kolaboratif|mandiri|diferensiasi|minat siswa)\b",
+        flags=re.IGNORECASE,
+    ),
     "final_product": re.compile(
         r"\b(?:produk akhir|aksi akhir|memilih|pilih|gunakan)\b.{0,60}"
         r"\b(?:infografis|poster|laporan|video|prototipe|kampanye|pameran)\b",
@@ -206,6 +245,12 @@ STAGE_DECISION_PATTERNS: dict[str, re.Pattern[str]] = {
         r"mitra|kemitraan|orang tua|komunitas)\b",
         flags=re.IGNORECASE,
     ),
+    "digital_use": re.compile(
+        r"\b(?:pemanfaatan digital|digital|aplikasi|platform|canva|google forms?|"
+        r"google docs|google slides|padlet|spreadsheet|video|kamera|"
+        r"dokumentasi digital|media digital)\b",
+        flags=re.IGNORECASE,
+    ),
     "risk_mitigation": re.compile(
         r"\b(?:risiko|mitigasi|keselamatan|perizinan|keterlambatan|"
         r"batas area|lembar panduan|target mingguan)\b",
@@ -216,6 +261,189 @@ STAGE_DECISION_PATTERNS: dict[str, re.Pattern[str]] = {
         r"kriteria keberhasilan|refleksi individu|refleksi siswa)\b",
         flags=re.IGNORECASE,
     ),
+}
+STAGE_REQUIRED_SLOTS: dict[str, tuple[tuple[str, str, re.Pattern[str]], ...]] = {
+    "focus_scope": (
+        (
+            "issue",
+            "masalah utama",
+            re.compile(
+                r"\b(?:sampah|limbah|kebersihan|boros|hemat|jajan|kantin|"
+                r"perundungan|disiplin|minat baca|literasi|antre|antri|air|"
+                r"tanaman|lingkungan|kebiasaan|tantangan|kebutuhan|masalah)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+        (
+            "boundary",
+            "batas lokasi atau sasaran",
+            re.compile(
+                r"\b(?:kantin|kelas|halaman|perpustakaan|sekolah|warga|"
+                r"siswa|murid|kelompok|area|lokasi|sekitar|sasaran|"
+                r"batasi|batas|ruang lingkup|lingkup)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+    "learning_style": (
+        (
+            "style",
+            "gaya pembelajaran",
+            re.compile(
+                r"\b(?:gaya pembelajaran|gaya belajar|visual|auditori|"
+                r"kinestetik|praktik langsung|diskusi|kolaboratif|mandiri|"
+                r"diferensiasi|minat siswa|eksplorasi|observasi langsung)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+    "final_product": (
+        (
+            "product",
+            "produk atau aksi akhir",
+            re.compile(
+                r"\b(?:poster|infografis|laporan|video|prototipe|kampanye|"
+                r"pameran|presentasi|produk akhir|aksi akhir|karya|"
+                r"media kampanye|peta temuan)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+    "activities_schedule": (
+        (
+            "duration",
+            "durasi atau jumlah pertemuan",
+            re.compile(
+                r"\b(?:\d+|satu|dua|tiga|empat|lima|enam|tujuh|delapan|"
+                r"sembilan|sepuluh)\s*(?:hari|minggu|bulan|pertemuan|jp|jam|"
+                r"menit)\b|\b(?:durasi|jadwal|alokasi waktu)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+        (
+            "flow",
+            "alur kegiatan utama",
+            re.compile(
+                r"\b(?:observasi|wawancara|survei|diskusi|mengumpulkan|data|"
+                r"membuat|menyusun|presentasi|refleksi|tahap|alur|mulai|"
+                r"lanjut|akhir|pertemuan pertama|minggu pertama)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+    "roles_support": (
+        (
+            "roles",
+            "peran atau bentuk kelompok",
+            re.compile(
+                r"\b(?:kelompok|tim|anggota|ketua|pencatat|penyaji|pengolah|"
+                r"peran|individu|berpasangan)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+        (
+            "support",
+            "cara pendampingan guru",
+            re.compile(
+                r"\b(?:monitoring|pantau|memantau|pendampingan|bimbing|"
+                r"membimbing|cek|umpan balik|lembar kerja|guru|arahan|"
+                r"dibantu|difasilitasi)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+    "facilities_partnership": (
+        (
+            "facilities",
+            "fasilitas atau teknologi",
+            re.compile(
+                r"\b(?:fasilitas|proyektor|internet|gawai|hp|laptop|kamera|"
+                r"alat tulis|halaman sekolah|kelas|perpustakaan|laboratorium|"
+                r"google|canva|padlet|slides|form)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+        (
+            "use_or_partnership",
+            "cara penggunaan atau keputusan kemitraan",
+            re.compile(
+                r"\b(?:pakai|gunakan|menggunakan|digunakan|untuk|platform|"
+                r"mitra|kemitraan|orang tua|komunitas|warga|tanpa mitra|"
+                r"tidak menggunakan|tidak perlu mitra)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+    "digital_use": (
+        (
+            "digital_plan",
+            "pemanfaatan digital",
+            re.compile(
+                r"\b(?:pemanfaatan digital|digital|aplikasi|platform|canva|"
+                r"google forms?|google docs|google slides|padlet|spreadsheet|"
+                r"video|kamera|foto|dokumentasi|media digital|gawai|hp|"
+                r"laptop|internet)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+    "risk_mitigation": (
+        (
+            "risk",
+            "risiko utama",
+            re.compile(
+                r"\b(?:risiko|kendala|hambatan|keselamatan|izin|perizinan|"
+                r"biaya|keterlambatan|alat terbatas|internet|konflik|"
+                r"cuaca|ramai)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+        (
+            "mitigation",
+            "cara mitigasi",
+            re.compile(
+                r"\b(?:mitigasi|cegah|mencegah|antisipasi|batas|panduan|"
+                r"aturan|dampingi|pengawasan|cadangan|sederhanakan|aman|"
+                r"hemat|target|izin guru)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+    "assessment_reflection": (
+        (
+            "assessment",
+            "aspek yang dinilai",
+            re.compile(
+                r"\b(?:asesmen|penilaian|nilai|rubrik|kriteria|kontribusi|"
+                r"kerja sama|produk|proses|presentasi)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+        (
+            "evidence_reflection",
+            "bukti proses atau refleksi",
+            re.compile(
+                r"\b(?:bukti|catatan|jurnal|observasi|dokumentasi|foto|"
+                r"presentasi|refleksi|umpan balik|hasil kerja|lembar refleksi)\b",
+                flags=re.IGNORECASE,
+            ),
+        ),
+    ),
+}
+SAVED_STAGE_SUMMARY_FIELDS: dict[str, str] = {
+    "focusAndScope": "focus_scope",
+    "learningStyle": "learning_style",
+    "finalProduct": "final_product",
+    "activitiesAndSchedule": "activities_schedule",
+    "rolesAndSupport": "roles_support",
+    "facilitiesTechnologyPartnership": "facilities_partnership",
+    "digitalUse": "digital_use",
+    "riskMitigation": "risk_mitigation",
+    "assessmentReflection": "assessment_reflection",
+}
+STAGE_MEMORY_FIELDS: dict[str, str] = {
+    stage_key: field_name
+    for field_name, stage_key in SAVED_STAGE_SUMMARY_FIELDS.items()
 }
 AI_STYLE_PATTERN = re.compile(
     r"\b(?:berada di persimpangan|menjadi jantung(?: dari)?|pada akhirnya|"
@@ -273,23 +501,6 @@ SOLVER_FIELDS: tuple[str, ...] = (
     "risk_notes",
 )
 
-EVALUATOR_CHECKS: tuple[str, ...] = (
-    "natural_language",
-    "not_form_like",
-    "max_one_question",
-    "validates_teacher",
-    "gives_useful_suggestion",
-    "avoids_repetition",
-    "pedagogically_safe",
-    "not_too_long",
-    "direct_and_concise",
-    "avoids_ai_style",
-    "clear_for_teacher",
-    "no_internal_output",
-    "handles_input_relevance",
-)
-
-
 class PjblKinaService:
     def __init__(
         self,
@@ -321,7 +532,13 @@ class PjblKinaService:
 
             fallback = self._fallback_reply(payload, analysis)
             context_started = perf_counter()
-            context = self._build_kina_context(payload, references, analysis)
+            stage3_memory = self._build_stage3_memory(payload, analysis)
+            context = self._build_kina_context(
+                payload,
+                references,
+                analysis,
+                stage3_memory=stage3_memory,
+            )
             timings["context"] += self._elapsed_ms(context_started)
 
             solver_started = perf_counter()
@@ -385,66 +602,31 @@ class PjblKinaService:
                 else:
                     timings["draft"] = self._elapsed_ms(draft_started)
                     stage_statuses["draft"] = "success"
-
-                    evaluator_started = perf_counter()
-                    try:
-                        evaluation = await self._evaluate_kina_draft(
-                            user_message=payload.message,
-                            draft=draft,
-                            analysis=analysis,
-                        )
-                    except Exception:
-                        timings["evaluator"] = self._elapsed_ms(evaluator_started)
-                        stage_statuses["evaluator"] = "error"
-                        route = "evaluator_fallback_to_draft"
-                        if analysis["input_relevance"] in {"irrelevant", "unclear"}:
-                            reply = fallback
-                        else:
-                            reply = self._sanitize_reply(
-                                draft,
-                                fallback=fallback,
-                                is_complete=analysis["is_complete"],
-                                limit_options=analysis["teacher_uncertain"],
-                                enforce_word_limit=True,
-                            )
+                    route = "draft_sanitized"
+                    if analysis["input_relevance"] in {"irrelevant", "unclear"}:
+                        reply = fallback
                     else:
-                        timings["evaluator"] = self._elapsed_ms(evaluator_started)
-                        stage_statuses["evaluator"] = "success"
-                        if evaluation["decision"] == "revise":
-                            final_started = perf_counter()
-                            try:
-                                reply = await self._generate_kina_final_response(
-                                    draft=draft,
-                                    solver_output=solver_output,
-                                    revision_instruction=evaluation[
-                                        "revision_instruction"
-                                    ],
-                                    fallback=fallback,
-                                    analysis=analysis,
-                                )
-                                stage_statuses["final"] = "success"
-                                route = "revised"
-                            except Exception:
-                                stage_statuses["final"] = "error"
-                                route = "final_fallback_to_draft"
-                                if analysis["input_relevance"] in {
-                                    "irrelevant",
-                                    "unclear",
-                                }:
-                                    reply = fallback
-                                else:
-                                    reply = self._sanitize_reply(
-                                        draft,
-                                        fallback=fallback,
-                                        is_complete=analysis["is_complete"],
-                                        limit_options=analysis["teacher_uncertain"],
-                                        enforce_word_limit=True,
-                                    )
-                            finally:
-                                timings["final"] = self._elapsed_ms(final_started)
-                        else:
-                            route = "passed"
-                            reply = draft
+                        reply = self._sanitize_reply(
+                            draft,
+                            fallback=fallback,
+                            is_complete=analysis["is_complete"],
+                            limit_options=analysis["teacher_uncertain"],
+                            enforce_word_limit=True,
+                        )
+
+            suggestions_started = perf_counter()
+            try:
+                suggested_followups = await self._suggested_questions(
+                    payload,
+                    analysis,
+                    reply,
+                )
+                stage_statuses["suggestions"] = "success"
+            except Exception:
+                suggested_followups = self._local_suggested_questions(payload, analysis)
+                stage_statuses["suggestions"] = "fallback"
+            finally:
+                timings["suggestions"] = self._elapsed_ms(suggestions_started)
 
             return KinaChatResponse(
                 reply=reply,
@@ -456,8 +638,9 @@ class PjblKinaService:
                     )
                     for reference in references
                 ],
-                suggestedFollowUpQuestions=self._suggested_questions(analysis),
+                suggestedFollowUpQuestions=suggested_followups,
                 progress=self._progress_payload(analysis),
+                stage3Memory=stage3_memory,
             )
         finally:
             timings["total"] = self._elapsed_ms(total_started)
@@ -484,8 +667,7 @@ class PjblKinaService:
             "rag",
             "solver",
             "draft",
-            "evaluator",
-            "final",
+            "suggestions",
             "fallback",
             "total",
         )
@@ -512,6 +694,8 @@ class PjblKinaService:
         payload: KinaChatRequest,
         references: list[RagReference],
         analysis: dict[str, Any],
+        *,
+        stage3_memory: dict[str, Any],
     ) -> dict[str, Any]:
         stage_summaries = {1: "Belum tersedia.", 2: "Belum tersedia."}
         for stage_number in stage_summaries:
@@ -559,6 +743,11 @@ class PjblKinaService:
             ),
             "stage_1_summary": stage_summaries[1],
             "stage_2_summary": stage_summaries[2],
+            "stage_3_memory": stage3_memory,
+            "confirmed_stage_decisions": stage3_memory.get(
+                "confirmedDecisions",
+                {},
+            ),
             "teacher_decisions": teacher_decisions[-5:],
             "saved_stage_decisions": saved_stage_decisions,
             "recent_exchange": recent_history,
@@ -576,6 +765,8 @@ class PjblKinaService:
             "conversation_complete": analysis["is_complete"],
             "teacher_uncertain": analysis["teacher_uncertain"],
             "change_requested": analysis["change_requested"],
+            "stage_slot_progress": analysis["stage_slot_progress"],
+            "missing_slots": analysis["missing_slots"],
             "supporting_references": [
                 {
                     "title": reference.sourceTitle,
@@ -657,13 +848,17 @@ class PjblKinaService:
                 "Arahkan pembahasan pada satu masalah utama yang realistis.",
                 "Apa batas masalah yang paling realistis untuk proyek ini?",
             ),
+            "learning_style": (
+                "Selaraskan proyek dengan gaya belajar dominan siswa.",
+                "Gaya pembelajaran apa yang paling cocok untuk kelas ini?",
+            ),
             "final_product": (
                 "Pastikan produk akhir menjawab masalah dan sesuai fasilitas.",
                 "Produk atau aksi akhir apa yang paling sesuai?",
             ),
             "activities_schedule": (
                 "Susun kegiatan bertahap dari observasi hingga presentasi.",
-                "Berapa lama durasi proyek yang tersedia?",
+                "Berapa minggu PjBL ini akan dilakukan?",
             ),
             "roles_support": (
                 "Gunakan peran kelompok yang jelas agar kontribusi siswa merata.",
@@ -672,6 +867,10 @@ class PjblKinaService:
             "facilities_partnership": (
                 "Utamakan fasilitas yang tersedia dan kemitraan yang realistis.",
                 "Fasilitas apa yang paling realistis digunakan?",
+            ),
+            "digital_use": (
+                "Gunakan digital hanya untuk membantu proses belajar yang perlu.",
+                "Pemanfaatan digital apa yang paling realistis digunakan?",
             ),
             "risk_mitigation": (
                 "Prioritaskan risiko yang paling mungkin menghambat pelaksanaan.",
@@ -770,6 +969,10 @@ class PjblKinaService:
                                     "project": context["project"],
                                     "stage_1_summary": context["stage_1_summary"],
                                     "stage_2_summary": context["stage_2_summary"],
+                                    "stage_3_memory": context["stage_3_memory"],
+                                    "confirmed_stage_decisions": context[
+                                        "confirmed_stage_decisions"
+                                    ],
                                     "teacher_decisions": context[
                                         "teacher_decisions"
                                     ],
@@ -831,92 +1034,6 @@ class PjblKinaService:
             is_complete=analysis["is_complete"],
             limit_options=analysis["teacher_uncertain"],
             enforce_word_limit=False,
-        )
-
-    async def _evaluate_kina_draft(
-        self,
-        *,
-        user_message: str,
-        draft: str,
-        analysis: dict[str, Any],
-    ) -> dict[str, Any]:
-        requirements = self._evaluation_requirements(user_message, analysis)
-        evaluation = await self.llm_client.generate_json(
-            [
-                {"role": "system", "content": PJBL_KINA_EVALUATOR_SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": "\n\n".join(
-                        [
-                            f"PESAN GURU:\n{user_message}",
-                            f"DRAFT KINA:\n{draft}",
-                            "KEWAJIBAN KONTEKSTUAL:",
-                            json.dumps(requirements, ensure_ascii=False),
-                        ]
-                    ),
-                },
-            ],
-            {},
-            model=self._evaluator_model(),
-            temperature=0.0,
-            max_tokens=450,
-        )
-        return self._normalize_evaluation(
-            evaluation,
-            draft=draft,
-            requirements=requirements,
-        )
-
-    async def _generate_kina_final_response(
-        self,
-        *,
-        draft: str,
-        solver_output: dict[str, Any],
-        revision_instruction: str,
-        fallback: str,
-        analysis: dict[str, Any],
-    ) -> str:
-        relevant_substance = {
-            key: solver_output[key]
-            for key in (
-                "decision_summary",
-                "recommended_response_points",
-                "pedagogical_suggestions",
-                "question_to_ask",
-            )
-        }
-        revised = await self.llm_client.generate_text(
-            [
-                {"role": "system", "content": PJBL_KINA_SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": "\n\n".join(
-                        [
-                            f"DRAFT KINA:\n{draft}",
-                            f"INSTRUKSI REVISI:\n{revision_instruction}",
-                            "SUBSTANSI YANG HARUS DIPERTAHANKAN:",
-                            json.dumps(relevant_substance, ensure_ascii=False),
-                            "Perbaiki satu kali dan keluarkan hanya teks final Kina. "
-                            f"Gunakan maksimal {MAX_KINA_RESPONSE_WORDS} kata, langsung "
-                            "ke inti, tanpa metafora atau bahasa khas AI. Jangan menyebut "
-                            "proses internal, evaluator, score, atau JSON.",
-                        ]
-                    ),
-                },
-            ],
-            "",
-            model=self._kina_model(),
-            temperature=0.4,
-            max_tokens=700,
-        )
-        if not str(revised or "").strip() or self._looks_like_json(str(revised)):
-            raise ValueError("Revisi Kina kosong.")
-        return self._sanitize_reply(
-            revised,
-            fallback=fallback,
-            is_complete=analysis["is_complete"],
-            limit_options=analysis["teacher_uncertain"],
-            enforce_word_limit=True,
         )
 
     async def _existing_generation_fallback(
@@ -982,116 +1099,6 @@ class PjblKinaService:
             raise ValueError("Output Solver tidak memiliki substansi yang cukup.")
         return normalized
 
-    def _evaluation_requirements(
-        self,
-        user_message: str,
-        analysis: dict[str, Any],
-    ) -> dict[str, Any]:
-        requires_validation = bool(
-            analysis["teacher_uncertain"]
-            or analysis["change_requested"]
-            or DECISION_PATTERN.search(user_message)
-            or SHORT_CONFIRMATION_PATTERN.search(user_message)
-            or SIMPLE_FACT_PATTERN.search(user_message)
-        )
-        return {
-            "requires_validation": requires_validation,
-            "requires_useful_suggestion": not analysis["is_complete"],
-            "input_relevance": analysis["input_relevance"],
-            "requires_relevance_handling": analysis["input_relevance"]
-            in {"project", "irrelevant", "unclear"},
-            "conversation_complete": analysis["is_complete"],
-        }
-
-    def _normalize_evaluation(
-        self,
-        value: Any,
-        *,
-        draft: str,
-        requirements: dict[str, Any],
-    ) -> dict[str, Any]:
-        if not isinstance(value, dict) or not isinstance(value.get("checks"), dict):
-            raise ValueError("Output Evaluator tidak valid.")
-
-        checks = {
-            check: value["checks"].get(check) is True for check in EVALUATOR_CHECKS
-        }
-        for check, local_result in self._local_evaluator_checks(draft).items():
-            checks[check] = checks[check] and local_result
-        if not requirements["requires_validation"]:
-            checks["validates_teacher"] = True
-        if not requirements["requires_useful_suggestion"]:
-            checks["gives_useful_suggestion"] = True
-        if not requirements["requires_relevance_handling"]:
-            checks["handles_input_relevance"] = True
-
-        passed = all(checks.values())
-        must_fix = self._clean_string_list(value.get("must_fix", []), limit=4)
-        failed_checks = [check for check, result in checks.items() if not result]
-        must_fix.extend(
-            instruction
-            for check in failed_checks
-            if (instruction := self._revision_instruction_for_check(check))
-        )
-        must_fix = list(dict.fromkeys(must_fix))[:6]
-        model_instruction = self._clean_internal_text(
-            value.get("revision_instruction", "")
-        )
-        revision_parts = must_fix.copy()
-        if model_instruction:
-            revision_parts.append(model_instruction)
-        revision_instruction = "; ".join(dict.fromkeys(revision_parts))
-        if not passed and not revision_instruction:
-            revision_instruction = "Perbaiki seluruh kriteria evaluator yang gagal."
-        return {
-            "decision": "pass" if passed else "revise",
-            "checks": checks,
-            "must_fix": must_fix,
-            "revision_instruction": compact_text(revision_instruction, 700),
-        }
-
-    def _local_evaluator_checks(self, draft: str) -> dict[str, bool]:
-        words = re.findall(r"\S+", draft)
-        normalized_sentences = [
-            re.sub(r"\W+", " ", sentence.casefold()).strip()
-            for sentence in re.split(r"(?<=[.!?])\s+", draft)
-            if sentence.strip()
-        ]
-        repeated_sentence = len(normalized_sentences) != len(
-            set(normalized_sentences)
-        )
-        list_markers = re.findall(r"(?m)^\s*(?:[-*]|\d+[.)])\s+", draft)
-        field_labels = re.findall(r"(?m)^\s*[A-Za-zÀ-ÿ][^\n:]{1,30}:\s*", draft)
-        return {
-            "not_form_like": len(list_markers) < 4 and len(field_labels) < 4,
-            "max_one_question": draft.count("?") <= 1,
-            "avoids_repetition": not repeated_sentence,
-            "not_too_long": len(words) <= MAX_KINA_RESPONSE_WORDS,
-            "direct_and_concise": len(words) <= MAX_KINA_RESPONSE_WORDS,
-            "avoids_ai_style": not bool(AI_STYLE_PATTERN.search(draft)),
-            "no_internal_output": not self._contains_forbidden_content(draft),
-        }
-
-    def _revision_instruction_for_check(self, check: str) -> str:
-        instructions = {
-            "natural_language": "Gunakan bahasa Indonesia percakapan yang wajar.",
-            "not_form_like": "Ubah daftar atau format isian menjadi percakapan singkat.",
-            "max_one_question": "Sisakan maksimal satu pertanyaan.",
-            "validates_teacher": "Akui maksud atau keputusan guru secara singkat.",
-            "gives_useful_suggestion": "Berikan satu saran konkret yang relevan.",
-            "avoids_repetition": "Hapus pengulangan keputusan atau pertanyaan.",
-            "pedagogically_safe": "Perbaiki saran agar realistis dan aman bagi siswa.",
-            "not_too_long": f"Batasi respons maksimal {MAX_KINA_RESPONSE_WORDS} kata.",
-            "direct_and_concise": "Hapus pengantar dan penjelasan yang tidak diperlukan.",
-            "avoids_ai_style": "Hapus metafora dan frasa generik khas AI.",
-            "clear_for_teacher": "Gunakan istilah sederhana yang mudah dipahami guru.",
-            "no_internal_output": "Hapus JSON, istilah teknis, dan proses internal.",
-            "handles_input_relevance": (
-                "Tanggapi sesuai relevansi input dan arahkan kembali ke tahap aktif bila perlu."
-            ),
-        }
-        return instructions.get(check, "")
-
     def _clean_internal_text(self, value: Any) -> str:
         return compact_text(str(value or ""), 700)
 
@@ -1103,9 +1110,9 @@ class PjblKinaService:
         llm_settings = getattr(self.llm_client, "settings", None)
         return getattr(llm_settings, "kina_solver_model", None) or self._kina_model()
 
-    def _evaluator_model(self) -> str:
+    def _suggestion_model(self) -> str:
         llm_settings = getattr(self.llm_client, "settings", None)
-        return getattr(llm_settings, "kina_evaluator_model", None) or self._kina_model()
+        return getattr(llm_settings, "kina_suggestion_model", "openai/gpt-4o-mini")
 
     def _clean_string_list(self, value: Any, *, limit: int) -> list[str]:
         if not isinstance(value, list):
@@ -1129,6 +1136,12 @@ class PjblKinaService:
                 self.prompt_builder.project_context(payload.project),
                 "DATA STAGE YANG TERSEDIA:",
                 self.prompt_builder.stages_context(payload.stages),
+                "MEMORY STAGE 3 YANG TERSIMPAN:",
+                json.dumps(
+                    getattr(payload, "stage3Memory", {}) or {},
+                    ensure_ascii=False,
+                    indent=2,
+                ),
                 "REFERENSI RAG JIKA RELEVAN:",
                 self.prompt_builder.rag_context(references),
                 "RIWAYAT DISKUSI TERAKHIR:",
@@ -1155,7 +1168,9 @@ class PjblKinaService:
 
     def _analyze_stage(self, payload: KinaChatRequest) -> dict[str, Any]:
         evidence = {key: False for key, _ in DISCUSSION_STAGES}
-        self._apply_saved_stage_evidence(payload, evidence)
+        stage_slots = {key: set() for key, _ in DISCUSSION_STAGES}
+        self._apply_saved_stage_evidence(payload, evidence, stage_slots)
+        self._apply_memory_stage_evidence(payload, evidence, stage_slots)
 
         previous_assistant = ""
         for chat in payload.chatHistory:
@@ -1163,10 +1178,13 @@ class PjblKinaService:
                 previous_assistant = chat.message
                 continue
             if chat.role == "user":
-                self._apply_user_decision(chat.message, previous_assistant, evidence)
+                self._apply_user_decision(
+                    chat.message,
+                    previous_assistant,
+                    evidence,
+                    stage_slots,
+                )
 
-        if evidence["final_product"]:
-            evidence["focus_scope"] = True
         expected_stage, expected_label, _ = self._active_stage_from_evidence(evidence)
         input_stage_keys = self._decision_stage_matches(payload.message)
         input_out_of_sequence = bool(
@@ -1183,25 +1201,28 @@ class PjblKinaService:
             previous_assistant=previous_assistant,
         )
 
-        self._apply_user_decision(payload.message, previous_assistant, evidence)
+        self._apply_user_decision(
+            payload.message,
+            previous_assistant,
+            evidence,
+            stage_slots,
+        )
 
+        # Pernyataan umum seperti "sudah lengkap" tidak boleh memaksa semua
+        # tahap selesai. Completion hanya berasal dari slot wajib setiap tahap.
         if GLOBAL_COMPLETION_PATTERN.search(payload.message):
-            context = f"{previous_assistant}\n{payload.message}"
-            matched_count = sum(
-                self._matches_stage(context, key) for key, _ in DISCUSSION_STAGES
-            )
-            if matched_count >= 5 or sum(evidence.values()) >= 5:
-                evidence = {key: True for key, _ in DISCUSSION_STAGES}
-
-        # Memilih produk berarti fokus proyek sudah dipahami. Bukti dari bagian
-        # yang lebih akhir tidak otomatis menyelesaikan bagian sebelumnya.
-        if evidence["final_product"]:
-            evidence["focus_scope"] = True
+            for key, _ in DISCUSSION_STAGES:
+                evidence[key] = self._stage_slots_complete(key, stage_slots[key])
 
         active_stage, active_label, completed_count = self._active_stage_from_evidence(
             evidence
         )
         is_complete = completed_count == len(DISCUSSION_STAGES)
+        stage_slot_progress = {
+            key: sorted(stage_slots[key])
+            for key, _ in DISCUSSION_STAGES
+        }
+        missing_slot_keys = self._missing_stage_slot_keys(active_stage, stage_slots)
         return {
             "active_stage": active_stage,
             "active_label": active_label,
@@ -1214,6 +1235,12 @@ class PjblKinaService:
             "change_requested": change_requested,
             "teacher_uncertain": teacher_uncertain,
             "is_complete": is_complete,
+            "stage_slot_progress": stage_slot_progress,
+            "missing_slot_keys": missing_slot_keys,
+            "missing_slots": self._missing_stage_slot_labels(
+                active_stage,
+                stage_slots,
+            ),
         }
 
     def _active_stage_from_evidence(
@@ -1239,15 +1266,212 @@ class PjblKinaService:
             "totalCount": total_count,
             "percentage": round((completed_count / total_count) * 100),
             "isComplete": analysis["is_complete"],
+            "missingSlots": analysis["missing_slots"],
             "stages": [
                 {
                     "key": key,
                     "label": label,
                     "complete": evidence[key],
+                    "foundSlots": analysis["stage_slot_progress"].get(key, []),
+                    "missingSlots": self._missing_stage_slot_labels(
+                        key,
+                        {slot_key: set(analysis["stage_slot_progress"].get(slot_key, []))
+                         for slot_key, _ in DISCUSSION_STAGES},
+                    ),
                 }
                 for key, label in DISCUSSION_STAGES
             ],
         }
+
+    def _build_stage3_memory(
+        self,
+        payload: KinaChatRequest,
+        analysis: dict[str, Any],
+    ) -> dict[str, Any]:
+        confirmed_decisions = self._memory_confirmed_decisions(payload)
+        self._merge_saved_stage_decisions(payload, confirmed_decisions)
+        self._merge_history_stage_decisions(payload, confirmed_decisions)
+
+        stage_slot_progress: dict[str, list[str]] = {}
+        for key, _ in DISCUSSION_STAGES:
+            found_slots = set(analysis.get("stage_slot_progress", {}).get(key, []))
+            found_slots.update(
+                self._stage_slot_matches(
+                    self._flatten(confirmed_decisions.get(key, "")),
+                    key,
+                )
+            )
+            stage_slot_progress[key] = sorted(found_slots)
+
+        stage_slot_sets = {
+            key: set(stage_slot_progress.get(key, [])) for key, _ in DISCUSSION_STAGES
+        }
+        completed_stage_keys = [
+            key
+            for key, _ in DISCUSSION_STAGES
+            if self._stage_slots_complete(key, stage_slot_sets[key])
+        ]
+        open_questions = [
+            f"{label}: {', '.join(missing)}"
+            for key, label in DISCUSSION_STAGES
+            if (
+                missing := self._missing_stage_slot_labels(key, stage_slot_sets)
+            )
+        ][:7]
+
+        return {
+            "version": 1,
+            "activeStage": analysis["active_stage"],
+            "activeLabel": analysis["active_label"],
+            "confirmedDecisions": {
+                key: confirmed_decisions.get(key, "")
+                for key, _ in DISCUSSION_STAGES
+            },
+            "savedStageFields": {
+                STAGE_MEMORY_FIELDS[key]: confirmed_decisions.get(key, "")
+                for key, _ in DISCUSSION_STAGES
+            },
+            "stageSlotProgress": stage_slot_progress,
+            "completedStageKeys": completed_stage_keys,
+            "latestSummary": self._stage3_memory_summary(confirmed_decisions),
+            "openQuestions": open_questions,
+        }
+
+    def _memory_confirmed_decisions(
+        self,
+        payload: KinaChatRequest,
+    ) -> dict[str, str]:
+        raw_memory = (
+            payload.stage3Memory
+            if isinstance(getattr(payload, "stage3Memory", None), dict)
+            else {}
+        )
+        raw_confirmed = raw_memory.get("confirmedDecisions")
+        raw_saved_fields = raw_memory.get("savedStageFields")
+        confirmed: dict[str, str] = {}
+
+        for key, _ in DISCUSSION_STAGES:
+            field_name = STAGE_MEMORY_FIELDS[key]
+            value = None
+            if isinstance(raw_confirmed, dict):
+                value = raw_confirmed.get(key) or raw_confirmed.get(field_name)
+            if self._is_empty_saved_decision(value) and isinstance(
+                raw_saved_fields,
+                dict,
+            ):
+                value = raw_saved_fields.get(field_name) or raw_saved_fields.get(key)
+            if not self._is_empty_saved_decision(value):
+                confirmed[key] = compact_text(self._flatten(value), 700)
+
+        return confirmed
+
+    def _merge_saved_stage_decisions(
+        self,
+        payload: KinaChatRequest,
+        confirmed_decisions: dict[str, str],
+    ) -> None:
+        for stage in payload.stages:
+            if stage.stageNumber != 3 or not isinstance(stage.contentJson, dict):
+                continue
+            for field_name, stage_key in SAVED_STAGE_SUMMARY_FIELDS.items():
+                value = stage.contentJson.get(field_name)
+                if not self._is_empty_saved_decision(value):
+                    confirmed_decisions[stage_key] = compact_text(
+                        self._flatten(value),
+                        700,
+                    )
+
+    def _merge_history_stage_decisions(
+        self,
+        payload: KinaChatRequest,
+        confirmed_decisions: dict[str, str],
+    ) -> None:
+        previous_assistant = ""
+        for chat in payload.chatHistory:
+            if chat.role == "assistant":
+                previous_assistant = chat.message
+                continue
+            if chat.role == "user":
+                self._merge_user_message_into_memory(
+                    chat.message,
+                    previous_assistant,
+                    confirmed_decisions,
+                )
+
+        self._merge_user_message_into_memory(
+            payload.message,
+            previous_assistant,
+            confirmed_decisions,
+        )
+
+    def _merge_user_message_into_memory(
+        self,
+        message: str,
+        previous_assistant: str,
+        confirmed_decisions: dict[str, str],
+    ) -> None:
+        if (
+            not message
+            or UNCERTAINTY_PATTERN.search(message)
+            or IRRELEVANT_INPUT_PATTERN.search(message)
+            or SOLVER_LLM_REQUEST_PATTERN.search(message)
+        ):
+            return
+        if not (
+            DECISION_PATTERN.search(message)
+            or SHORT_CONFIRMATION_PATTERN.search(message)
+            or SIMPLE_FACT_PATTERN.search(message)
+            or self._message_has_any_stage_slot(message)
+        ):
+            return
+
+        stage_keys = self._decision_stage_matches(message)
+        used_question_context = False
+        if not stage_keys:
+            for context in (self._last_question(previous_assistant), previous_assistant):
+                stage_keys = [
+                    key
+                    for key, _ in DISCUSSION_STAGES
+                    if self._matches_stage(context, key)
+                ]
+                if stage_keys:
+                    used_question_context = True
+                    break
+        if not stage_keys:
+            return
+
+        decision_text = (
+            self._decision_memory_text(message, previous_assistant)
+            if used_question_context
+            else compact_text(message, 700)
+        )
+        if not decision_text:
+            return
+        for key in stage_keys:
+            confirmed_decisions[key] = decision_text
+
+    def _decision_memory_text(self, message: str, previous_assistant: str) -> str:
+        cleaned_message = compact_text(message, 450)
+        if not cleaned_message:
+            return ""
+        question_context = self._last_question(previous_assistant)
+        if question_context and (
+            SHORT_CONFIRMATION_PATTERN.search(cleaned_message)
+            or len(cleaned_message.split()) <= 18
+        ):
+            return compact_text(
+                f"{question_context} Jawaban guru: {cleaned_message}",
+                700,
+            )
+        return cleaned_message
+
+    def _stage3_memory_summary(self, confirmed_decisions: dict[str, str]) -> str:
+        parts = [
+            f"{label}: {confirmed_decisions[key]}"
+            for key, label in DISCUSSION_STAGES
+            if confirmed_decisions.get(key)
+        ]
+        return compact_text("; ".join(parts), 1200)
 
     def _classify_input_relevance(
         self,
@@ -1274,7 +1498,8 @@ class PjblKinaService:
         if re.search(
             r"\b(?:proyek|PjBL|siswa|guru|kelas|sekolah|pembelajaran|observasi|"
             r"presentasi|kelompok|produk|kegiatan|jadwal|fasilitas|asesmen|"
-            r"penilaian|refleksi)\b",
+            r"penilaian|refleksi|gaya belajar|gaya pembelajaran|digital|"
+            r"aplikasi|platform)\b",
             message,
             flags=re.IGNORECASE,
         ):
@@ -1319,20 +1544,83 @@ class PjblKinaService:
         self,
         payload: KinaChatRequest,
         evidence: dict[str, bool],
+        stage_slots: dict[str, set[str]],
     ) -> None:
         for stage in payload.stages:
-            if stage.stageNumber <= 2 or not stage.contentJson:
+            if stage.stageNumber != 3 or not isinstance(stage.contentJson, dict):
                 continue
-            stage_text = self._flatten(stage.contentJson)
-            for key, _ in DISCUSSION_STAGES:
-                if self._matches_stage(stage_text, key):
-                    evidence[key] = True
+            for field_name, stage_key in SAVED_STAGE_SUMMARY_FIELDS.items():
+                value = stage.contentJson.get(field_name)
+                if self._is_empty_saved_decision(value):
+                    continue
+                stage_text = self._flatten(value)
+                stage_slots[stage_key].update(
+                    self._stage_slot_matches(stage_text, stage_key)
+                )
+                if self._stage_slots_complete(stage_key, stage_slots[stage_key]):
+                    evidence[stage_key] = True
+
+    def _apply_memory_stage_evidence(
+        self,
+        payload: KinaChatRequest,
+        evidence: dict[str, bool],
+        stage_slots: dict[str, set[str]],
+    ) -> None:
+        raw_memory = (
+            payload.stage3Memory
+            if isinstance(getattr(payload, "stage3Memory", None), dict)
+            else {}
+        )
+        confirmed_decisions = self._memory_confirmed_decisions(payload)
+        raw_stage_progress = raw_memory.get("stageSlotProgress")
+        raw_completed = raw_memory.get("completedStageKeys")
+        completed_stage_keys = (
+            {
+                key
+                for key in raw_completed
+                if isinstance(key, str) and key in stage_slots
+            }
+            if isinstance(raw_completed, list)
+            else set()
+        )
+
+        if isinstance(raw_stage_progress, dict):
+            valid_slots = {
+                key: {
+                    slot_key
+                    for slot_key, _, _ in STAGE_REQUIRED_SLOTS.get(key, ())
+                }
+                for key, _ in DISCUSSION_STAGES
+            }
+            for key, slots in raw_stage_progress.items():
+                if key not in stage_slots or not isinstance(slots, list):
+                    continue
+                stage_slots[key].update(
+                    slot for slot in slots if slot in valid_slots.get(key, set())
+                )
+
+        for key, decision in confirmed_decisions.items():
+            if key not in stage_slots:
+                continue
+            stage_slots[key].update(self._stage_slot_matches(decision, key))
+            if key in completed_stage_keys and decision:
+                stage_slots[key].update(
+                    slot_key
+                    for slot_key, _, _ in STAGE_REQUIRED_SLOTS.get(key, ())
+                )
+            if self._stage_slots_complete(key, stage_slots[key]):
+                evidence[key] = True
+
+        for key, _ in DISCUSSION_STAGES:
+            if self._stage_slots_complete(key, stage_slots[key]):
+                evidence[key] = True
 
     def _apply_user_decision(
         self,
         message: str,
         previous_assistant: str,
         evidence: dict[str, bool],
+        stage_slots: dict[str, set[str]],
     ) -> None:
         if (
             not message
@@ -1346,13 +1634,16 @@ class PjblKinaService:
             DECISION_PATTERN.search(message)
             or SHORT_CONFIRMATION_PATTERN.search(message)
             or SIMPLE_FACT_PATTERN.search(message)
+            or self._message_has_any_stage_slot(message)
         ):
             return
 
         direct_matches = self._decision_stage_matches(message)
         if direct_matches:
             for key in direct_matches:
-                evidence[key] = True
+                stage_slots[key].update(self._stage_slot_matches(message, key))
+                if self._stage_slots_complete(key, stage_slots[key]):
+                    evidence[key] = True
             return
 
         question_context = self._last_question(previous_assistant)
@@ -1365,7 +1656,10 @@ class PjblKinaService:
                 if self._matches_stage(context, key)
             ]
             if matching_stages:
-                evidence[matching_stages[-1]] = True
+                key = matching_stages[-1]
+                stage_slots[key].update(self._stage_slot_matches(message, key))
+                if self._stage_slots_complete(key, stage_slots[key]):
+                    evidence[key] = True
                 return
 
     def _last_question(self, text: str) -> str:
@@ -1389,6 +1683,66 @@ class PjblKinaService:
     def _matches_stage(self, text: str, stage_key: str) -> bool:
         lowered = text.casefold()
         return any(keyword in lowered for keyword in STAGE_KEYWORDS[stage_key])
+
+    def _stage_slot_matches(self, text: str, stage_key: str) -> set[str]:
+        if not text:
+            return set()
+        return {
+            slot_key
+            for slot_key, _, pattern in STAGE_REQUIRED_SLOTS.get(stage_key, ())
+            if pattern.search(text)
+        }
+
+    def _message_has_any_stage_slot(self, text: str) -> bool:
+        return any(
+            self._stage_slot_matches(text, key)
+            for key, _ in DISCUSSION_STAGES
+        )
+
+    def _is_empty_saved_decision(self, value: Any) -> bool:
+        if value is None:
+            return True
+        if isinstance(value, str):
+            return not value.strip()
+        if isinstance(value, list):
+            return not any(not self._is_empty_saved_decision(item) for item in value)
+        if isinstance(value, dict):
+            return not any(
+                not self._is_empty_saved_decision(item) for item in value.values()
+            )
+        return False
+
+    def _stage_slots_complete(self, stage_key: str, slots: set[str]) -> bool:
+        required = {slot_key for slot_key, _, _ in STAGE_REQUIRED_SLOTS.get(stage_key, ())}
+        return bool(required) and required.issubset(slots)
+
+    def _missing_stage_slot_keys(
+        self,
+        stage_key: str,
+        stage_slots: dict[str, set[str]],
+    ) -> list[str]:
+        if stage_key == "complete":
+            return []
+        found = stage_slots.get(stage_key, set())
+        return [
+            slot_key
+            for slot_key, _, _ in STAGE_REQUIRED_SLOTS.get(stage_key, ())
+            if slot_key not in found
+        ]
+
+    def _missing_stage_slot_labels(
+        self,
+        stage_key: str,
+        stage_slots: dict[str, set[str]],
+    ) -> list[str]:
+        if stage_key == "complete":
+            return []
+        found = stage_slots.get(stage_key, set())
+        return [
+            label
+            for slot_key, label, _ in STAGE_REQUIRED_SLOTS.get(stage_key, ())
+            if slot_key not in found
+        ]
 
     def _flatten(self, value: Any) -> str:
         if isinstance(value, dict):
@@ -1429,11 +1783,18 @@ class PjblKinaService:
                 "Ringkas keputusan akhir secara singkat, jangan ajukan pertanyaan, dan "
                 f"akhiri dengan kalimat persis: {COMPLETION_MESSAGE}"
             )
+        missing_slots = analysis.get("missing_slots") or []
+        missing_instruction = (
+            " Gali informasi yang belum jelas: " + ", ".join(missing_slots) + "."
+            if missing_slots
+            else ""
+        )
         return (
             f"Utamakan {analysis['active_label']}. Jika guru bertanya tentang bagian "
             "lain, jawab seperlunya lalu kembalikan pembahasan ke bagian aktif. "
-            "Pertahankan keputusan yang sudah disepakati dan ajukan maksimal satu "
-            "pertanyaan ringan."
+            "Pertahankan keputusan yang sudah disepakati, jangan menyimpulkan tahap "
+            "sebelum informasi wajibnya lengkap, dan ajukan maksimal satu pertanyaan "
+            f"ringan.{missing_instruction}"
         )
 
     def _fallback_reply(
@@ -1442,9 +1803,10 @@ class PjblKinaService:
         analysis: dict[str, Any],
     ) -> str:
         project_title = self._project_title(payload)
+        next_question = self._question_for_missing_slot(analysis)
 
         if analysis["input_relevance"] == "irrelevant":
-            follow_up = self._suggested_questions(analysis)
+            follow_up = self._local_suggested_questions(payload, analysis)
             redirect = (
                 follow_up[0]
                 if follow_up
@@ -1469,10 +1831,11 @@ class PjblKinaService:
             )
         if analysis["is_complete"]:
             return (
-                f"Baik, rancangan {project_title} sudah mencakup fokus proyek, produk "
-                "akhir, alur kegiatan, pembagian peran, fasilitas, mitigasi risiko, "
-                "serta asesmen dan refleksi. Seluruh keputusan tersebut dapat menjadi "
-                "dasar pelaksanaan proyek yang terarah.\n\n"
+                f"Baik, rancangan {project_title} sudah mencakup fokus proyek, gaya "
+                "pembelajaran, produk akhir, alur kegiatan, pembagian peran, fasilitas, "
+                "pemanfaatan digital, mitigasi risiko, serta asesmen dan refleksi. "
+                "Seluruh keputusan tersebut dapat menjadi dasar pelaksanaan proyek "
+                "yang terarah.\n\n"
                 f"{COMPLETION_MESSAGE}"
             )
         if analysis["teacher_uncertain"]:
@@ -1485,48 +1848,63 @@ class PjblKinaService:
                 f"Baik, kita akan mematangkan {project_title} tanpa mengganti arah "
                 "proyek yang sudah dipilih. Fokus awalnya perlu dibatasi pada masalah, "
                 "tujuan, dan pertanyaan mendasar yang realistis bagi siswa.\n\n"
-                "Masalah utama apa yang paling perlu dijawab melalui proyek ini?"
+                f"{next_question}"
+            )
+        if active_stage == "learning_style":
+            return (
+                f"Baik, fokus {project_title} sudah mulai terarah. Sekarang kita perlu "
+                "menyesuaikan cara belajar yang paling cocok, misalnya lebih banyak "
+                "praktik langsung, diskusi, visual, atau kerja kolaboratif.\n\n"
+                f"{next_question}"
             )
         if active_stage == "final_product":
             return (
-                f"Baik, fokus {project_title} sudah cukup jelas. Berikutnya, produk atau "
-                "aksi akhir perlu dipilih agar benar-benar menjawab masalah proyek dan "
-                "tetap sesuai waktu serta fasilitas sekolah.\n\n"
-                "Produk akhir apa yang paling realistis dibuat siswa?"
+                f"Baik, gaya pembelajaran sudah dapat menjadi dasar pelaksanaan "
+                f"{project_title}. Berikutnya, produk atau aksi akhir perlu dipilih agar "
+                "benar-benar menjawab masalah proyek dan tetap sesuai waktu serta "
+                "fasilitas sekolah.\n\n"
+                f"{next_question}"
             )
         if active_stage == "activities_schedule":
             return (
                 f"Baik, pilihan guru sudah saya tangkap: {latest_decision}. Keputusan ini "
                 "akan menjadi dasar penyusunan kegiatan proyek dari pengenalan masalah "
                 "hingga presentasi dan refleksi.\n\n"
-                "Berapa lama waktu yang tersedia untuk menjalankan rangkaian proyek ini?"
+                f"{next_question}"
             )
         if active_stage == "roles_support":
             return (
                 "Baik, alur dan waktu proyek sudah cukup terarah. Agar semua siswa "
                 "berkontribusi, pembagian kelompok, peran anggota, dan cara guru "
                 "memantau kemajuan perlu disepakati.\n\n"
-                "Apakah siswa akan bekerja dalam kelompok kecil dengan peran yang berbeda?"
+                f"{next_question}"
             )
         if active_stage == "facilities_partnership":
             return (
                 "Baik, pembagian peran siswa sudah dapat menjadi dasar pelaksanaan. "
                 "Selanjutnya kita perlu memilih fasilitas dan teknologi yang benar-benar "
                 "tersedia, sedangkan kemitraan tetap bersifat opsional.\n\n"
-                "Fasilitas sekolah mana yang paling realistis digunakan untuk proyek ini?"
+                f"{next_question}"
+            )
+        if active_stage == "digital_use":
+            return (
+                "Baik, fasilitas dan kemitraan sudah cukup jelas. Sekarang kita perlu "
+                "menentukan pemanfaatan digital yang benar-benar membantu, misalnya "
+                "untuk dokumentasi, pengumpulan data, desain produk, atau presentasi.\n\n"
+                f"{next_question}"
             )
         if active_stage == "risk_mitigation":
             return (
-                "Baik, kebutuhan fasilitas dan dukungan proyek sudah cukup jelas. "
-                "Sekarang kita perlu mengantisipasi risiko yang paling mungkin terjadi "
-                "agar proyek tetap aman, hemat biaya, dan selesai tepat waktu.\n\n"
-                "Risiko apa yang paling Bapak/Ibu khawatirkan selama pelaksanaan proyek?"
+                "Baik, pemanfaatan digital sudah cukup terarah. Sekarang kita perlu "
+                "mengantisipasi risiko yang paling mungkin terjadi agar proyek tetap "
+                "aman, hemat biaya, dan selesai tepat waktu.\n\n"
+                f"{next_question}"
             )
         return (
             "Baik, risiko utama dan langkah pencegahannya sudah cukup terarah. Bagian "
             "terakhir adalah menentukan bukti proses, kualitas produk, kontribusi siswa, "
             "cara presentasi, dan refleksi yang akan dinilai.\n\n"
-            "Aspek apa yang paling penting dinilai dari proses dan hasil proyek siswa?"
+            f"{next_question}"
         )
 
     def _uncertainty_reply(self, project_title: str, active_stage: str) -> str:
@@ -1535,6 +1913,11 @@ class PjblKinaService:
                 "batasi proyek pada satu lokasi sekolah agar observasi mudah",
                 "batasi pada satu kelompok sasaran agar solusi lebih terarah",
                 "batasi pada satu kebiasaan utama agar dampaknya dapat diamati",
+            ),
+            "learning_style": (
+                "gunakan praktik langsung agar siswa belajar dari pengalaman nyata",
+                "gunakan diskusi kelompok kecil agar ide siswa saling melengkapi",
+                "gunakan pendekatan visual agar temuan mudah dipahami dan dipresentasikan",
             ),
             "final_product": (
                 "media kampanye sederhana karena murah dan mudah dipresentasikan",
@@ -1555,6 +1938,11 @@ class PjblKinaService:
                 "gunakan fasilitas kelas yang sudah tersedia",
                 "gunakan gawai secara terbatas hanya untuk dokumentasi atau riset",
                 "libatkan mitra internal sekolah tanpa pihak luar",
+            ),
+            "digital_use": (
+                "gunakan gawai hanya untuk dokumentasi foto atau video singkat",
+                "gunakan Canva atau Slides untuk menyusun produk presentasi",
+                "gunakan Google Form sederhana untuk mengumpulkan data observasi",
             ),
             "risk_mitigation": (
                 "sederhanakan produk untuk mencegah keterlambatan",
@@ -1604,19 +1992,431 @@ class PjblKinaService:
                     return candidate
         return None
 
-    def _suggested_questions(self, analysis: dict[str, Any]) -> list[str]:
+    async def _suggested_questions(
+        self,
+        payload: KinaChatRequest,
+        analysis: dict[str, Any],
+        reply: str,
+    ) -> list[str]:
         if analysis["is_complete"]:
             return []
-        questions = {
-            "focus_scope": "Apa batas masalah yang paling realistis untuk proyek ini?",
-            "final_product": "Produk atau aksi akhir apa yang paling sesuai?",
-            "activities_schedule": "Berapa lama durasi proyek yang tersedia?",
-            "roles_support": "Bagaimana peran siswa akan dibagi dalam kelompok?",
-            "facilities_partnership": "Fasilitas apa yang paling realistis digunakan?",
-            "risk_mitigation": "Risiko utama apa yang perlu dicegah terlebih dahulu?",
-            "assessment_reflection": "Aspek proses dan hasil apa yang akan dinilai?",
+        local_suggestions = self._local_suggested_questions(payload, analysis)
+        context = self._suggestion_context(payload)
+        generated = await self.llm_client.generate_json(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        "Anda membuat suggestedFollowUpQuestions untuk chatbot KINA. "
+                        "Tulis 2-3 opsi jawaban singkat yang bisa langsung diklik guru. "
+                        "Opsi harus menjawab pertanyaan terakhir KINA, mengikuti konteks proyek, "
+                        "dan terdengar natural sebagai jawaban guru. Jangan membuat pertanyaan baru, "
+                        "jangan menulis markdown, jangan numbering, jangan memakai istilah teknis."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {
+                            "latestUserMessage": payload.message,
+                            "kinaReply": reply,
+                            "activeStage": analysis.get("active_stage"),
+                            "activeLabel": analysis.get("active_label"),
+                            "missingSlots": analysis.get("missing_slots"),
+                            "project": payload.project.model_dump(),
+                            "context": context,
+                            "localFallbackOptions": local_suggestions,
+                            "requiredResponseShape": {
+                                "suggestedFollowUpQuestions": local_suggestions,
+                            },
+                        },
+                        ensure_ascii=False,
+                    ),
+                },
+            ],
+            {"suggestedFollowUpQuestions": local_suggestions},
+            model=self._suggestion_model(),
+            temperature=0.45,
+            max_tokens=350,
+        )
+        raw_suggestions = generated.get("suggestedFollowUpQuestions")
+        if not isinstance(raw_suggestions, list):
+            raw_suggestions = local_suggestions
+        cleaned = self._clean_suggestions(
+            [item for item in raw_suggestions if isinstance(item, str)]
+        )
+        return cleaned or local_suggestions
+
+    def _local_suggested_questions(
+        self,
+        payload: KinaChatRequest,
+        analysis: dict[str, Any],
+    ) -> list[str]:
+        if analysis["is_complete"]:
+            return []
+        context = self._suggestion_context(payload)
+        active_stage = str(analysis.get("active_stage") or "")
+        missing = analysis.get("missing_slot_keys") or []
+        slot_key = str(missing[0] if missing else "")
+        suggestions = self._suggestions_for_slot(active_stage, slot_key, context)
+        return self._clean_suggestions(suggestions)
+
+    def _suggestion_context(self, payload: KinaChatRequest) -> dict[str, Any]:
+        stage_one = self._stage_content(payload, 1)
+        stage_two = self._stage_content(payload, 2)
+        stage3_memory = getattr(payload, "stage3Memory", {}) or {}
+        all_context = self._flatten(
+            [stage_one, stage_two, stage3_memory, payload.project.model_dump()]
+        )
+
+        issue = self._first_text(
+            self._find_value(stage_one, ("localIssue", "issue", "masalahLokal")),
+            self._find_value(stage_one, ("localContext", "regionalContext")),
+            self._find_value(stage_two, ("projectBackground", "description")),
+            payload.project.title,
+        )
+        duration = self._first_text(
+            self._find_value(stage_one, ("durationText", "projectDuration")),
+            self._find_value(stage_one, ("learningDuration", "durasiPembelajaran")),
+            self._find_duration_text(all_context),
+        )
+        location = self._first_text(
+            self._find_location_text(stage_one),
+            self._find_location_text(stage_two),
+            "area sekolah",
+        )
+        products = self._context_list(
+            self._find_value(stage_two, ("studentProduct", "finalProduct"))
+        )
+        if not products:
+            products = ["poster infografis", "tabel temuan", "presentasi singkat"]
+        activities = self._context_list(
+            self._find_value(stage_two, ("projectActivitiesOverview", "activities"))
+        )
+        if not activities:
+            activities = ["observasi", "pengolahan data", "penyajian hasil", "refleksi"]
+        facilities = self._context_list(
+            self._find_value(stage_one, ("facilities", "availableFacilities"))
+        )
+        if not facilities:
+            facilities = ["kelas", "papan tulis", "gawai guru"]
+        risks = self._context_list(
+            self._find_value(stage_one, ("riskMonitoring", "risks"))
+        ) or self._context_list(self._find_value(stage_two, ("riskMitigation",)))
+        if not risks:
+            risks = ["waktu terbatas", "data kurang konsisten"]
+
+        return {
+            "issue": compact_text(issue, 110),
+            "duration": compact_text(duration, 80),
+            "location": compact_text(location, 90),
+            "stage3Memory": stage3_memory,
+            "products": [compact_text(item, 70) for item in products[:4]],
+            "mentioned_products": self._mentioned_products(payload.message),
+            "activities": [compact_text(item, 70) for item in activities[:5]],
+            "facilities": [compact_text(item, 55) for item in facilities[:5]],
+            "mentioned_facilities": self._mentioned_facilities(payload.message),
+            "risks": [compact_text(item, 80) for item in risks[:3]],
+            "grade": payload.project.gradeLevel or "kelas yang dipilih",
         }
-        return [questions[analysis["active_stage"]]]
+
+    def _stage_content(self, payload: KinaChatRequest, stage_number: int) -> Any:
+        for stage in payload.stages:
+            if stage.stageNumber == stage_number:
+                return stage.contentJson or {}
+        return {}
+
+    def _suggestions_for_slot(
+        self,
+        active_stage: str,
+        slot_key: str,
+        context: dict[str, Any],
+    ) -> list[str]:
+        issue = context["issue"] or "masalah yang paling dekat dengan siswa"
+        location = context["location"] or "area sekolah"
+        duration = context["duration"] or "durasi yang tersedia"
+        products = context["mentioned_products"] or context["products"]
+        activities = context["activities"]
+        facilities = context["mentioned_facilities"] or context["facilities"]
+        risks = context["risks"]
+        grade = context["grade"]
+
+        if active_stage == "focus_scope" and slot_key == "issue":
+            return [
+                f"Fokus pada {issue}.",
+                f"Masalah utamanya adalah kebiasaan di {location} yang paling mudah diamati murid.",
+                f"Ambil satu masalah yang dekat dengan {grade} dan bisa diamati langsung.",
+            ]
+        if active_stage == "focus_scope" and slot_key == "boundary":
+            return [
+                f"Batasi observasi di {location}.",
+                f"Sasarannya murid {grade} dan warga sekolah yang terlibat langsung.",
+                "Ruang lingkupnya cukup di area sekolah agar aman dan mudah dipantau.",
+            ]
+        if active_stage == "learning_style":
+            return [
+                "Gunakan praktik langsung dan diskusi kelompok kecil.",
+                "Gaya belajarnya visual dan kolaboratif agar hasil mudah dipresentasikan.",
+                "Utamakan observasi langsung, kerja kelompok, lalu refleksi singkat.",
+            ]
+        if active_stage == "final_product":
+            product_text = ", ".join(products[:2])
+            return [
+                f"Produk akhirnya {product_text}.",
+                f"Saya pilih {products[0]} karena paling realistis dibuat murid.",
+                "Produk dibuat sederhana, visual, dan dipresentasikan singkat di kelas.",
+            ]
+        if active_stage == "activities_schedule" and slot_key == "duration":
+            return [
+                f"Gunakan durasi {duration}.",
+                f"Proyek dijalankan dalam {duration} dengan target kecil tiap tahap.",
+                "Durasi dibuat singkat agar observasi, produk, dan refleksi tetap selesai.",
+            ]
+        if active_stage == "activities_schedule" and slot_key == "flow":
+            flow = ", ".join(activities[:4])
+            return [
+                f"Alurnya: {flow}.",
+                "Mulai dari pemantik, observasi, olah data, buat produk, lalu refleksi.",
+                "Bagi kegiatan menjadi pembuka, kerja kelompok, presentasi, dan refleksi.",
+            ]
+        if active_stage == "roles_support" and slot_key == "roles":
+            return [
+                "Murid bekerja kelompok kecil dengan ketua, pencatat, pengolah data, dan penyaji.",
+                "Peran dibagi sesuai minat agar semua murid berkontribusi.",
+                "Gunakan kelompok 4 orang agar pembagian tugas mudah dipantau.",
+            ]
+        if active_stage == "roles_support" and slot_key == "support":
+            return [
+                "Guru memantau memakai lembar cek singkat di setiap tahap.",
+                "Guru memberi contoh dulu, lalu mengecek kemajuan tiap kelompok.",
+                "Pendampingan dilakukan lewat pertanyaan pemandu dan umpan balik cepat.",
+            ]
+        if active_stage == "facilities_partnership" and slot_key == "facilities":
+            facility_text = ", ".join(facilities[:3])
+            return [
+                f"Gunakan {facility_text} sebagai fasilitas utama.",
+                f"Fasilitas cukup memakai {facility_text} agar proyek tetap sederhana.",
+                "Pakai fasilitas yang sudah tersedia di sekolah tanpa alat tambahan mahal.",
+            ]
+        if active_stage == "facilities_partnership" and slot_key == "use_or_partnership":
+            return [
+                "Fasilitas dipakai untuk observasi, dokumentasi, dan presentasi; tanpa mitra luar.",
+                "Teknologi hanya dipakai seperlunya untuk dokumentasi dan menyajikan hasil.",
+                "Kemitraan tidak digunakan dulu agar proyek tetap mudah dijalankan.",
+            ]
+        if active_stage == "digital_use":
+            return [
+                "Digital dipakai untuk dokumentasi foto, pengumpulan data, dan presentasi.",
+                "Gunakan Canva atau Slides untuk menyusun produk akhir kelompok.",
+                "Gunakan Google Form sederhana agar data observasi mudah dikumpulkan.",
+            ]
+        if active_stage == "risk_mitigation" and slot_key == "risk":
+            risk_text = risks[0]
+            return [
+                f"Risiko utamanya {risk_text}.",
+                "Risiko yang perlu dijaga adalah waktu terbatas dan data kelompok tidak konsisten.",
+                "Risiko utama: murid melebar dari tugas atau keluar dari area pengamatan.",
+            ]
+        if active_stage == "risk_mitigation" and slot_key == "mitigation":
+            return [
+                "Mitigasinya pakai batas area, timer, dan lembar observasi seragam.",
+                "Guru memberi contoh pengisian dan mengecek tiap kelompok secara berkala.",
+                "Sederhanakan target supaya proyek selesai dalam waktu yang tersedia.",
+            ]
+        if active_stage == "assessment_reflection" and slot_key == "assessment":
+            return [
+                "Nilai proses kerja kelompok, ketepatan data, kualitas produk, dan presentasi.",
+                "Aspek utamanya kelengkapan data, kolaborasi, dan kejelasan pesan produk.",
+                "Gunakan rubrik sederhana untuk proses, produk, kontribusi, dan komunikasi.",
+            ]
+        if active_stage == "assessment_reflection" and slot_key == "evidence_reflection":
+            return [
+                "Buktinya catatan observasi, produk akhir, presentasi, dan refleksi singkat.",
+                "Murid mengumpulkan hasil kerja kelompok dan menulis satu kalimat refleksi.",
+                "Setiap kelompok presentasi singkat lalu menuliskan hal yang mereka pelajari.",
+            ]
+        return [
+            "Saya pilih opsi yang paling sederhana dan realistis untuk kondisi kelas.",
+            "Gunakan rancangan yang mudah dipantau guru dan bisa selesai sesuai waktu.",
+            "Batasi dulu agar proyek tetap aman, jelas, dan tidak terlalu luas.",
+        ]
+
+    def _mentioned_products(self, message: str) -> list[str]:
+        product_terms = (
+            "poster",
+            "infografis",
+            "laporan",
+            "video",
+            "prototipe",
+            "kampanye",
+            "pameran",
+            "presentasi",
+            "tabel data",
+            "peta temuan",
+        )
+        return self._mentioned_terms(message, product_terms)
+
+    def _mentioned_facilities(self, message: str) -> list[str]:
+        facility_terms = (
+            "proyektor",
+            "internet",
+            "gawai",
+            "hp",
+            "laptop",
+            "kamera",
+            "kertas plano",
+            "spidol",
+            "papan tulis",
+            "kantin",
+            "halaman sekolah",
+            "halaman madrasah",
+            "kelas",
+            "google form",
+            "canva",
+            "padlet",
+        )
+        return self._mentioned_terms(message, facility_terms)
+
+    def _mentioned_terms(self, message: str, terms: tuple[str, ...]) -> list[str]:
+        lowered = str(message or "").casefold()
+        found = [term for term in terms if term in lowered]
+        return [term if term.isupper() else term for term in dict.fromkeys(found)]
+
+    def _clean_suggestions(self, suggestions: list[str]) -> list[str]:
+        cleaned: list[str] = []
+        seen: set[str] = set()
+        for suggestion in suggestions:
+            text = self._polish_suggestion(suggestion)
+            key = text.casefold()
+            if not text or key in seen:
+                continue
+            seen.add(key)
+            cleaned.append(text)
+            if len(cleaned) >= 3:
+                break
+        return cleaned
+
+    def _polish_suggestion(self, value: Any) -> str:
+        text = compact_text(str(value or ""), 150)
+        text = re.sub(r"\s+([,.?!])", r"\1", text)
+        return text.strip()
+
+    def _first_text(self, *values: Any) -> str:
+        for value in values:
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+            if value is not None and not isinstance(value, (dict, list, tuple, set)):
+                text = str(value).strip()
+                if text:
+                    return text
+        return ""
+
+    def _context_list(self, value: Any) -> list[str]:
+        if isinstance(value, list):
+            result: list[str] = []
+            for item in value:
+                if isinstance(item, dict):
+                    direct = self._first_text(
+                        item.get("name"),
+                        item.get("title"),
+                        item.get("risk"),
+                        item.get("description"),
+                        item.get("mitigation"),
+                        item.get("learningPotential"),
+                    )
+                    if direct:
+                        result.append(direct)
+                elif str(item).strip():
+                    result.append(str(item).strip())
+            return result
+        if isinstance(value, dict):
+            return [
+                text
+                for item in value.values()
+                if (text := self._first_text(item))
+            ][:5]
+        if isinstance(value, str) and value.strip():
+            return [value.strip()]
+        return []
+
+    def _find_location_text(self, value: Any) -> str:
+        text = self._flatten(value)
+        candidates = [
+            "kantin",
+            "halaman sekolah",
+            "halaman madrasah",
+            "ruang kelas",
+            "kelas",
+            "perpustakaan",
+            "area sekolah",
+            "madrasah",
+            "sekolah",
+        ]
+        found = [candidate for candidate in candidates if candidate in text.casefold()]
+        return ", ".join(dict.fromkeys(found[:3]))
+
+    def _find_duration_text(self, text: str) -> str:
+        match = re.search(
+            r"\b(?:\d+|satu|dua|tiga|empat|lima|enam|tujuh|delapan|"
+            r"sembilan|sepuluh)\s*(?:x\s*)?(?:jp|jam|menit|hari|minggu|"
+            r"bulan|pertemuan)\b(?:\s*\([^)]*\))?",
+            text,
+            flags=re.IGNORECASE,
+        )
+        return match.group(0) if match else ""
+
+    def _question_for_missing_slot(self, analysis: dict[str, Any]) -> str:
+        active_stage = analysis.get("active_stage")
+        missing = analysis.get("missing_slot_keys") or []
+        first_missing = missing[0] if missing else ""
+        questions: dict[tuple[str, str], str] = {
+            ("focus_scope", "issue"): (
+                "Masalah utama apa yang paling perlu dijawab melalui proyek ini?"
+            ),
+            ("focus_scope", "boundary"): (
+                "Batas lokasi atau sasaran proyeknya ingin difokuskan ke mana?"
+            ),
+            ("learning_style", "style"): (
+                "Gaya pembelajaran apa yang paling cocok untuk kelas ini?"
+            ),
+            ("final_product", "product"): (
+                "Produk atau aksi akhir apa yang paling realistis dibuat murid?"
+            ),
+            ("activities_schedule", "duration"): (
+                "Berapa minggu PjBL ini akan dilakukan?"
+            ),
+            ("activities_schedule", "flow"): (
+                "Alur kegiatan utamanya mau dibuat seperti apa dari awal sampai refleksi?"
+            ),
+            ("roles_support", "roles"): (
+                "Bagaimana peran murid akan dibagi dalam kelompok?"
+            ),
+            ("roles_support", "support"): (
+                "Bagaimana guru akan memantau dan mendampingi kerja kelompok?"
+            ),
+            ("facilities_partnership", "facilities"): (
+                "Fasilitas atau teknologi apa yang paling realistis digunakan?"
+            ),
+            ("facilities_partnership", "use_or_partnership"): (
+                "Fasilitas itu akan dipakai untuk apa, dan perlu mitra atau tanpa mitra?"
+            ),
+            ("digital_use", "digital_plan"): (
+                "Pemanfaatan digital apa yang paling realistis digunakan dalam proyek ini?"
+            ),
+            ("risk_mitigation", "risk"): (
+                "Risiko utama apa yang paling mungkin menghambat proyek ini?"
+            ),
+            ("risk_mitigation", "mitigation"): (
+                "Cara mencegah risiko itu paling realistis seperti apa?"
+            ),
+            ("assessment_reflection", "assessment"): (
+                "Aspek proses dan hasil apa yang paling penting dinilai?"
+            ),
+            ("assessment_reflection", "evidence_reflection"): (
+                "Bukti proses atau refleksi apa yang akan dikumpulkan dari murid?"
+            ),
+        }
+        return questions.get((str(active_stage), str(first_missing)), "")
 
     def _sanitize_reply(
         self,
