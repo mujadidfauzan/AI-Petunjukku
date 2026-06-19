@@ -475,7 +475,6 @@ N. Struktur Asesmen
 
         closing_shape = {
             "assessment": content.get("assessment", {}),
-            "rubric": content.get("rubric", {}),
             "followUp": content.get("followUp", {}),
             "teacherReflection": content.get("teacherReflection", {}),
             "completionChecklist": content.get("completionChecklist", []),
@@ -512,12 +511,20 @@ Aturan:
 - Isi semua field di requiredResponseShape sesuai sectionName.
 - Gunakan istilah "murid".
 - Gunakan hanya sourceData Stage 1, Stage 2, Stage 3, Stage 4, onboarding, dan project.
+- Tulis panduan mengajar yang konkret dan langsung dapat dijalankan guru, bukan ringkasan umum.
+- Setiap langkah kegiatan harus menjelaskan tindakan guru, tindakan murid, konteks atau contoh yang dibahas, dan bukti belajar yang dihasilkan.
+- Hindari kalimat generik seperti "guru menjelaskan" atau "murid berdiskusi" tanpa objek, cara kerja, dan hasil yang jelas.
+- Jaga alur tiap pertemuan: cek awal, pembahasan miskonsepsi, penguatan konsep, aplikasi, berbagi hasil, refleksi, dan asesmen formatif.
+- Sesuaikan kedalaman kegiatan dengan durasi dan jumlah pertemuan pada Stage 1.
 - Jangan menambahkan perangkat, fasilitas, aplikasi, mitra, produk, atau tugas yang tidak disebut/diturunkan langsung dari sourceData.
 - learningDesign.resources hanya dari strictGroundingContract.resourcesSourceText.
-- learningDesign.digitalUse hanya dari strictGroundingContract.digitalUseSourceText.
+- Preferensi learningDesign.digitalUse hanya dari strictGroundingContract.mediaPreferences, mediaUsage, dan digitalUseSourceText.
+- Judul, penyedia, dan URL konkret pada learningDesign.digitalUse hanya boleh berasal dari strictGroundingContract.selectedResources.
+- Jika selectedResources kosong, jangan mengarang judul buku, video, kanal, atau URL.
 - learningDesign.partnership hanya dari strictGroundingContract.partnershipSourceText.
 - Produk, rubrik, asesmen, dan tugas utama harus konsisten dengan strictGroundingContract.finalStudentProductSourceText.
 - Untuk setiap formativeAssessment, observedIndicators wajib 3-5 indikator konkret dan teacherRecordFormat wajib praktis untuk guru.
+- meetingTitle harus berupa judul materi atau fokus pertemuan, bukan judul LKPD atau asesmen.
 """.strip(),
             },
             {
