@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 import json
+import re
 from typing import Any
+
+from fastapi import HTTPException, status
+
 from app.services.intrakurikuler.stage3_conversation.stage3_prompt_composer import (
     compose_stage3_system_prompt,
 )
@@ -30,8 +34,16 @@ class IntraKinaService:
         self.prompt_builder = prompt_builder or PromptBuilderService()
 
     async def chat(self, payload: KinaChatRequest) -> KinaChatResponse:
+        message = payload.message.strip()
+        is_initial_chat = self._is_initial_chat(payload)
+        rag_query = (
+            message
+            or payload.project.title
+            or payload.project.subject
+            or "strategi pembelajaran intrakurikuler stage 3"
+        )
         references = await self.rag_service.search_for_context(
-            query=payload.message,
+            query=rag_query,
             subject=payload.project.subject,
             phase=payload.project.phase,
             top_k=3,
@@ -39,8 +51,16 @@ class IntraKinaService:
 
         stage_context = self._stage_context_with_dummy(payload)
         onboarding_content = self._onboarding_context_with_dummy(payload)
-        teacher_name = self._extract_teacher_name(stage_context, onboarding_content)
-        fallback = self._fallback_reply(payload, teacher_name)
+        teacher_name = self._extract_teacher_name(
+            payload,
+            stage_context,
+            onboarding_content,
+        )
+        fallback = (
+            self._initial_fallback_reply(payload, teacher_name)
+            if is_initial_chat
+            else self._fallback_reply(payload, teacher_name)
+        )
 
         messages = [
             {
@@ -55,15 +75,59 @@ class IntraKinaService:
                     stage_context=stage_context,
                     onboarding_content=onboarding_content,
                     teacher_name=teacher_name,
+                    is_initial_chat=is_initial_chat,
                 ),
             },
         ]
 
-        reply = await self.llm_client.generate_text(
-            messages,
-            fallback,
-            temperature=0.5,
+        suggested_follow_up_questions = (
+            [] if payload.requireAi else self._follow_up_questions(payload)
         )
+        if payload.requireAi:
+            try:
+                generated = await self.llm_client.generate_json_strict(
+                    [
+                        *messages,
+                        {
+                            "role": "user",
+                            "content": (
+                                "Untuk integrasi frontend, balas hanya dalam JSON valid dengan bentuk "
+                                '{"reply":"...","suggestedFollowUpQuestions":["...","..."]}. '
+                                "Field reply berisi pesan KINA untuk guru, tetap natural dan jangan menyebut JSON. "
+                                "Field suggestedFollowUpQuestions wajib berisi 2-3 pilihan balasan singkat yang bisa langsung diklik guru. "
+                                "Pilihan harus nyambung dengan pertanyaan terakhir KINA, bukan pertanyaan baru. "
+                                "Jangan pakai markdown, tanda **, atau menyebut format JSON."
+                            ),
+                        },
+                    ],
+                    temperature=0.62,
+                )
+                reply = str(generated.get("reply") or "").strip()
+                suggested = generated.get("suggestedFollowUpQuestions")
+                if isinstance(suggested, list):
+                    suggested_follow_up_questions = [
+                        self._polish_short_text(item)
+                        for item in suggested
+                        if isinstance(item, str) and item.strip()
+                    ][:3]
+                if not reply:
+                    raise RuntimeError("KINA AI mengembalikan respons kosong.")
+                reply = self._polish_reply(
+                    reply,
+                    teacher_name,
+                    allow_name=is_initial_chat,
+                )
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail=f"KINA AI belum berhasil merespons: {exc}",
+                ) from exc
+        else:
+            reply = await self.llm_client.generate_text(
+                messages,
+                fallback,
+                temperature=0.62,
+            )
 
         return KinaChatResponse(
             reply=reply,
@@ -75,8 +139,12 @@ class IntraKinaService:
                 )
                 for reference in references
             ],
-            suggestedFollowUpQuestions=self._follow_up_questions(payload),
+            suggestedFollowUpQuestions=suggested_follow_up_questions,
         )
+
+    def _is_initial_chat(self, payload: KinaChatRequest) -> bool:
+        return not payload.chatHistory and not payload.message.strip()
+
     def _stage_context_with_dummy(self, payload: KinaChatRequest) -> list[dict[str, Any]]:
         stages = [stage.model_dump() for stage in payload.stages or []]
 
@@ -158,6 +226,7 @@ class IntraKinaService:
     
     def _extract_teacher_name(
         self,
+        payload: KinaChatRequest,
         stages: list[dict[str, Any]],
         onboarding_context: dict[str, Any],
     ) -> str:
@@ -167,6 +236,12 @@ class IntraKinaService:
             teacher_name = teacher_profile.get(key)
             if isinstance(teacher_name, str) and teacher_name.strip():
                 return teacher_name.strip()
+
+        project_data = payload.project.model_dump()
+        for key in ("teacherName", "fullName", "name", "userName"):
+            value = project_data.get(key)
+            if isinstance(value, str) and value.strip():
+                return self._first_name(value)
 
         for stage in stages:
             if stage.get("stageNumber") != 1:
@@ -186,9 +261,53 @@ class IntraKinaService:
             ):
                 value = content.get(key)
                 if isinstance(value, str) and value.strip():
-                    return value.strip()
+                    return self._first_name(value)
 
-        return "Bapak/Ibu Guru"
+        return "teman guru"
+
+    def _first_name(self, value: str) -> str:
+        return value.strip().split()[0]
+
+    def _polish_reply(
+        self,
+        value: str,
+        teacher_name: str,
+        *,
+        allow_name: bool,
+    ) -> str:
+        text = self._polish_short_text(value)
+        text = re.sub(r"\bAnda\b", "kamu", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bBapak/Ibu Guru\b", "kamu", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bBapak/Ibu\b", "kamu", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bPak/Bu\b", "kamu", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bSelanjutnya,?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bBerikutnya,?\s*", "", text, flags=re.IGNORECASE)
+
+        name = self._first_name(teacher_name) if teacher_name else ""
+        if name and name != "teman":
+            seen = 0
+
+            def replace_repeated_name(match: re.Match[str]) -> str:
+                nonlocal seen
+                seen += 1
+                return match.group(0) if allow_name and seen == 1 else ""
+
+            text = re.sub(rf"\b{re.escape(name)}\b", replace_repeated_name, text)
+
+        text = re.sub(r",\s*([?.!])", r"\1", text)
+        text = re.sub(r"\s+([,.?!])", r"\1", text)
+        return re.sub(r"\s+", " ", text).strip()
+
+    def _polish_short_text(self, value: str) -> str:
+        text = value.strip()
+        text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
+        text = re.sub(r"__(.*?)__", r"\1", text)
+        text = text.replace("*", "")
+        text = text.replace("`", "")
+        text = re.sub(r"\b(Kak|Mas|Mbak)\b\.?", "", text, flags=re.IGNORECASE)
+        text = re.sub(r",\s*([?.!])", r"\1", text)
+        text = re.sub(r"\s+([,.?!])", r"\1", text)
+        return re.sub(r"\s+", " ", text).strip()
 
     def _build_stage_3_system_prompt(self) -> str:
         return compose_stage3_system_prompt()
@@ -202,7 +321,46 @@ class IntraKinaService:
         stage_context: list[dict[str, Any]],
         onboarding_content: dict[str, Any],
         teacher_name: str,
+        is_initial_chat: bool,
     ) -> str:
+        latest_message_block = (
+            "Belum ada pesan dari guru. Ini adalah awal percakapan Stage 3, "
+            "jadi Kina harus menyapa dulu dan mengajukan pertanyaan pembuka."
+            if is_initial_chat
+            else f"Pesan terbaru guru:\n{payload.message}"
+        )
+        task_block = (
+            """
+Tugas kamu:
+- Buka percakapan Stage 3 dengan hangat, singkat, dan natural.
+- Jangan mengatakan guru belum mengisi pesan.
+- Gunakan Stage 1 dan Stage 2 untuk memberi konteks singkat.
+- Mulai dari poin pertama: gaya_pembelajaran.
+- Ajukan hanya 1 pertanyaan ringan tentang bentuk belajar yang diinginkan guru.
+- Jika membantu, beri 2-3 contoh opsi singkat seperti diskusi, studi kasus, eksperimen, mini proyek, atau latihan terarah.
+- Jangan langsung masuk ke pendekatan pedagogis, fasilitas, platform digital, kemitraan, atau produk akhir.
+""".strip()
+            if is_initial_chat
+            else """
+Tugas kamu:
+- Jawab pesan terbaru guru dengan gaya ngobrol yang santai dan pendek.
+- Utamakan kata "kamu"; gunakan nama guru hanya kalau benar-benar perlu dan jangan diulang.
+- Gunakan Stage 1 dan Stage 2 agar respons tidak generik.
+- Jaga urutan diskusi Stage 3:
+  1. gaya pembelajaran,
+  2. preferensi pedagogis,
+  3. pemanfaatan fasilitas dan teknologi,
+  4. platform digital,
+  5. kemitraan,
+  6. produk/kinerja akhir.
+- Tentukan posisi diskusi dari chatHistory.
+- Jangan loncat ke poin berikutnya jika poin saat ini belum cukup jelas.
+- Jika guru meminta saran, berikan saran yang kontekstual berdasarkan materi, kelas, kondisi kelas, tujuan pembelajaran, dan fasilitas.
+- Jika guru menjawab pilihan, bantu rangkum keputusan dan arahkan pelan ke poin berikutnya.
+- Jika semua poin sudah cukup, berikan ringkasan akhir Stage 3 dan tutup dengan:
+  "Sip, datanya sudah lengkap dan siap dipakai ke tahap berikutnya."
+""".strip()
+        )
         return "\n\n".join(
         [
             "Konteks project:",
@@ -227,7 +385,7 @@ class IntraKinaService:
                 indent=2,
             ),
 
-            f"Pesan terbaru guru:\n{payload.message}",
+            latest_message_block,
 
             """
 Tugas Anda:
@@ -290,20 +448,35 @@ Tugas Anda:
 - Tutup respons dengan kalimat:
   "Terima kasih, data Anda sudah selesai dan siap digunakan untuk tahap berikutnya."
 """.strip(),
+            task_block,
         ]
     )
 
     def _fallback_reply(self, payload: KinaChatRequest, teacher_name: str) -> str:
         topic = payload.project.title or payload.project.subject or "pembelajaran"
-        sapaan = teacher_name if teacher_name else "Bapak/Ibu Guru"
+        sapaan = teacher_name if teacher_name else "teman guru"
 
         return (
-            f"Baik, {sapaan}. Saya tangkap kita akan mulai menyusun rancangan pembelajaran untuk {topic}. "
-            "Kita bisa mulai pelan-pelan dari bentuk aktivitas yang paling nyaman dilakukan di kelas, "
-            "lalu saya bantu sesuaikan dengan tujuan pembelajaran dan kondisi siswa."
+            f"Oke, {sapaan}. Kita susun alur untuk {topic} pelan-pelan ya. "
+            "Mulai dari gaya belajarnya dulu: mau diskusi, studi kasus, mini proyek, latihan terarah, atau campuran?"
+        )
+
+    def _initial_fallback_reply(
+        self,
+        payload: KinaChatRequest,
+        teacher_name: str,
+    ) -> str:
+        topic = payload.project.title or payload.project.subject or "pembelajaran ini"
+        sapaan = teacher_name if teacher_name else "teman guru"
+
+        return (
+            f"Halo, {sapaan}. CP dan ATP untuk {topic} sudah siap. "
+            "Kita mulai dari gaya belajarnya dulu ya: diskusi, studi kasus, mini proyek, latihan terarah, atau campuran?"
         )
 
     def _follow_up_questions(self, payload: KinaChatRequest) -> list[str]:
         subject = payload.project.subject or "mapel ini"
-        return []
-        
+        return [
+            "Mau aku bantu pilihkan opsi yang paling realistis untuk kondisi kelas ini?",
+            f"Apakah aktivitas untuk {subject} ini lebih nyaman dibuat diskusi, studi kasus, atau mini proyek?",
+        ]

@@ -1,0 +1,298 @@
+﻿{
+    "project":  {
+                    "id":  "pjbl-robby-mtsn1-banyuwangi-001",
+                    "title":  "Proyek Pengelolaan Sampah Plastik di MTsN 1 Banyuwangi",
+                    "rppType":  "pjbl_kokurikuler",
+                    "subject":  "Projek Penguatan Profil Pelajar Pancasila, IPA, Bahasa Indonesia, Matematika",
+                    "phase":  "D",
+                    "gradeLevel":  "VII"
+                },
+    "selectedProject":  {
+                            "selectedProjectIndex":  1,
+                            "selectedProjectTitle":  "Pemetaan Limbah di Sekitar Sekolah",
+                            "selectedProjectRecommendation":  {
+                                                                  "recommendedProjectTitle":  "Pemetaan Limbah di Sekitar Sekolah",
+                                                                  "projectTheme":  "Limbah",
+                                                                  "projectFocus":  "Observasi dan pemetaan data sederhana.",
+                                                                  "projectBackground":  "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan MTsN 1 Banyuwangi",
+                                                                  "projectObjectives":  [
+                                                                                            "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+                                                                                            "Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.",
+                                                                                            "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+                                                                                        ],
+                                                                  "drivingQuestion":  "Apa pola masalah Limbah yang terlihat dari data sekitar sekolah?",
+                                                                  "studentProduct":  [
+                                                                                         "Tabel data",
+                                                                                         "Peta temuan",
+                                                                                         "Presentasi hasil"
+                                                                                     ],
+                                                                  "projectActivitiesOverview":  [
+                                                                                                    "Observasi konteks Stage 1",
+                                                                                                    "Pengumpulan data",
+                                                                                                    "Penyajian temuan",
+                                                                                                    "Presentasi"
+                                                                                                ],
+                                                                  "feasibilityNotes":  "Opsi ini dibuat sederhana agar realistis dilakukan sesuai konteks Stage 1.",
+                                                                  "riskMitigation":  [
+                                                                                         {
+                                                                                             "risk":  "Data siswa kurang konsisten.",
+                                                                                             "mitigation":  "Guru menyiapkan format observasi singkat dan contoh pengisian."
+                                                                                         }
+                                                                                     ],
+                                                                  "independenceNote":  "Proyek ini berdiri sendiri dan bukan tahap dari opsi proyek lain.",
+                                                                  "reasoningSummary":  "Rekomendasi project_recommendation ini memakai tema Limbah dan konteks Stage 1 sebagai dasar."
+                                                              },
+                            "recommendedProjectTitle":  "Pemetaan Limbah di Sekitar Sekolah",
+                            "projectTheme":  "Limbah",
+                            "projectFocus":  "Observasi dan pemetaan data sederhana.",
+                            "projectBackground":  "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan MTsN 1 Banyuwangi",
+                            "projectObjectives":  [
+                                                      "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+                                                      "Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.",
+                                                      "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+                                                  ],
+                            "drivingQuestion":  "Apa pola masalah Limbah yang terlihat dari data sekitar sekolah?",
+                            "studentProduct":  [
+                                                   "Tabel data",
+                                                   "Peta temuan",
+                                                   "Presentasi hasil"
+                                               ],
+                            "projectActivitiesOverview":  [
+                                                              "Observasi konteks Stage 1",
+                                                              "Pengumpulan data",
+                                                              "Penyajian temuan",
+                                                              "Presentasi"
+                                                          ],
+                            "feasibilityNotes":  "Opsi ini dibuat sederhana agar realistis dilakukan sesuai konteks Stage 1.",
+                            "riskMitigation":  [
+                                                   {
+                                                       "risk":  "Data siswa kurang konsisten.",
+                                                       "mitigation":  "Guru menyiapkan format observasi singkat dan contoh pengisian."
+                                                   }
+                                               ],
+                            "projectRecommendations":  [
+                                                           {
+                                                               "recommendedProjectTitle":  "Pemetaan Limbah di Sekitar Sekolah",
+                                                               "projectTheme":  "Limbah",
+                                                               "projectFocus":  "Observasi dan pemetaan data sederhana.",
+                                                               "projectBackground":  "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan MTsN 1 Banyuwangi",
+                                                               "projectObjectives":  [
+                                                                                         "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+                                                                                         "Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.",
+                                                                                         "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+                                                                                     ],
+                                                               "drivingQuestion":  "Apa pola masalah Limbah yang terlihat dari data sekitar sekolah?",
+                                                               "studentProduct":  [
+                                                                                      "Tabel data",
+                                                                                      "Peta temuan",
+                                                                                      "Presentasi hasil"
+                                                                                  ],
+                                                               "projectActivitiesOverview":  [
+                                                                                                 "Observasi konteks Stage 1",
+                                                                                                 "Pengumpulan data",
+                                                                                                 "Penyajian temuan",
+                                                                                                 "Presentasi"
+                                                                                             ],
+                                                               "feasibilityNotes":  "Opsi ini dibuat sederhana agar realistis dilakukan sesuai konteks Stage 1.",
+                                                               "riskMitigation":  [
+                                                                                      {
+                                                                                          "risk":  "Data siswa kurang konsisten.",
+                                                                                          "mitigation":  "Guru menyiapkan format observasi singkat dan contoh pengisian."
+                                                                                      }
+                                                                                  ],
+                                                               "independenceNote":  "Proyek ini berdiri sendiri dan bukan tahap dari opsi proyek lain.",
+                                                               "reasoningSummary":  "Rekomendasi project_recommendation ini memakai tema Limbah dan konteks Stage 1 sebagai dasar."
+                                                           },
+                                                           {
+                                                               "recommendedProjectTitle":  "Simulasi Solusi Limbah",
+                                                               "projectTheme":  "Limbah",
+                                                               "projectFocus":  "Simulasi pilihan, dampak, dan pengambilan keputusan.",
+                                                               "projectBackground":  "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan MTsN 1 Banyuwangi",
+                                                               "projectObjectives":  [
+                                                                                         "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+                                                                                         "Peserta didik mampu membandingkan beberapa pilihan solusi dan dampaknya.",
+                                                                                         "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+                                                                                     ],
+                                                               "drivingQuestion":  "Pilihan solusi apa yang paling realistis untuk masalah Limbah?",
+                                                               "studentProduct":  [
+                                                                                      "Skenario simulasi",
+                                                                                      "Tabel perbandingan",
+                                                                                      "Rekomendasi solusi"
+                                                                                  ],
+                                                               "projectActivitiesOverview":  [
+                                                                                                 "Menyusun skenario",
+                                                                                                 "Membandingkan pilihan",
+                                                                                                 "Simulasi keputusan",
+                                                                                                 "Refleksi"
+                                                                                             ],
+                                                               "feasibilityNotes":  "Opsi ini dibuat sederhana agar realistis dilakukan sesuai konteks Stage 1.",
+                                                               "riskMitigation":  [
+                                                                                      {
+                                                                                          "risk":  "Diskusi melebar dari konteks utama.",
+                                                                                          "mitigation":  "Guru memberi batasan skenario dan kriteria keputusan yang jelas."
+                                                                                      }
+                                                                                  ],
+                                                               "independenceNote":  "Proyek ini berdiri sendiri dan bukan tahap dari opsi proyek lain.",
+                                                               "reasoningSummary":  "Rekomendasi project_recommendation ini memakai tema Limbah dan konteks Stage 1 sebagai dasar."
+                                                           },
+                                                           {
+                                                               "recommendedProjectTitle":  "Kampanye Aksi Limbah",
+                                                               "projectTheme":  "Limbah",
+                                                               "projectFocus":  "Komunikasi solusi dan aksi edukasi warga sekolah.",
+                                                               "projectBackground":  "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan MTsN 1 Banyuwangi",
+                                                               "projectObjectives":  [
+                                                                                         "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+                                                                                         "Peserta didik mampu merancang pesan aksi yang relevan dengan konteks Stage 1.",
+                                                                                         "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+                                                                                     ],
+                                                               "drivingQuestion":  "Bagaimana siswa dapat mengajak warga sekolah merespons masalah Limbah?",
+                                                               "studentProduct":  [
+                                                                                      "Media kampanye",
+                                                                                      "Naskah ajakan",
+                                                                                      "Dokumentasi aksi"
+                                                                                  ],
+                                                               "projectActivitiesOverview":  [
+                                                                                                 "Merumuskan pesan",
+                                                                                                 "Membuat media",
+                                                                                                 "Melakukan kampanye kecil",
+                                                                                                 "Refleksi respons"
+                                                                                             ],
+                                                               "feasibilityNotes":  "Opsi ini dibuat sederhana agar realistis dilakukan sesuai konteks Stage 1.",
+                                                               "riskMitigation":  [
+                                                                                      {
+                                                                                          "risk":  "Pesan kampanye terlalu umum.",
+                                                                                          "mitigation":  "Guru meminta setiap pesan dikaitkan langsung dengan konteks Stage 1."
+                                                                                      }
+                                                                                  ],
+                                                               "independenceNote":  "Proyek ini berdiri sendiri dan bukan tahap dari opsi proyek lain.",
+                                                               "reasoningSummary":  "Rekomendasi project_recommendation ini memakai tema Limbah dan konteks Stage 1 sebagai dasar."
+                                                           }
+                                                       ],
+                            "projectTitleOptions":  [
+                                                        "Pemetaan Limbah di Sekitar Sekolah",
+                                                        "Simulasi Solusi Limbah",
+                                                        "Kampanye Aksi Limbah"
+                                                    ],
+                            "selectionNote":  "Dipilih dari terminal interaktif Stage 2."
+                        },
+    "progress":  {
+                     "completedCount":  7,
+                     "totalCount":  7,
+                     "percent":  100,
+                     "completed":  [
+                                       "Fokus dan ruang lingkup proyek",
+                                       "Produk atau aksi akhir",
+                                       "Alur kegiatan dan jadwal",
+                                       "Pembagian peran dan pendampingan",
+                                       "Fasilitas, teknologi, dan kemitraan",
+                                       "Risiko dan mitigasi",
+                                       "Asesmen, presentasi, dan refleksi"
+                                   ],
+                     "missing":  [
+
+                                 ],
+                     "points":  [
+                                    {
+                                        "key":  "focusScope",
+                                        "label":  "Fokus dan ruang lingkup proyek",
+                                        "completed":  true
+                                    },
+                                    {
+                                        "key":  "finalProduct",
+                                        "label":  "Produk atau aksi akhir",
+                                        "completed":  true
+                                    },
+                                    {
+                                        "key":  "activitiesSchedule",
+                                        "label":  "Alur kegiatan dan jadwal",
+                                        "completed":  true
+                                    },
+                                    {
+                                        "key":  "rolesSupport",
+                                        "label":  "Pembagian peran dan pendampingan",
+                                        "completed":  true
+                                    },
+                                    {
+                                        "key":  "facilitiesPartnership",
+                                        "label":  "Fasilitas, teknologi, dan kemitraan",
+                                        "completed":  true
+                                    },
+                                    {
+                                        "key":  "riskMitigation",
+                                        "label":  "Risiko dan mitigasi",
+                                        "completed":  true
+                                    },
+                                    {
+                                        "key":  "assessmentReflection",
+                                        "label":  "Asesmen, presentasi, dan refleksi",
+                                        "completed":  true
+                                    }
+                                ]
+                 },
+    "chatHistory":  [
+                        {
+                            "role":  "user",
+                            "message":  "Fokus proyek ditetapkan pada pemetaan jenis dan lokasi sampah plastik di area kantin, kelas, halaman madrasah, dan ruang kelas agar siswa mengetahui sumber sampah yang paling dominan."
+                        },
+                        {
+                            "role":  "assistant",
+                            "message":  "Fokus proyek Anda pada pemetaan jenis dan lokasi sampah plastik di area kantin, kelas, halaman madrasah, dan ruang kelas sudah sesuai dengan konteks lokal dan tujuan proyek. Produk akhir yang realistis dan relevan bisa berupa **peta temuan dan tabel data** yang menunjukkan sumber sampah dominan. Apakah Anda ingin menambahkan presentasi visual atau laporan singkat sebagai bagian dari produk akhir?"
+                        },
+                        {
+                            "role":  "user",
+                            "message":  "Produk akhir dipilih berupa poster infografis berbentuk peta temuan pada kertas plano, dilengkapi stiker warna untuk menunjukkan jenis dan lokasi sampah plastik dominan."
+                        },
+                        {
+                            "role":  "assistant",
+                            "message":  "Keputusan produk akhir Anda sudah sesuai dengan fokus proyek dan konteks sekolah. Poster infografis berbentuk peta temuan dengan stiker warna akan mempermudah siswa menyajikan data secara visual dan menarik. Untuk melanjutkan, bagaimana Anda merencanakan durasi setiap kegiatan dalam 2 x 35 menit tersebut?"
+                        },
+                        {
+                            "role":  "user",
+                            "message":  "Alur kegiatan ditetapkan dalam 2 x 35 menit: 10 menit pembukaan dan pembagian kelompok, 25 menit observasi area madrasah, 20 menit menyusun peta temuan, 10 menit presentasi singkat, dan 5 menit refleksi."
+                        },
+                        {
+                            "role":  "assistant",
+                            "message":  "Alur kegiatan yang kamu tetapkan sudah sesuai dengan durasi dan fokus proyek. Kamu menetapkan waktu untuk observasi, pengumpulan data, dan penyajian temuan secara terstruktur. Untuk memastikan kerja tim efektif, penting juga menetapkan peran spesifik dalam kelompok. Bagaimana peran siswa akan dibagi dalam kelompok agar kontribusi merata?"
+                        },
+                        {
+                            "role":  "user",
+                            "message":  "Siswa bekerja dalam kelompok berisi empat orang dengan peran ketua, pencatat data, penanda peta, dan penyaji. Pak Robby memantau kemajuan memakai lembar cek singkat."
+                        },
+                        {
+                            "role":  "assistant",
+                            "message":  "Keputusan pembagian peran dan pendampingan sudah baik diterapkan. Untuk melanjutkan, pertimbangkan fasilitas yang tersedia di sekolah, seperti kertas plano, spidol, dan tempat sampah, untuk mendukung aktivitas observasi dan penyajian data. Apakah Anda akan menggunakan kertas plano sebagai media utama untuk peta temuan?"
+                        },
+                        {
+                            "role":  "user",
+                            "message":  "Fasilitas yang digunakan adalah halaman madrasah, kantin, ruang kelas, kertas plano, stiker warna, spidol, papan tulis, tempat sampah, dan proyektor. Proyek dilakukan tanpa mitra luar."
+                        },
+                        {
+                            "role":  "assistant",
+                            "message":  "Fasilitas yang kamu gunakanâhalaman madrasah, kantin, ruang kelas, kertas plano, stiker, spidol, papan tulis, tempat sampah, dan proyektorâsesuai dengan konteks dan tujuan proyek. Kamu tidak menggunakan mitra luar, yang memperkuat keterlibatan internal siswa dalam pengamatan dan analisis.\n\nDengan demikian, risiko utama yang perlu dicegah terlebih dahulu adalah ketidakkonsistenan data observasi antarkelompok. Apakah kamu akan menambahkan contoh pengisian lembar observasi untuk memastikan konsistensi data?"
+                        },
+                        {
+                            "role":  "user",
+                            "message":  "Risiko utama adalah waktu observasi terbatas, data antarkelompok tidak konsisten, dan siswa keluar dari area pengamatan. Mitigasinya memakai lembar observasi seragam, batas area tiap kelompok, timer, dan cek kemajuan guru."
+                        },
+                        {
+                            "role":  "assistant",
+                            "message":  "Mitigasi yang kamu tetapkan untuk risiko observasi sudah cukup tepat: lembar observasi seragam, batas area kelompok, timer, dan cek kemajuan guru. Ini akan menjaga konsistensi data dan keterlibatan siswa. Untuk memperkuat pengaturan area, kamu bisa menambahkan stiker warna atau pita sebagai pembatas visual. Apakah kamu akan menggunakan media visual seperti stiker untuk memperjelas batas area observasi?"
+                        },
+                        {
+                            "role":  "user",
+                            "message":  "Asesmen menggunakan rubrik sederhana dengan kriteria kelengkapan data, ketepatan peta temuan, kerja sama kelompok, kontribusi individu, dan kejelasan presentasi. Presentasi dilakukan satu menit per kelompok lalu ditutup refleksi satu kalimat."
+                        },
+                        {
+                            "role":  "assistant",
+                            "message":  "Keputusan kamu tentang risiko dan mitigasinya sudah tepat: lembar observasi seragam, batas area, timer, dan cek kemajuan guru. Untuk memperkuat pengaturan area, pertimbangkan tambahkan stiker warna atau pita sebagai pembatas visual agar lebih mudah dikenali siswa. Apakah kamu akan memakai media visual tambahan selain stiker untuk memperjelas lokasi observasi?"
+                        },
+                        {
+                            "role":  "user",
+                            "message":  "Semua informasi sudah lengkap. Gunakan keputusan tersebut sebagai rancangan akhir proyek dan lanjutkan ke tahap berikutnya."
+                        },
+                        {
+                            "role":  "assistant",
+                            "message":  "Rancangan proyek âPemetaan Limbah di Sekitar Sekolahâ sudah mencakup fokus, aktivitas, fasilitas, dan penilaian yang sesuai dengan konteks MTsN 1 Banyuwangi. Kamu telah menetapkan ruang lingkup observasi di kantin, ruang kelas, dan halaman madrasah, serta menggunakan media visual sederhana untuk memperjelas lokasi. Apakah kamu berencana menambahkan instrumen evaluasi tambahan untuk mengukur pemahaman konsep limbah dari siswa.\n\nTerima kasih, rancangan proyek Anda sudah selesai dan siap digunakan untuk tahap berikutnya."
+                        }
+                    ]
+}

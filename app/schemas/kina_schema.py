@@ -24,13 +24,15 @@ class KinaChatRequest(BaseModel):
     teacherClass: TeacherClassSchema | None = None
     stages: list[StageSchema] = Field(default_factory=list)
     chatHistory: list[ChatMessageSchema] = Field(default_factory=list)
-    message: str = Field(..., min_length=1)
+    message: str = ""
+    requireAi: bool = False
 
 
 class KinaChatResponse(BaseModel):
     reply: str
     usedReferences: list[UsedReferenceSchema] = Field(default_factory=list)
     suggestedFollowUpQuestions: list[str] = Field(default_factory=list)
+    progress: dict[str, Any] | None = None
 
 
 class KinaSummaryRequest(BaseModel):

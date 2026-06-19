@@ -27,15 +27,28 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("OPENROUTER_BASE_URL", "OPENROUTER_API_BASE_URL"),
     )
     llm_model: str = Field(default="qwen/qwen3.7-plus", alias="LLM_MODEL")
+    kina_llm_model: str = Field(
+        default="qwen/qwen3-coder-flash",
+        alias="KINA_LLM_MODEL",
+    )
+    kina_solver_model: str | None = Field(default=None, alias="KINA_SOLVER_MODEL")
+    kina_evaluator_model: str | None = Field(default=None, alias="KINA_EVALUATOR_MODEL")
+    pjbl_recommendation_model: str | None = Field(
+        default=None,
+        alias="PJBL_RECOMMENDATION_MODEL",
+    )
     llm_temperature: float = Field(default=0.3, alias="LLM_TEMPERATURE")
     llm_max_tokens: int = Field(default=12000, alias="LLM_MAX_TOKENS")
 
-    embedding_provider: str = Field(default="local", alias="EMBEDDING_PROVIDER")
+    embedding_provider: str = Field(default="openrouter", alias="EMBEDDING_PROVIDER")
     embedding_model_name: str = Field(
-        default="sentence-transformers/all-MiniLM-L6-v2",
-        alias="EMBEDDING_MODEL_NAME",
+        default="google/gemini-embedding-2-preview",
+        validation_alias=AliasChoices("EMBEDDING_MODEL_NAME", "EMBEDDING_MODEL"),
     )
-    embedding_dimension: int = Field(default=384, alias="EMBEDDING_DIMENSION")
+    embedding_dimension: int = Field(
+        default=1536,
+        validation_alias=AliasChoices("EMBEDDING_DIMENSION", "EMBEDDING_DIMENSIONS"),
+    )
 
     request_timeout_seconds: int = Field(default=180, alias="REQUEST_TIMEOUT_SECONDS")
     resource_discovery_enabled: bool = Field(
@@ -68,6 +81,14 @@ class Settings(BaseSettings):
             "static-sc.cloudapp.web.id,files.cloudapp.web.id"
         ),
         alias="BOOK_CATALOG_ALLOWED_DOMAINS",
+    )
+    cp_pdf_path: str = Field(
+        default="../../rag/data/Kepka_BSKAP_No_01k17e8396ajn15j3hcw0k773b.pdf",
+        alias="CP_PDF_PATH",
+    )
+    local_vector_index_path: str = Field(
+        default="app/data/vector_store/local_vector_index.json",
+        alias="LOCAL_VECTOR_INDEX_PATH",
     )
     faiss_index_path: str = Field(
         default="app/data/vector_store/cp.index",

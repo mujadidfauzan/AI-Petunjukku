@@ -210,6 +210,24 @@ class FaissService:
     def _subject_keys(self, value: str) -> set[str]:
         key = "_".join("".join(char.lower() if char.isalnum() else " " for char in value).split())
         keys = {key}
+        subject_aliases = [
+            "matematika",
+            "bahasa_indonesia",
+            "bahasa_inggris",
+            "fisika",
+            "kimia",
+            "biologi",
+            "informatika",
+            "sejarah",
+            "geografi",
+            "ekonomi",
+            "sosiologi",
+            "pjok",
+            "prakarya",
+        ]
+        for alias in subject_aliases:
+            if alias in key:
+                keys.add(alias)
         is_special_education = key.startswith("pendidikan_khusus_")
         if not is_special_education and ("ilmu_pengetahuan_alam_dan_sosial" in key or key == "ipas"):
             keys.update({"ipa", "ipas", "ilmu_pengetahuan_alam_dan_sosial"})

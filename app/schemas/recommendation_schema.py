@@ -22,6 +22,7 @@ class RecommendStageRequest(BaseModel):
     previousStages: list[StageSchema] = Field(default_factory=list)
     targetStage: dict[str, Any] = Field(default_factory=dict)
     options: dict[str, Any] = Field(default_factory=dict)
+    placesContext: dict[str, Any] | None = None
 
 
 class RecommendStageResponse(BaseModel):

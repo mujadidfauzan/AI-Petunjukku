@@ -1,0 +1,128 @@
+{
+  "status": "success",
+  "model": "gemini-1.5-flash",
+  "rppType": "pjbl_kokurikuler",
+  "usedReferences": [],
+  "contentJson": {
+    "title": "Pemetaan Limbah di Sekitar Sekolah",
+    "identity": {
+      "schoolName": "MTsN 1 Banyuwangi",
+      "city": "Banyuwangi",
+      "subject": "Projek Penguatan Profil Pelajar Pancasila",
+      "phase": "Fase D",
+      "educationLevel": "SMP/MTs",
+      "educationPhase": "Fase D (Kelas 7-9)",
+      "relatedSubjects": [
+        "Projek Penguatan Profil Pelajar Pancasila",
+        "IPA",
+        "Bahasa Indonesia",
+        "Matematika"
+      ],
+      "gradeLevel": "VII B",
+      "rppType": "pjbl_kokurikuler",
+      "timeAllocation": "2 x 35 menit (Jam Pelajaran)"
+    },
+    "projectOverview": {
+      "theme": "Limbah",
+      "localIssue": "Sampah plastik di lingkungan MTsN 1 Banyuwangi",
+      "background": "Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan MTsN 1 Banyuwangi",
+      "drivingQuestion": "Apa pola masalah Limbah yang terlihat dari data sekitar sekolah?",
+      "focusAndScope": "Fokus proyek ditetapkan pada pemetaan jenis dan lokasi sampah plastik di area kantin, kelas, halaman madrasah, dan ruang kelas agar siswa mengetahui sumber sampah yang paling dominan.",
+      "studentNeeds": "Butuh kegiatan nyata, sederhana, terarah, dan dekat dengan kebiasaan siswa di madrasah.",
+      "areaContext": {
+        "locationStatus": "Terverifikasi",
+        "address": "Banyuwangi, Jawa Timur",
+        "surroundingArea": [
+          "kantin madrasah sebagai sumber utama sampah plastik saat jam istirahat",
+          "halaman madrasah yang sering menjadi area berkumpul siswa",
+          "ruang kelas dengan sampah plastik dari bekal dan alat tulis",
+          "permukiman warga di sekitar madrasah"
+        ],
+        "regionalContext": "Lingkungan sekitar madrasah cukup ramai pada jam masuk, istirahat, dan pulang sekolah sehingga pengelolaan sampah perlu dibuat sederhana dan terpantau."
+      },
+      "initialRiskMonitoring": [
+        "Data observasi antarkelompok tidak konsisten. - level: sedang - Gunakan lembar observasi seragam dan contoh pengisian sebelum observasi.",
+        "Siswa keluar dari area pengamatan. - level: sedang - Tetapkan batas area tiap kelompok dan lakukan cek kemajuan oleh guru.",
+        "Waktu observasi terbatas. - level: sedang - Gunakan timer dan batasi jumlah titik observasi."
+      ]
+    },
+    "learningObjectives": [
+      "Peserta didik mampu mengidentifikasi masalah terkait Limbah.",
+      "Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.",
+      "Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif."
+    ],
+    "studentContext": {
+      "className": "VII B",
+      "studentCount": 34,
+      "characteristics": "Siswa aktif berdiskusi, suka kegiatan visual, dan lebih mudah terlibat jika proyek dekat dengan kehidupan sehari-hari.",
+      "classCondition": "Siswa aktif berdiskusi, suka kegiatan visual, dan lebih mudah terlibat jika proyek dekat dengan kehidupan sehari-hari. Koordinasi kelompok tetap perlu diarahkan agar observasi berjalan rapi.",
+      "learningChallenges": [
+        "sebagian siswa kurang teliti mencatat data",
+        "koordinasi kelompok perlu diarahkan",
+        "waktu proyek terbatas"
+      ],
+      "dominantLearningStyle": "visual dan kinestetik"
+    },
+    "learningDesign": {
+      "finalProduct": "Produk akhir dipilih berupa poster infografis berbentuk peta temuan pada kertas plano, dilengkapi stiker warna untuk menunjukkan jenis dan lokasi sampah plastik dominan.",
+      "activitiesAndSchedule": "Alur kegiatan ditetapkan dalam 2 x 35 menit: 10 menit pembukaan dan pembagian kelompok, 25 menit observasi area madrasah, 20 menit menyusun peta temuan, 10 menit presentasi singkat, dan 5 menit refleksi.",
+      "rolesAndSupport": "Siswa bekerja dalam kelompok berisi empat orang dengan peran ketua, pencatat data, penanda peta, dan penyaji. Pak Robby memantau kemajuan memakai lembar cek singkat.",
+      "facilitiesTechnologyPartnership": "Fasilitas yang digunakan adalah halaman madrasah, kantin, ruang kelas, kertas plano, stiker warna, spidol, papan tulis, tempat sampah, dan proyektor. Proyek dilakukan tanpa mitra luar.",
+      "riskMitigation": "Risiko utama adalah waktu observasi terbatas, data antarkelompok tidak konsisten, dan siswa keluar dari area pengamatan. Mitigasinya memakai lembar observasi seragam, batas area tiap kelompok, timer, dan cek kemajuan guru.",
+      "assessmentReflection": "Asesmen menggunakan rubrik sederhana dengan kriteria kelengkapan data, ketepatan peta temuan, kerja sama kelompok, kontribusi individu, dan kejelasan presentasi. Presentasi dilakukan satu menit per kelompok lalu ditutup refleksi satu kalimat."
+    },
+    "meetingPlan": [
+      {
+        "meeting": 1,
+        "duration": "2 x 35 menit (Jam Pelajaran)",
+        "opening": "Guru membuka dengan pertanyaan pemantik dan mengaitkan proyek dengan isu lokal.",
+        "mainActivities": [
+          "Observasi konteks Stage 1",
+          "Pengumpulan data",
+          "Penyajian temuan",
+          "Presentasi"
+        ],
+        "closing": "Siswa mempresentasikan temuan atau produk awal, lalu menulis refleksi singkat.",
+        "formativeAssessment": "Observasi proses kelompok, cek produk, dan tanya jawab singkat."
+      }
+    ],
+    "assessment": {
+      "process": [
+        "Ketepatan observasi atau pengumpulan data",
+        "Kerja sama dan pembagian peran",
+        "Keterlibatan siswa selama kegiatan"
+      ],
+      "product": [
+        "Kesesuaian produk dengan masalah yang dipilih",
+        "Kejelasan data atau pesan yang disajikan",
+        "Kerapian dan keterbacaan produk akhir"
+      ],
+      "presentation": [
+        "Kejelasan penyampaian hasil",
+        "Kemampuan menjawab pertanyaan sederhana"
+      ],
+      "reflection": "Siswa menuliskan satu hal yang dipelajari dan satu aksi kecil yang dapat dilakukan setelah proyek.",
+      "rubric": [
+        {
+          "criterion": "Pemahaman masalah",
+          "description": "Siswa mampu menjelaskan masalah proyek sesuai konteks sekolah."
+        },
+        {
+          "criterion": "Kualitas produk",
+          "description": "Produk akhir jelas, relevan, dan dapat dipahami warga kelas/sekolah."
+        },
+        {
+          "criterion": "Kolaborasi",
+          "description": "Siswa menjalankan peran dan bekerja sama secara bertanggung jawab."
+        },
+        {
+          "criterion": "Refleksi",
+          "description": "Siswa mampu menyampaikan pembelajaran dan rencana tindak lanjut sederhana."
+        }
+      ]
+    },
+    "teacherNotes": "Guru menginginkan proyek yang realistis, sederhana, dan sesuai konteks siswa.",
+    "completionStatus": "complete"
+  },
+  "contentMarkdown": "# Pemetaan Limbah di Sekitar Sekolah\n\n## A. Identitas\n- schoolName: MTsN 1 Banyuwangi\n- city: Banyuwangi\n- subject: Projek Penguatan Profil Pelajar Pancasila\n- phase: Fase D\n- educationLevel: SMP/MTs\n- educationPhase: Fase D (Kelas 7-9)\n- relatedSubjects: Projek Penguatan Profil Pelajar Pancasila, IPA, Bahasa Indonesia, Matematika\n- gradeLevel: VII B\n- rppType: pjbl_kokurikuler\n- timeAllocation: 2 x 35 menit (Jam Pelajaran)\n\n## B. Gambaran Proyek\n- theme: Limbah\n- localIssue: Sampah plastik di lingkungan MTsN 1 Banyuwangi\n- background: Proyek disusun dari konteks Stage 1: Sampah plastik di lingkungan MTsN 1 Banyuwangi\n- drivingQuestion: Apa pola masalah Limbah yang terlihat dari data sekitar sekolah?\n- focusAndScope: Fokus proyek ditetapkan pada pemetaan jenis dan lokasi sampah plastik di area kantin, kelas, halaman madrasah, dan ruang kelas agar siswa mengetahui sumber sampah yang paling dominan.\n\n### Konteks Daerah Sekitar\n- locationStatus: Terverifikasi\n- address: Banyuwangi, Jawa Timur\n- surroundingArea: kantin madrasah sebagai sumber utama sampah plastik saat jam istirahat, halaman madrasah yang sering menjadi area berkumpul siswa, ruang kelas dengan sampah plastik dari bekal dan alat tulis, permukiman warga di sekitar madrasah\n- regionalContext: Lingkungan sekitar madrasah cukup ramai pada jam masuk, istirahat, dan pulang sekolah sehingga pengelolaan sampah perlu dibuat sederhana dan terpantau.\n\n### Pemantauan Risiko Awal\n- Data observasi antarkelompok tidak konsisten. - level: sedang - Gunakan lembar observasi seragam dan contoh pengisian sebelum observasi.\n- Siswa keluar dari area pengamatan. - level: sedang - Tetapkan batas area tiap kelompok dan lakukan cek kemajuan oleh guru.\n- Waktu observasi terbatas. - level: sedang - Gunakan timer dan batasi jumlah titik observasi.\n\n## C. Tujuan Pembelajaran\n- Peserta didik mampu mengidentifikasi masalah terkait Limbah.\n- Peserta didik mampu mengumpulkan dan menyajikan data sederhana dari konteks sekitar.\n- Peserta didik mampu mempresentasikan hasil proyek secara kolaboratif.\n\n## D. Desain Pembelajaran\n- finalProduct: Produk akhir dipilih berupa poster infografis berbentuk peta temuan pada kertas plano, dilengkapi stiker warna untuk menunjukkan jenis dan lokasi sampah plastik dominan.\n- activitiesAndSchedule: Alur kegiatan ditetapkan dalam 2 x 35 menit: 10 menit pembukaan dan pembagian kelompok, 25 menit observasi area madrasah, 20 menit menyusun peta temuan, 10 menit presentasi singkat, dan 5 menit refleksi.\n- rolesAndSupport: Siswa bekerja dalam kelompok berisi empat orang dengan peran ketua, pencatat data, penanda peta, dan penyaji. Pak Robby memantau kemajuan memakai lembar cek singkat.\n- facilitiesTechnologyPartnership: Fasilitas yang digunakan adalah halaman madrasah, kantin, ruang kelas, kertas plano, stiker warna, spidol, papan tulis, tempat sampah, dan proyektor. Proyek dilakukan tanpa mitra luar.\n- riskMitigation: Risiko utama adalah waktu observasi terbatas, data antarkelompok tidak konsisten, dan siswa keluar dari area pengamatan. Mitigasinya memakai lembar observasi seragam, batas area tiap kelompok, timer, dan cek kemajuan guru.\n- assessmentReflection: Asesmen menggunakan rubrik sederhana dengan kriteria kelengkapan data, ketepatan peta temuan, kerja sama kelompok, kontribusi individu, dan kejelasan presentasi. Presentasi dilakukan satu menit per kelompok lalu ditutup refleksi satu kalimat.\n\n## E. Alur Kegiatan\n### Pertemuan 1\n- Durasi: 2 x 35 menit (Jam Pelajaran)\n- Pembuka: Guru membuka dengan pertanyaan pemantik dan mengaitkan proyek dengan isu lokal.\n- Kegiatan inti:\n  - Observasi konteks Stage 1\n  - Pengumpulan data\n  - Penyajian temuan\n  - Presentasi\n- Penutup: Siswa mempresentasikan temuan atau produk awal, lalu menulis refleksi singkat.\n- Asesmen formatif: Observasi proses kelompok, cek produk, dan tanya jawab singkat.\n\n## F. Asesmen dan Refleksi\n### process\n- Ketepatan observasi atau pengumpulan data\n- Kerja sama dan pembagian peran\n- Keterlibatan siswa selama kegiatan\n### product\n- Kesesuaian produk dengan masalah yang dipilih\n- Kejelasan data atau pesan yang disajikan\n- Kerapian dan keterbacaan produk akhir\n### presentation\n- Kejelasan penyampaian hasil\n- Kemampuan menjawab pertanyaan sederhana\n- Refleksi: Siswa menuliskan satu hal yang dipelajari dan satu aksi kecil yang dapat dilakukan setelah proyek.\n\n## G. Rubrik Singkat\n- Pemahaman masalah: Siswa mampu menjelaskan masalah proyek sesuai konteks sekolah.\n- Kualitas produk: Produk akhir jelas, relevan, dan dapat dipahami warga kelas/sekolah.\n- Kolaborasi: Siswa menjalankan peran dan bekerja sama secara bertanggung jawab.\n- Refleksi: Siswa mampu menyampaikan pembelajaran dan rencana tindak lanjut sederhana.\n\n## H. Catatan Guru\nGuru menginginkan proyek yang realistis, sederhana, dan sesuai konteks siswa."
+}

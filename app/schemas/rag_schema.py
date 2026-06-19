@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 
 class RagSearchRequest(BaseModel):
@@ -10,6 +10,12 @@ class RagSearchRequest(BaseModel):
     subject: str | None = None
     phase: str | None = None
     topK: int = Field(default=5, ge=1, le=20)
+    similarityThreshold: float = Field(
+        default=0.2,
+        ge=-1,
+        le=1,
+        validation_alias=AliasChoices("similarityThreshold", "similarity_threshold"),
+    )
     documentType: str | None = "capaian_pembelajaran"
 
 

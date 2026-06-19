@@ -166,7 +166,7 @@ INTRA_DUMMY_STAGE_4: dict[str, Any] = {
                 "meetingTitle": "Pertemuan 1 — Pembukaan Pembelajaran",
                 "selectedTechnique": "tes_tertulis",
                 "selectedTechniqueLabel": "Tes Tertulis",
-                "description": "Guru mengamati keaktifan siswa saat diskusi awal dan eksplorasi konsep.",
+                "description": "Guru menggunakan soal singkat untuk mengecek pemahaman awal siswa.",
             },
             {
                 "meetingOrder": 2,
@@ -180,7 +180,7 @@ INTRA_DUMMY_STAGE_4: dict[str, Any] = {
                 "meetingTitle": "Pertemuan 3 — Presentasi dan Refleksi",
                 "selectedTechnique": "tes_tertulis",
                 "selectedTechniqueLabel": "Tes Tertulis",
-                "description": "Siswa menuliskan jawaban singkat dan refleksi pemahaman di akhir pembelajaran.",
+                "description": "Guru menggunakan soal tertulis untuk mengecek pemahaman akhir siswa.",
             },
         ],
     },

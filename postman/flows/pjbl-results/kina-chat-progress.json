@@ -1,0 +1,54 @@
+﻿{
+    "completedCount":  7,
+    "totalCount":  7,
+    "percent":  100,
+    "completed":  [
+                      "Fokus dan ruang lingkup proyek",
+                      "Produk atau aksi akhir",
+                      "Alur kegiatan dan jadwal",
+                      "Pembagian peran dan pendampingan",
+                      "Fasilitas, teknologi, dan kemitraan",
+                      "Risiko dan mitigasi",
+                      "Asesmen, presentasi, dan refleksi"
+                  ],
+    "missing":  [
+
+                ],
+    "points":  [
+                   {
+                       "key":  "focusScope",
+                       "label":  "Fokus dan ruang lingkup proyek",
+                       "completed":  true
+                   },
+                   {
+                       "key":  "finalProduct",
+                       "label":  "Produk atau aksi akhir",
+                       "completed":  true
+                   },
+                   {
+                       "key":  "activitiesSchedule",
+                       "label":  "Alur kegiatan dan jadwal",
+                       "completed":  true
+                   },
+                   {
+                       "key":  "rolesSupport",
+                       "label":  "Pembagian peran dan pendampingan",
+                       "completed":  true
+                   },
+                   {
+                       "key":  "facilitiesPartnership",
+                       "label":  "Fasilitas, teknologi, dan kemitraan",
+                       "completed":  true
+                   },
+                   {
+                       "key":  "riskMitigation",
+                       "label":  "Risiko dan mitigasi",
+                       "completed":  true
+                   },
+                   {
+                       "key":  "assessmentReflection",
+                       "label":  "Asesmen, presentasi, dan refleksi",
+                       "completed":  true
+                   }
+               ]
+}

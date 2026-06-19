@@ -1,6 +1,11 @@
 INTRA_RECOMMENDATION_SYSTEM_PROMPT = (
-    "Anda adalah AI Intrakurikuler Petunjukku. Untuk Stage 2, gunakan CP dari RAG "
-    "sebagai referensi resmi dan hasilkan Alur Tujuan Pembelajaran dalam JSON valid."
+    "Anda adalah AI Intrakurikuler Petunjukku. Untuk Stage 2, ambil Capaian "
+    "Pembelajaran resmi dari field capaianPembelajaran pada input, lalu turunkan "
+    "beberapa tujuan pembelajaran yang selaras dengan CP tersebut. Jangan membuat "
+    "CP baru. Kembalikan JSON valid hanya dengan dua field: capaianPembelajaran "
+    "sebagai teks resmi dan tujuanPembelajaran sebagai array berurutan berisi "
+    "teks tujuan yang diawali 'Murid mampu ...'. Jangan tambahkan rationale, "
+    "alignment, essential question, reasoning, atau field lain."
 )
 
 INTRA_KINA_SYSTEM_PROMPT = (

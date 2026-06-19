@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import hashlib
-import logging
 import math
 
 import httpx
 
 from app.core.config import Settings, settings
-
-
-logger = logging.getLogger(__name__)
+from app.utils.vector_utils import validate_embedding
 
 
 class EmbeddingService:
@@ -23,12 +20,10 @@ class EmbeddingService:
 
         if (
             self.settings.embedding_provider.lower() == "openrouter"
-            and self.settings.openrouter_api_key
         ):
-            try:
-                return await self._embed_openrouter(clean_texts)
-            except Exception as exc:
-                logger.warning("OpenRouter embedding failed, using local fallback: %s", exc)
+            if not self.settings.openrouter_api_key:
+                raise ValueError("OPENROUTER_API_KEY belum diisi untuk embedding OpenRouter.")
+            return await self._embed_openrouter(clean_texts)
 
         return [self._embed_local(text) for text in clean_texts]
 
@@ -43,6 +38,7 @@ class EmbeddingService:
         payload = {
             "model": self.settings.embedding_model_name,
             "input": texts if len(texts) > 1 else texts[0],
+            "dimensions": self.settings.embedding_dimension,
         }
 
         async with httpx.AsyncClient(
@@ -61,7 +57,7 @@ class EmbeddingService:
         if len(embeddings) != len(texts):
             raise ValueError("Jumlah embedding OpenRouter tidak sesuai.")
         return [
-            self._normalize(self._fit_dimensions([float(value) for value in embedding]))
+            validate_embedding(embedding, self.settings.embedding_dimension)
             for embedding in embeddings
         ]
 
@@ -85,11 +81,3 @@ class EmbeddingService:
         if norm == 0:
             return vector
         return [value / norm for value in vector]
-
-    def _fit_dimensions(self, vector: list[float]) -> list[float]:
-        dimensions = self.settings.embedding_dimension
-        if len(vector) == dimensions:
-            return vector
-        if len(vector) > dimensions:
-            return vector[:dimensions]
-        return vector + [0.0 for _ in range(dimensions - len(vector))]

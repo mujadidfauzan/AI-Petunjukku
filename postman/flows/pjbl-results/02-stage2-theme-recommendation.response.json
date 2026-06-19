@@ -1,0 +1,16 @@
+﻿{
+    "rppType":  "pjbl_kokurikuler",
+    "recommendationType":  "project_theme_recommendation",
+    "targetStageNumber":  2,
+    "ragReferences":  [
+
+                      ],
+    "recommendations":  {
+                            "themes":  [
+                                           "Limbah",
+                                           "Ekosistem",
+                                           "Kesehatan",
+                                           "Data"
+                                       ]
+                        }
+}
