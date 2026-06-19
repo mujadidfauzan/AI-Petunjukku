@@ -26,6 +26,7 @@ class IntraGenerationService:
         self.prompt_builder = prompt_builder or PromptBuilderService()
 
     async def generate(self, payload: GenerateRppRequest) -> GenerateRppResponse:
+
         references = await self.rag_service.search_for_context(
             query=payload.project.title or payload.project.subject or "RPM",
             subject=payload.project.subject,
@@ -34,6 +35,7 @@ class IntraGenerationService:
         )
 
         source_data = self._build_source_data(payload, references)
+        print(f"=== LLM MODEL ACTIVE: {self.llm_client.model_name} ===")
         response_shape = self._empty_response_shape(payload, source_data)
 
         messages = [
@@ -58,6 +60,9 @@ class IntraGenerationService:
                             "Gunakan Stage 3 untuk mengisi learningDesign.partnership, learningDesign.digitalUse, learningDesign.resources, produk akhir, diferensiasi, dan alur kegiatan. "
                             "learningDesign.partnership hanya boleh berasal dari Stage 3 field partnership. "
                             "learningDesign.digitalUse hanya boleh berasal dari Stage 3 field digitalPlatform. "
+                            "learningDesign.digitalUse.items[].linkOrAccess hanya boleh diisi jika Stage 3 atau sourceData memberikan tautan, URL, kode akses, nama file, path, atau instruksi akses eksplisit. "
+                            "Jika hanya disebut nama platform tanpa tautan, isi linkOrAccess dengan string kosong. "
+                            "Jangan menebak atau membuat tautan umum seperti https://slides.google.com, https://youtube.com, atau tautan resmi platform lain. "
                             "learningDesign.resources hanya boleh berasal dari Stage 3 field facilityAndTechnologyUse. "
                             "Jangan menurunkan resources dari digitalPlatform. Jika digitalPlatform menyebut media atau platform digital, jangan otomatis menambahkan perangkat akses seperti gawai, HP, laptop, komputer, internet, atau WiFi ke resources kecuali perangkat itu disebut eksplisit pada facilityAndTechnologyUse. "
                             "Produk akhir, tugas utama, dan asesmen harus konsisten dengan finalStudentProduct Stage 3. Jangan menambahkan produk besar lain seperti laporan tertulis, LKPD, poster, video, atau artefak tambahan jika tidak disebut pada Stage 1-4. "
@@ -233,7 +238,7 @@ Output wajib hanya JSON valid:
 {"contentJson": {...}}
 
 A. Cara Membaca Source Data
-1. onboarding digunakan untuk identitas sekolah, guru, kelas, fase, dan mata pelajaran.
+1. onboarding digunakan untuk identitas sekolah, nama guru, kelas, fase, mata pelajaran, dan tahun ajaran. identity.academicYear wajib diambil dari onboarding.school.academicYear jika tersedia.
 2. Stage 1 digunakan untuk konteks dasar kelas, topik, durasi, jumlah pertemuan, dan fasilitas awal yang tersedia.
 3. Stage 2 digunakan untuk CP/ATP, profil lulusan, lintas disiplin, tujuan pembelajaran, dan pertanyaan pemantik.
 4. Stage 3 digunakan sebagai keputusan final diskusi tentang strategi pembelajaran, praktik pedagogis, media digital, kemitraan, sumber daya yang dipilih, produk akhir, diferensiasi, dan alur kegiatan.
@@ -266,6 +271,7 @@ Aturan prioritas:
 - profil lulusan, lintas disiplin, tujuan pembelajaran, dan pertanyaan pemantik mengikuti Stage 2.
 - teknik asesmen formatif per pertemuan mengikuti Stage 4.
 - produk akhir, media digital, kemitraan, sumber daya yang dipilih, alur kegiatan, dan diferensiasi mengikuti Stage 3.
+- academicYear mengikuti onboarding.school.academicYear jika tersedia. Jangan mengosongkan academicYear apabila data tahun ajaran tersedia di onboarding.
 - fasilitasAwal pada Stage 1 hanya menunjukkan fasilitas yang tersedia. Fasilitas awal tidak otomatis menjadi sumber daya yang digunakan.
 - partnership berasal dari field partnership Stage 3.
 - digitalUse berasal dari field digitalPlatform Stage 3.
@@ -276,6 +282,12 @@ D. Aturan Learning Design
 - pedagogicalPractice dikembangkan dari learningStrategy dan pedagogicalApproach Stage 3.
 - partnership dikembangkan dari partnership Stage 3.
 - digitalUse dikembangkan dari digitalPlatform Stage 3.
+- Setiap item learningDesign.digitalUse wajib memakai struktur sourceOrPlatform, linkOrAccess, dan function.
+- sourceOrPlatform berisi nama media, aplikasi, sumber digital, atau platform digital yang disebut pada Stage 3.
+- linkOrAccess hanya boleh diisi jika Stage 3 atau sourceData memberikan tautan, URL, kode akses, nama file, path, atau instruksi akses yang eksplisit.
+- Jika Stage 3 hanya menyebut nama platform seperti Google Slides, YouTube, Canva, Google Form, Padlet, atau platform lain tanpa tautan/kode akses, maka linkOrAccess wajib dikosongkan dengan string kosong "".
+- Jangan membuat, menebak, atau menambahkan tautan umum/resmi seperti https://slides.google.com, https://youtube.com, atau tautan platform lain jika tautan tersebut tidak diberikan eksplisit oleh guru/sourceData.
+- function berisi fungsi penggunaan platform dalam kegiatan pembelajaran, bukan alamat akses.
 - resources dikembangkan dari facilityAndTechnologyUse Stage 3.
 - partnership hanya memuat mitra pembelajaran.
 - digitalUse hanya memuat media, aplikasi, sumber digital, atau platform digital.
@@ -315,6 +327,7 @@ Field berikut wajib diisi:
 - learningDesign.partnership.notes
 - learningDesign.digitalUse.items[].sourceOrPlatform
 - learningDesign.digitalUse.items[].function
+- learningDesign.digitalUse.items[].linkOrAccess bersifat opsional dan boleh kosong jika sourceData tidak menyediakan tautan atau akses eksplisit.
 - learningDesign.digitalUse.notes
 - learningDesign.resources[].name
 - learningDesign.resources[].function
@@ -346,18 +359,19 @@ G. Kedalaman Narasi Minimal
 - partnership.notes: 2 kalimat.
 - digitalUse.items[].function: 2 kalimat.
 - digitalUse.notes: 2 kalimat.
+- di
 - resources[].function: 2 kalimat.
 - meetingActivities.overview: 1 paragraf, 3-4 kalimat.
 - meetings[].introParagraph: 1 paragraf, 3 kalimat.
 - diagnostic.step1Description: 3-4 kalimat.
 - diagnostic.step2Description: 3-4 kalimat.
-- understanding.step4Description: 3-4 kalimat.
-- understanding.step5Description: 3-4 kalimat.
-- applying.step6Description: 3-4 kalimat.
-- applying.step7Description: 3-4 kalimat.
+- understanding.step4Description: 3-4 kalimat dengan panjang kata 20-25.
+- understanding.step5Description: 3-4 kalimat dengan panjang kata 20-25.
+- applying.step6Description: 3-4 kalimat dengan panjang kata 20-25.
+- applying.step7Description: 3-4 kalimat dengan panjang kata 20-25.
 - reflecting.description: 2 kalimat.
-- reflecting.step8Description: 3-4 kalimat.
-- formativeAssessment.step9Description: 2-3 kalimat.
+- reflecting.step8Description: 3-4 kalimat dengan panjang kata 20-25.
+- formativeAssessment.step9Description: 2-3 kalimat dengan panjang kata 10-15.
 - formativeAssessment.observedIndicators: 3-5 butir indikator konkret.
 - formativeAssessment.teacherRecordFormat: 1-2 kalimat format catatan guru.
 - assessment.summative.provision: 2-3 kalimat.
@@ -406,33 +420,33 @@ Aturan isi meeting:
 
 J. Struktur Diagnostik
 Setiap diagnostic wajib berisi:
-- step1Description: cara guru melakukan cek kesiapan awal, alat atau media yang digunakan, cara murid menjawab, dan tujuan diagnostik.
+- step1Description: gunakan penjelasan yang sama dengan teks berikut "Guru melakukan diagnostik dengan metode sederhana, tidak menggunakan aplikasi digital. Guru menuliskan satu soal singkat di papan tulis atau membagikan kertas kecil. Murid menulis jawaban dan alasan singkat secara individu. Tujuan tahap ini bukan memberi nilai, melainkan membedakan kesiapan awal murid agar guru tahu siapa yang sudah lebih paham dan siapa yang masih membutuhkan bimbingan.".
 - sampleQuestion: contoh soal sesuai materi pertemuan.
-- answerOptions: pilihan A dan B jika sesuai.
+- answerOptions: pilihan A dan B jika sesuai, tuliskan pilihan di bagian ini  contoh "A. 2X B. 2Y".
 - correctAnswer: jawaban tepat dan alasan singkat.
-- step2Description: cara guru membaca hasil jawaban dan membentuk kelompok sementara.
+- step2Description: gunakan penjelasan yang sama dengan contoh teks berikut "Setelah semua murid menulis jawaban, guru meminta murid bergerak sesuai hasil jawabannya. Murid dengan jawaban A atau jawaban yang lebih tepat/yakin berdiri di sisi kanan kelas sebagai Kelompok A. Murid dengan jawaban B, jawaban belum tepat, atau masih ragu berdiri di sisi kiri kelas sebagai Kelompok B. Dalam rancangan ini, Kelompok A diasumsikan lebih siap, sedangkan Kelompok B membutuhkan dukungan yang lebih bertahap.".
 - teacherNotes: buat banyak kata dan inti penjelasan sama dengan contoh, berikut "Kelompok A/B bersifat sementara dan tidak boleh disebut sebagai kelompok pintar atau kurang pintar. Guru perlu menyampaikan bahwa pengelompokan hanya digunakan untuk menyesuaikan bentuk bantuan belajar. Murid dapat berpindah kelompok pada kegiatan berikutnya ketika pemahamannya berubah" .
 
 K. Struktur Memahami
 Setiap understanding wajib berisi:
 - teacherNotes: buat banyak kata dan inti penjelasan sama dengan contoh, berikut "Pada tahap memahami, guru belum membedakan tugas antara Kelompok A dan Kelompok B. Semua murid tetap mendapatkan penjelasan konsep yang sama agar memiliki dasar pemahaman bersama. Hasil diagnostik digunakan sebagai pintu masuk untuk memilih contoh yang perlu dibahas"
-- step4Description: guru membahas jawaban murid dan meluruskan miskonsepsi.
+- step4Description: guru membahas lebih detail jawaban murid dan meluruskan miskonsepsi.
 - step5Description: guru menguatkan konsep dengan media atau sumber daya yang relevan.
 - triggerQuestions: 3-4 pertanyaan pemantik.
 
 L. Struktur Mengaplikasi
 Setiap applying wajib berisi:
-- step6Description: murid mulai mengerjakan mini-PjBL atau tugas aplikasi.
+- step6Description: tuliskan pada bagian ini dalam bentuk langkah guru dan aktivitas murid. Pastikan terdapat: judul proyek, konteks masalah, pembagian Kelompok A dan Kelompok B, bentuk bantuan untuk Kelompok B, bentuk tantangan untuk Kelompok A, produk/kinerja yang dikumpulkan, serta cara guru memberi umpan balik selama kegiatan.
 - differentiation.supportGroup: bantuan untuk murid yang membutuhkan dukungan.
 - differentiation.advancedGroup: tantangan untuk murid yang lebih siap.
-- step7Description: penyelesaian produk/kinerja dan persiapan penyampaian hasil.
+- step7Description: penyelesaian produk/kinerja dan persiapan penyampaian hasil. Pada tahap ini, murid menyelesaikan tugas sesuai bentuk kegiatan yang relevan, sementara guru memantau proses, memberi bantuan, umpan balik singkat, dan menangani miskonsepsi. murid mengumpulkan hasil akhir.
 - flowSummary: 3-4 butir alur kegiatan.
 - product: produk akhir dari Stage 3.
 
 M. Struktur Merefleksi
 Setiap reflecting wajib berisi:
 - description
-- step8Description
+- step8Description : tuliskan bagian merefleksi sebagai tahap setelah murid menyelesaikan kegiatan mengaplikasi. Guru memandu murid menyadari makna konsep yang telah dipelajari, menghubungkannya dengan situasi nyata, serta melihat manfaatnya dalam kehidupan sehari-hari. Murid menuliskan atau menyampaikan satu hal yang berubah dari pemahaman awal mereka, strategi yang membantu mereka belajar, atau bagian yang masih perlu dipahami lebih lanjut.
 - reflectionQuestions berisi 3-4 pertanyaan refleksi.
 
 N. Struktur Asesmen
@@ -456,10 +470,25 @@ N. Struktur Asesmen
     ) -> dict[str, Any]:
         dummy_onboarding = get_intra_dummy_onboarding_content()
 
-        school = self._dump(payload.school) or dummy_onboarding.get("school", {})
-        teacher_profile = self._dump(payload.teacherProfile) or dummy_onboarding.get("teacherProfile", {})
-        teacher_class = self._dump(payload.teacherClass) or dummy_onboarding.get("teacherClass", {})
-        teacher_subject = self._dump(payload.teacherSubject) or dummy_onboarding.get("teacherSubject", {})
+        school = self._merge_dicts_keep_non_empty(
+        dummy_onboarding.get("school", {}),
+        self._dump(payload.school),
+        )
+
+        teacher_profile = self._merge_dicts_keep_non_empty(
+            dummy_onboarding.get("teacherProfile", {}),
+            self._dump(payload.teacherProfile),
+        )
+
+        teacher_class = self._merge_dicts_keep_non_empty(
+            dummy_onboarding.get("teacherClass", {}),
+            self._dump(payload.teacherClass),
+        )
+
+        teacher_subject = self._merge_dicts_keep_non_empty(
+            dummy_onboarding.get("teacherSubject", {}),
+            self._dump(payload.teacherSubject),
+        )
 
         onboarding = {
             "school": school,
