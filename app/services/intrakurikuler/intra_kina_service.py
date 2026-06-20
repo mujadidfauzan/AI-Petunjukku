@@ -94,6 +94,9 @@ class IntraKinaService:
                                 "Untuk integrasi frontend, balas hanya dalam JSON valid dengan bentuk "
                                 '{"reply":"...","suggestedFollowUpQuestions":["...","..."]}. '
                                 "Field reply berisi pesan KINA untuk guru, tetap natural dan jangan menyebut JSON. "
+                                "Field reply dilarang memuat analisis internal, posisi diskusi, status field, checklist, tanda centang/silang, atau catatan proses berpikir. "
+                                "Jangan menulis frasa seperti 'Analisis internal', 'Posisi diskusi', 'sudah jelas', 'belum jelas', atau nama field teknis. "
+                                "Jika memberi opsi, jelaskan alasan singkat setiap opsi dan beri rekomendasi yang paling cocok sebelum bertanya. "
                                 "Field suggestedFollowUpQuestions wajib berisi 2-3 pilihan balasan singkat yang bisa langsung diklik guru. "
                                 "Pilihan harus nyambung dengan pertanyaan terakhir KINA, bukan pertanyaan baru. "
                                 "Jangan pakai markdown, tanda **, atau menyebut format JSON."
@@ -276,6 +279,20 @@ class IntraKinaService:
         allow_name: bool,
     ) -> str:
         text = self._polish_short_text(value)
+        
+        internal_markers = [
+            "Analisis internal:",
+            "Posisi diskusi:",
+            "Checklist internal:",
+            "Field yang sudah jelas:",
+        ]
+
+        for marker in internal_markers:
+            if marker in text:
+                text = text.split(marker)[0].strip()
+
+        text = re.sub(r"-\s*Analisis internal.*", "", text, flags=re.IGNORECASE | re.DOTALL)
+
         text = re.sub(r"\bAnda\b", "kamu", text, flags=re.IGNORECASE)
         text = re.sub(r"\bBapak/Ibu Guru\b", "kamu", text, flags=re.IGNORECASE)
         text = re.sub(r"\bBapak/Ibu\b", "kamu", text, flags=re.IGNORECASE)
@@ -404,6 +421,9 @@ Tugas Anda:
 - Jangan menyebut nama guru di setiap respons jika tidak diperlukan.
 - Gunakan Stage 1 dan Stage 2 agar respons tidak generik.
 - Tentukan posisi diskusi dari chatHistory, tetapi jangan tampilkan nama field teknis kepada guru.
+- Analisis posisi diskusi hanya untuk proses internal. Jangan pernah menampilkan analisis internal kepada guru.
+- Dilarang menulis "Analisis internal", "Posisi diskusi", "belum jelas", "sudah jelas", daftar field, tanda centang/silang, atau catatan status poin dalam respons.
+- Respons final ke guru harus hanya berupa percakapan natural.
 - PRIORITAS TERTINGGI: sebelum menjawab, periksa seluruh chatHistory dan tentukan secara internal field wajib Stage 3 mana yang sudah jelas dan mana yang belum.
 - Field wajib Stage 3 adalah: gaya pembelajaran, preferensi pedagogis, fasilitas/teknologi, sumber belajar/media, kemitraan, dan produk/kinerja akhir.
 - Field yang sudah terjawab di bagian mana pun dalam chatHistory dianggap selesai, meskipun muncul tidak sesuai urutan.
@@ -422,6 +442,8 @@ Tugas Anda:
   6. produk/kinerja akhir.
 - Jangan loncat ke poin berikutnya jika poin saat ini belum cukup jelas.
 - Jika guru meminta saran, bingung, atau meminta contoh, fokus bantu pada poin yang sedang dibahas saja.
+- Jika memberi opsi, jangan hanya menyodorkan pilihan. Jelaskan secara singkat kenapa setiap opsi cocok, kapan dipakai, dan mana yang paling direkomendasikan untuk konteks kelas ini.
+- Gunakan pola guided steps: jelaskan opsi → beri alasan → rekomendasikan yang paling cocok → ajukan satu pertanyaan konfirmasi ringan.
 - Jika guru menjawab "setuju", "oke", "baik", "boleh", atau jawaban pendek sejenis, jangan langsung pindah topik.
 - Setelah guru menyetujui pilihan, rangkum keputusan tersebut secara natural lalu ajukan satu pertanyaan pendalaman ringan agar keputusan lebih operasional.
 - Pindah ke poin berikutnya hanya jika guru memberi sinyal eksplisit seperti "lanjut", "bisa dilanjutkan", "sudah jelas", "cukup", "sudah cukup", atau "oke lanjut".
